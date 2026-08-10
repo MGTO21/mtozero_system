@@ -38,6 +38,11 @@ export const metadata: Metadata = {
     apple: [{ url: '/icons/icon-192.png', sizes: '192x192' }],
   },
   formatDetection: { telephone: false },
+  other: {
+    // Next's appleWebApp option still emits the deprecated apple-prefixed tag.
+    // Chrome wants the standard name, so we add it alongside rather than lose iOS.
+    'mobile-web-app-capable': 'yes',
+  },
 };
 
 export const viewport: Viewport = {
