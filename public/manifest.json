@@ -1,0 +1,33 @@
+{
+  "name": "Mtozero Shop — إدارة المخزون والمبيعات",
+  "short_name": "Mtozero",
+  "description": "نظام إدارة مخزون ومبيعات متجر Mtozero Shop — الأبيض، شمال كردفان.",
+  "id": "/dashboard",
+  "start_url": "/dashboard",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0A0909",
+  "theme_color": "#0A0909",
+  "lang": "ar",
+  "dir": "rtl",
+  "categories": ["business", "productivity", "shopping"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "تسجيل بيع سريع",
+      "short_name": "بيع",
+      "url": "/sell",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "المخزون",
+      "url": "/inventory",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

@@ -1,0 +1,147 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-ink-50 text-ink-800 antialiased;
+    /* Prevent iOS rubber-banding revealing a white gutter behind the dark shell. */
+    overscroll-behavior-y: none;
+  }
+
+  .dark body {
+    @apply bg-ink-950 text-ink-100;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display font-extrabold tracking-tight;
+  }
+
+  /* Numbers must line up in columns and never shift width while typing. */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+  }
+
+  /* Native controls inherit the dark shell instead of showing a white box. */
+  input,
+  select,
+  textarea,
+  button {
+    font: inherit;
+    color: inherit;
+  }
+
+  .dark input[type='date']::-webkit-calendar-picker-indicator,
+  .dark input[type='month']::-webkit-calendar-picker-indicator {
+    filter: invert(0.85);
+  }
+
+  input[type='number']::-webkit-outer-spin-button,
+  input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  input[type='number'] {
+    -moz-appearance: textfield;
+  }
+
+  ::selection {
+    @apply bg-brand-500/35;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: theme('colors.ink.600') transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-ink-300 dark:bg-ink-700;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-brand-500 ring-offset-2 ring-offset-ink-50 dark:ring-offset-ink-950;
+  }
+}
+
+@layer components {
+  /* Surface: flat, one hairline border, no stacked shadows. */
+  .surface {
+    @apply rounded-card border border-ink-200 bg-white dark:border-ink-750 dark:bg-ink-850;
+  }
+
+  .surface-sunken {
+    @apply rounded-card border border-ink-200 bg-ink-100/60 dark:border-ink-800 dark:bg-ink-900;
+  }
+
+  .field {
+    @apply w-full rounded-card border border-ink-200 bg-white px-3 py-2.5 text-[0.95rem] outline-none transition
+           placeholder:text-ink-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25
+           dark:border-ink-700 dark:bg-ink-900 dark:placeholder:text-ink-500;
+  }
+
+  .label {
+    @apply mb-1.5 block text-[0.8rem] font-bold text-ink-500 dark:text-ink-400;
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[0.72rem] font-bold;
+  }
+
+  /* Hairline separator that reads as structure, not decoration. */
+  .rule {
+    @apply border-ink-200 dark:border-ink-800;
+  }
+}
+
+/* The app shell fills the viewport on mobile browsers with dynamic toolbars. */
+.app-height {
+  min-height: 100vh;
+  min-height: 100dvh;
+}
+
+/* Print: the invoice route must come out on white paper regardless of theme. */
+@media print {
+  html,
+  body {
+    background: #fff !important;
+    color: #0a0909 !important;
+  }
+
+  .dark body {
+    background: #fff !important;
+    color: #0a0909 !important;
+  }
+
+  @page {
+    margin: 14mm;
+  }
+}
+
+@media (display-mode: standalone) {
+  /* Hide the install banner once the PWA is actually installed. */
+  .only-browser {
+    display: none !important;
+  }
+}

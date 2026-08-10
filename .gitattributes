@@ -1,0 +1,7 @@
+# Normalize line endings in the repo so Windows and Vercel's Linux builders agree.
+* text=auto eol=lf
+
+# Binary assets must never be converted.
+*.png binary
+*.jpg binary
+*.ico binary
