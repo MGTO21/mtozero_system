@@ -30,17 +30,31 @@ export function errorMessage(err: unknown, fallback = 'حدث خطأ غير مت
     const code = (err as { code?: string }).code ?? '';
     if (code === 'permission-denied') return 'ليست لديك صلاحية لهذه العملية.';
     if (code === 'unavailable') return 'لا يوجد اتصال بالإنترنت. سيتم المزامنة عند عودة الشبكة.';
-    if (code === 'auth/invalid-credential' || code === 'auth/wrong-password')
-      return 'البريد أو كلمة المرور غير صحيحة.';
+    // Firebase has shipped three different codes for "bad email or password"
+    // across SDK versions; all three mean the same thing to the user.
+    if (
+      code === 'auth/invalid-credential' ||
+      code === 'auth/invalid-login-credentials' ||
+      code === 'auth/wrong-password'
+    )
+      return 'البريد أو كلمة المرور غير صحيحة — أو الحساب غير موجود في Firebase.';
     if (code === 'auth/user-not-found') return 'لا يوجد حساب بهذا البريد.';
+    if (code === 'auth/user-disabled') return 'هذا الحساب موقوف من Firebase.';
+    if (code === 'auth/invalid-email') return 'صيغة البريد الإلكتروني غير صحيحة.';
+    if (code === 'auth/unauthorized-domain')
+      return 'هذا النطاق غير مصرّح له — أضِفه في Authentication ← Authorized domains.';
     if (code === 'auth/too-many-requests') return 'محاولات كثيرة. انتظر قليلاً ثم حاول مرة أخرى.';
     if (code === 'auth/email-already-in-use') return 'هذا البريد مستخدم بالفعل.';
     if (code === 'auth/weak-password') return 'كلمة المرور قصيرة — 6 أحرف على الأقل.';
     if (code === 'auth/network-request-failed') return 'تعذّر الاتصال بالشبكة.';
     if (code === 'auth/operation-not-allowed')
       return 'تسجيل الدخول بالبريد غير مفعّل في Firebase — فعّل Email/Password من Authentication.';
-    if (code === 'auth/invalid-api-key' || code === 'auth/api-key-not-valid')
-      return 'مفاتيح Firebase غير صحيحة — راجع ملف .env.local.';
+    // Firebase emits this one with trailing punctuation baked into the code.
+    if (code === 'auth/invalid-api-key' || code.startsWith('auth/api-key-not-valid'))
+      return 'مفاتيح Firebase غير صحيحة — راجع متغيرات البيئة.';
+    // An unmapped code is far more useful shown than hidden: without it the user
+    // is left guessing, and the raw code is what makes the cause searchable.
+    if (code) return `${fallback} (${code})`;
     if (code === 'storage/unauthorized') return 'ليست لديك صلاحية رفع الصور.';
     if (code === 'storage/unknown' || code === 'storage/retry-limit-exceeded')
       return 'تخزين الصور غير مفعّل في مشروع Firebase. المنتج يُحفظ بدون صورة.';
