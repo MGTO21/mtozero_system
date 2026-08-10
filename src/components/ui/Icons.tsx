@@ -327,6 +327,16 @@ export const IconReturn = (p: IconProps) => (
   </Base>
 );
 
+/** Daily close: a cash drawer being counted. */
+export const IconCashRegister = (p: IconProps) => (
+  <Base {...p}>
+    <path d="M3.5 10.5h17V19a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 19v-8.5Z" />
+    <path d="M6 10.5V6a1.5 1.5 0 0 1 1.5-1.5h9A1.5 1.5 0 0 1 18 6v4.5" />
+    <path d="M9.5 15h5" />
+    <path d="M9 7.5h6" />
+  </Base>
+);
+
 export const IconInstall = (p: IconProps) => (
   <Base {...p}>
     <rect x="6.5" y="2.5" width="11" height="19" rx="2.5" />

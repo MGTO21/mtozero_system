@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useMemo } from 'react';
-import { LowStockPanel } from '@/components/dashboard/LowStockPanel';
+import { RestockPanel } from '@/components/inventory/RestockPanel';
 import { SalesChart } from '@/components/dashboard/SalesChart';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { Button } from '@/components/ui/Button';
@@ -136,9 +136,10 @@ export default function DashboardPage() {
                   ) : null
                 }
               >
-                تنبيهات المقاسات
+                ماذا تطلب في الشحنة القادمة
               </SectionTitle>
-              <LowStockPanel rows={alerts} />
+              {/* Ranked by what actually sells, not just by what is low. */}
+              <RestockPanel products={products} sales={sales.data} />
             </section>
 
             <div className="space-y-3">

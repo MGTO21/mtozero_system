@@ -1,6 +1,7 @@
 import type { ComponentType, SVGProps } from 'react';
 import {
   IconBoxes,
+  IconCashRegister,
   IconChart,
   IconDebt,
   IconGauge,
@@ -36,6 +37,7 @@ export const NAV: NavItem[] = [
   { href: '/dashboard', label: 'الرئيسية', icon: IconGauge, section: 'daily' },
   { href: '/sell', label: 'بيع سريع', icon: IconTag, section: 'daily' },
   { href: '/sales', label: 'المبيعات', icon: IconReceipt, section: 'daily' },
+  { href: '/close', label: 'تقفيل اليوم', icon: IconCashRegister, section: 'daily' },
   { href: '/customers', label: 'العملاء', icon: IconUserCircle, section: 'daily' },
   { href: '/debts', label: 'الديون', icon: IconDebt, section: 'daily' },
 

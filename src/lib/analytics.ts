@@ -140,6 +140,60 @@ export function staleProducts(products: Product[], days = 30): { product: Produc
   return rows.sort((a, b) => b.idleDays - a.idleDays);
 }
 
+export interface RestockRow {
+  product: Product;
+  size: string;
+  qty: number;
+  /** Units of this exact product+size sold in the window. */
+  sold: number;
+  /** Whole days of stock left at the current rate; Infinity when nothing sells. */
+  daysOfCover: number;
+  /** Suggested order quantity to cover the same window again. */
+  suggested: number;
+}
+
+/**
+ * What to actually buy in the next shipment.
+ *
+ * A flat low-stock list is not an order sheet: a size sitting at zero that sells
+ * eight a month matters far more than one that sells none. This crosses the stock
+ * level with real sales velocity so the scarce sizes that move rise to the top.
+ */
+export function restockPriority(products: Product[], sales: Sale[], days = 30): RestockRow[] {
+  const since = Date.now() - days * 86400_000;
+
+  // Units sold per product+size inside the window.
+  const sold = new Map<string, number>();
+  for (const s of sales) {
+    const at = toDate(s.createdAt)?.getTime() ?? 0;
+    if (at < since) continue;
+    const key = `${s.productId}|${s.size}`;
+    sold.set(key, (sold.get(key) ?? 0) + netQty(s));
+  }
+
+  const rows: RestockRow[] = [];
+  for (const p of products) {
+    if (p.isArchived) continue;
+    for (const size of p.sizes) {
+      if (size.qty > p.lowStockThreshold) continue;
+      const units = sold.get(`${p.id}|${size.size}`) ?? 0;
+      const perDay = units / days;
+      rows.push({
+        product: p,
+        size: size.size,
+        qty: size.qty,
+        sold: units,
+        daysOfCover: perDay > 0 ? Math.floor(size.qty / perDay) : Infinity,
+        // Order enough to last another full window, rounded up to a whole unit.
+        suggested: Math.max(1, Math.ceil(units - size.qty)),
+      });
+    }
+  }
+
+  // Fast movers first; among equals, the emptiest shelf wins.
+  return rows.sort((a, b) => b.sold - a.sold || a.qty - b.qty);
+}
+
 export interface DebtorRow {
   customerName: string;
   customerPhone?: string;

@@ -14,7 +14,15 @@ import {
 import { useEffect, useState } from 'react';
 import { db } from '@/lib/firebase';
 import { useLiveQuery } from '@/lib/hooks/useFirestore';
-import type { Channel, ConsumedLot, PaymentStatus, Product, Sale, SizeStock } from '@/lib/types';
+import type {
+  Channel,
+  ConsumedLot,
+  DebtPayment,
+  PaymentStatus,
+  Product,
+  Sale,
+  SizeStock,
+} from '@/lib/types';
 import { AppError, COL } from './collections';
 import { logActivity } from './activity';
 import { reconcileSize } from './products';
@@ -193,6 +201,34 @@ export function useOpenDebts() {
     .filter((s) => saleDue(s) > 0)
     .sort((a, b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0));
   return { ...state, data };
+}
+
+/**
+ * Debt repayments in a window. These are cash that arrived today for goods sold
+ * on an earlier day, so a daily close cannot be computed from sales alone.
+ */
+export function usePaymentsBetween(from: Date | null, to: Date | null) {
+  return useLiveQuery<DebtPayment>(
+    () => {
+      if (!from || !to) return null;
+      return query(
+        collection(db(), COL.payments),
+        where('createdAt', '>=', Timestamp.fromDate(from)),
+        where('createdAt', '<=', Timestamp.fromDate(to)),
+        orderBy('createdAt', 'desc'),
+      );
+    },
+    [from?.getTime() ?? 0, to?.getTime() ?? 0],
+    (id, raw) => ({
+      id,
+      saleId: String(raw.saleId ?? ''),
+      customerName: String(raw.customerName ?? ''),
+      amount: Number(raw.amount ?? 0),
+      receivedBy: String(raw.receivedBy ?? ''),
+      receivedByName: String(raw.receivedByName ?? 'مستخدم'),
+      createdAt: (raw.createdAt as Timestamp) ?? null,
+    }),
+  );
 }
 
 /** Single sale, live — used by the invoice/return sheets. */

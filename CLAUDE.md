@@ -34,7 +34,8 @@ src/
     login/                شاشة الدخول
     offline/              الصفحة التي يعرضها الـ service worker بدون شبكة
     (app)/                كل الشاشات المحمية خلف AppShell
-      dashboard/ sell/ inventory/ sales/ debts/ expenses/ reports/ activity/ team/
+      dashboard/ sell/ sales/ close/ customers/ debts/
+      inventory/ shipments/ expenses/ reports/ activity/ team/ settings/
   components/
     layout/               AppShell (الشريط الجانبي + الشريط السفلي) + nav
     providers/            Auth / Theme / Toast
@@ -80,6 +81,10 @@ src/
     بينما توسيع نطاق الـtransaction يزيد احتمال فشل خصم المخزون.
 11. **الفواتير**: `lib/invoice-image.ts` يرسم على canvas (PNG للواتساب)، وصفحة `/invoice/[id]`
     للطباعة وحفظ PDF من المتصفح. لا تُدخل مكتبات html2canvas/jsPDF — الحل الحالي بلا تبعيات.
+12. **`/close` يقيس النقد لا الإيراد.** النقد المستلم اليوم = مدفوعات مبيعات اليوم + تسديد ديون
+    قديمة (`usePaymentsBetween`)، ولا يساوي `revenue` أبداً. لا تبسّطها إلى مجموع المبيعات.
+13. **`restockPriority` تُرتّب بسرعة البيع لا بالكمية.** قائمة «منخفض» وحدها ليست قرار شراء —
+    مقاس نفد ويُباع 8 في الشهر أهم من مقاس نفد ولم يُبع أبداً.
 
 ## الأدوار
 

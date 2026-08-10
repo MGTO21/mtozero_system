@@ -2,7 +2,8 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { QuickSearch, useQuickSearchHotkey } from '@/components/search/QuickSearch';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useTheme } from '@/components/providers/ThemeProvider';
 import { InstallBanner } from '@/components/pwa/InstallBanner';
@@ -13,6 +14,7 @@ import {
   IconLogout,
   IconMoon,
   IconOffline,
+  IconSearch,
   IconSun,
   IconTag,
 } from '@/components/ui/Icons';
@@ -28,6 +30,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const online = useOnlineStatus();
   const [moreOpen, setMoreOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  useQuickSearchHotkey(useCallback(() => setSearchOpen(true), []));
 
   useEffect(() => {
     if (!loading && !firebaseUser) router.replace('/login');
@@ -126,7 +131,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <TopBar />
+        <TopBar onSearch={() => setSearchOpen(true)} />
 
         {!online ? (
           <div className="flex items-center justify-center gap-2 bg-warn/15 px-4 py-2 text-[0.8rem] font-bold text-warn">
@@ -191,6 +196,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           <UserBadge />
         </div>
       </Sheet>
+
+      <QuickSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
   );
 }
@@ -208,7 +215,7 @@ function TabLink({ item, active }: { item: { href: string; label: string; icon: 
   );
 }
 
-function TopBar() {
+function TopBar({ onSearch }: { onSearch: () => void }) {
   const { theme, toggle } = useTheme();
   const pathname = usePathname();
   const current = NAV.find((n) => pathname === n.href || pathname.startsWith(`${n.href}/`));
@@ -220,6 +227,20 @@ function TopBar() {
       </div>
       <h1 className="hidden truncate text-lg lg:block">{current?.label ?? 'Mtozero Shop'}</h1>
       <span className="flex-1" />
+
+      {/* Reads as a search field on desktop, collapses to an icon on phones. */}
+      <button
+        onClick={onSearch}
+        aria-label="بحث سريع"
+        className="inline-flex h-9 items-center gap-2 rounded-card border border-ink-200 px-2.5 text-ink-400 transition-colors hover:border-brand-500 hover:text-brand-500 dark:border-ink-700 sm:w-56"
+      >
+        <IconSearch className="h-[1.05rem] w-[1.05rem] shrink-0" />
+        <span className="hidden flex-1 text-right text-[0.82rem] font-semibold sm:block">بحث…</span>
+        <kbd className="hidden shrink-0 rounded border border-ink-200 px-1 py-0.5 text-[0.62rem] font-bold dark:border-ink-700 sm:block">
+          Ctrl K
+        </kbd>
+      </button>
+
       <IconButton label={theme === 'dark' ? 'الوضع النهاري' : 'الوضع الليلي'} onClick={toggle}>
         {theme === 'dark' ? <IconSun className="h-5 w-5" /> : <IconMoon className="h-5 w-5" />}
       </IconButton>
