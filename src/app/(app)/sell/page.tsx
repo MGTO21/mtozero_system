@@ -14,13 +14,15 @@ import {
   IconBoxes,
   IconChevronLeft,
   IconImage,
+  IconPlus,
   IconSearch,
   IconTag,
 } from '@/components/ui/Icons';
 import { errorMessage } from '@/lib/db/collections';
 import { awardReferralIfDue, ensureCustomer } from '@/lib/db/customers';
 import { availableSizes, productImage, totalStock, useProducts } from '@/lib/db/products';
-import { recordSale, useSale } from '@/lib/db/sales';
+import { recordSale, useSale, type CartLine, type RemainingStock } from '@/lib/db/sales';
+import { CartList } from '@/components/sell/CartList';
 import { useSettings } from '@/lib/db/settings';
 import { money, num } from '@/lib/format';
 import { CHANNEL_LABEL, type Channel, type PaymentStatus, type Product } from '@/lib/types';
@@ -59,7 +61,9 @@ function QuickSale() {
   const [search, setSearch] = useState('');
   const [busy, setBusy] = useState(false);
   const [lastSaleId, setLastSaleId] = useState<string | null>(null);
-  const [remaining, setRemaining] = useState(0);
+  const [remaining, setRemaining] = useState<RemainingStock>({});
+  /** Lines already committed to this invoice. The line being configured is separate. */
+  const [cart, setCart] = useState<CartLine[]>([]);
 
   const lastSale = useSale(lastSaleId);
 
@@ -88,15 +92,52 @@ function QuickSale() {
     setQty(1);
   }, [product]);
 
+  /** Stock of the selected size, less whatever the cart already claims of it. */
   const stockForSize = useMemo(() => {
     if (!product || !size) return 0;
-    return product.sizes.find((s) => s.size === size)?.qty ?? 0;
-  }, [product, size]);
+    const onHand = product.sizes.find((s) => s.size === size)?.qty ?? 0;
+    const claimed = cart
+      .filter((l) => l.product.id === product.id && l.size === size)
+      .reduce((sum, l) => sum + l.qty, 0);
+    return Math.max(0, onHand - claimed);
+  }, [product, size, cart]);
 
-  const gross = price * qty;
+  /** The line currently being configured, if it is complete and in stock. */
+  const pendingLine = useMemo<CartLine | null>(
+    () =>
+      product && size && qty > 0 && qty <= stockForSize && price > 0
+        ? { product, size, qty, sellPrice: price }
+        : null,
+    [product, size, qty, stockForSize, price],
+  );
+
+  // The pending line counts towards the total straight away, so a single-item sale
+  // never needs an explicit "add to cart" tap.
+  const lines = useMemo(
+    () => (pendingLine ? [...cart, pendingLine] : cart),
+    [cart, pendingLine],
+  );
+
+  const gross = lines.reduce((sum, l) => sum + l.sellPrice * l.qty, 0);
   const creditUsed = Math.min(customer.creditUsed, gross);
   const total = gross - creditUsed;
   const due = payment === 'paid' ? 0 : payment === 'debt' ? total : Math.max(0, total - amountPaid);
+
+  function addToCart() {
+    if (!pendingLine) return;
+    setCart((current) => {
+      // Same product and size twice becomes one line with a bigger quantity.
+      const index = current.findIndex(
+        (l) => l.product.id === pendingLine.product.id && l.size === pendingLine.size && l.sellPrice === pendingLine.sellPrice,
+      );
+      if (index === -1) return [...current, pendingLine];
+      return current.map((l, i) => (i === index ? { ...l, qty: l.qty + pendingLine.qty } : l));
+    });
+    setProductId(null);
+    setSize(null);
+    setQty(1);
+    setSearch('');
+  }
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -115,10 +156,19 @@ function QuickSale() {
     setCustomer({ name: '', phone: '', referredByCode: '', matched: null, creditUsed: 0 });
     setSearch('');
     setLastSaleId(null);
+    setCart([]);
+  }
+
+  /** Clears only the line being configured, keeping the cart intact. */
+  function clearPicker() {
+    setProductId(null);
+    setSize(null);
+    setQty(1);
+    setSearch('');
   }
 
   async function submit() {
-    if (!product || !size) return;
+    if (lines.length === 0) return;
     setBusy(true);
     try {
       // The customer record is created first so the sale can spend referral credit
@@ -132,10 +182,7 @@ function QuickSale() {
 
       const result = await recordSale(
         {
-          product,
-          size,
-          qty,
-          sellPrice: price,
+          lines,
           customerName: customer.name,
           customerPhone: customer.phone,
           customerId: record?.id ?? null,
@@ -165,11 +212,12 @@ function QuickSale() {
   if (loading) return <LoadingBlock label="جاري تحميل المنتجات…" />;
 
   /* ---------- step 1: pick the product ---------- */
-  if (!product) {
-    return (
+  // Rendered in place of the size/quantity step, so the cart and the payment
+  // section stay on screen while another product is being chosen.
+  const productPicker = (
       <>
         <div className="mb-4">
-          <h1 className="text-xl sm:text-2xl">تسجيل بيع</h1>
+          <h1 className="text-xl sm:text-2xl">{cart.length > 0 ? 'أضف صنفاً للفاتورة' : 'تسجيل بيع'}</h1>
           <p className="mt-0.5 text-[0.82rem] font-semibold text-ink-500 dark:text-ink-400">
             اختر المنتج ← المقاس ← تأكيد
           </p>
@@ -236,17 +284,18 @@ function QuickSale() {
           </div>
         )}
       </>
-    );
-  }
+  );
 
   /* ---------- step 2 + 3: size, quantity, payment ---------- */
-  const options = availableSizes(product);
-  const canConfirm = Boolean(size) && qty > 0 && qty <= stockForSize && price > 0 && !busy;
+  const options = product ? availableSizes(product) : [];
+  const canConfirm = lines.length > 0 && !busy;
 
   return (
     <>
+      {!product ? productPicker : (
+      <>
       <button
-        onClick={reset}
+        onClick={clearPicker}
         className="mb-3 inline-flex items-center gap-1 text-[0.85rem] font-bold text-ink-500 dark:text-ink-400"
       >
         <IconChevronLeft className="h-4 w-4 rotate-180" />
@@ -362,8 +411,33 @@ function QuickSale() {
             </div>
           </section>
 
+          {/* Adding another line is optional: the pending line already counts
+              towards the total, so a one-item sale needs no extra tap. */}
+          <button
+            type="button"
+            onClick={addToCart}
+            disabled={!pendingLine}
+            className="mb-3 flex w-full items-center justify-center gap-2 rounded-card border border-dashed border-ink-300 py-3 text-[0.88rem] font-bold text-ink-500 transition-colors hover:border-brand-500 hover:text-brand-500 disabled:opacity-50 dark:border-ink-700 dark:text-ink-400"
+          >
+            <IconPlus className="h-4 w-4" />
+            أضف هذا الصنف واختر صنفاً آخر
+          </button>
+        </>
+      ) : null}
+      </>
+      )}
+
+      <CartList
+        lines={cart}
+        onRemove={(index) => setCart((c) => c.filter((_, i) => i !== index))}
+        onChangeQty={(index, nextQty) =>
+          setCart((c) => c.map((l, i) => (i === index ? { ...l, qty: nextQty } : l)))
+        }
+      />
+
+      {lines.length > 0 ? (
           <section className="surface mb-3 p-3.5">
-            <h3 className="mb-3 text-[0.95rem]">3 · الدفع</h3>
+            <h3 className="mb-3 text-[0.95rem]">الدفع</h3>
 
             <div className="grid grid-cols-3 gap-2">
               {(
@@ -438,7 +512,6 @@ function QuickSale() {
               </div>
             </div>
           </section>
-        </>
       ) : null}
 
       {/* Sticky confirm bar: the total is the largest number on screen. */}

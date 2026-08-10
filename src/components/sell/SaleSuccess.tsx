@@ -5,7 +5,7 @@ import { useToast } from '@/components/providers/ToastProvider';
 import { Button } from '@/components/ui/Button';
 import { IconCheck, IconCopy, IconDownload, IconImage, IconWhatsApp } from '@/components/ui/Icons';
 import { Sheet } from '@/components/ui/Sheet';
-import { saleDue, saleTotal } from '@/lib/db/sales';
+import { saleDue, saleLabel, saleTotal, type RemainingStock } from '@/lib/db/sales';
 import { useSettings } from '@/lib/db/settings';
 import { money, num } from '@/lib/format';
 import { copyText, invoiceText, whatsappLink } from '@/lib/invoice';
@@ -14,8 +14,8 @@ import type { Sale } from '@/lib/types';
 
 interface Props {
   sale: Sale | null;
-  /** Units left of the size that was just sold — the seller's next question. */
-  remaining: number;
+  /** Stock left per `productId|size` after this invoice — the seller's next question. */
+  remaining: RemainingStock;
   onClose: () => void;
   onSellAnother: () => void;
 }
@@ -65,9 +65,7 @@ export function SaleSuccess({ sale, remaining, onClose, onSellAnother }: Props) 
         <div className="flex h-14 w-14 items-center justify-center rounded-full bg-good/15 text-good">
           <IconCheck className="h-7 w-7" />
         </div>
-        <p className="mt-3 text-[0.9rem] font-bold">
-          {sale.qty} × {sale.productName} — مقاس {sale.size}
-        </p>
+        <p className="mt-3 text-[0.9rem] font-bold">{saleLabel(sale)}</p>
         <p className="tnum mt-1 font-display text-num-xl font-black text-brand-500">{money(saleTotal(sale))}</p>
 
         {due > 0 ? (
@@ -76,13 +74,25 @@ export function SaleSuccess({ sale, remaining, onClose, onSellAnother }: Props) 
           </p>
         ) : null}
 
-        <p className="tnum mt-3 text-[0.82rem] font-bold text-ink-500 dark:text-ink-400">
-          {remaining > 0 ? (
-            <>المتبقي من مقاس {sale.size}: {num(remaining)} قطعة</>
-          ) : (
-            <span className="text-bad">نفد مقاس {sale.size} من المخزون</span>
-          )}
-        </p>
+        {/* What is left of each size just sold — the seller's immediate next question. */}
+        <ul className="mt-3 w-full space-y-1">
+          {sale.items.map((item, index) => {
+            const left = remaining[`${item.productId}|${item.size}`] ?? 0;
+            return (
+              <li
+                key={`${item.productId}-${item.size}-${index}`}
+                className="tnum flex items-center justify-between gap-2 text-[0.8rem] font-bold"
+              >
+                <span className="min-w-0 truncate text-ink-500 dark:text-ink-400">
+                  {item.productName} — مقاس {item.size}
+                </span>
+                <span className={left > 0 ? 'shrink-0 text-ink-500 dark:text-ink-400' : 'shrink-0 text-bad'}>
+                  {left > 0 ? `باقي ${num(left)}` : 'نفد'}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
       </div>
 
       <div className="surface-sunken mt-5 p-3">

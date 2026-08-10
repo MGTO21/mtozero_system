@@ -11,7 +11,7 @@ import { changePercent, staleProducts, sumExpenses, summarize, topProducts } fro
 import { downloadCsv, downloadJson, stamp } from '@/lib/csv';
 import { useExpensesBetween } from '@/lib/db/expenses';
 import { totalStock, useProducts } from '@/lib/db/products';
-import { netQty, saleDue, saleTotal, useSalesBetween } from '@/lib/db/sales';
+import { itemCost, itemGross, saleDue, saleTotal, useSalesBetween } from '@/lib/db/sales';
 import {
   endOfDay,
   endOfMonth,
@@ -64,6 +64,7 @@ export default function ReportsPage() {
     downloadCsv(
       `mtozero-sales-${stamp(range.from)}_${stamp(range.to)}`,
       [
+        'رقم الفاتورة',
         'التاريخ',
         'الوقت',
         'المنتج',
@@ -71,9 +72,10 @@ export default function ReportsPage() {
         'الكمية',
         'المرتجع',
         'سعر القطعة',
-        'الإجمالي',
+        'قيمة الصنف',
         'التكلفة',
         'الربح',
+        'إجمالي الفاتورة',
         'حالة الدفع',
         'المدفوع',
         'المتبقي',
@@ -82,25 +84,30 @@ export default function ReportsPage() {
         'القناة',
         'البائع',
       ],
-      sales.data.map((s) => [
-        formatDate(s.createdAt),
-        formatTime(s.createdAt),
-        s.productName,
-        s.size,
-        s.qty,
-        s.returnedQty,
-        s.sellPrice,
-        saleTotal(s),
-        s.costPrice * netQty(s),
-        s.profit,
-        PAYMENT_LABEL[s.paymentStatus],
-        s.amountPaid,
-        saleDue(s),
-        s.customerName ?? '',
-        s.customerPhone ?? '',
-        CHANNEL_LABEL[s.channel],
-        s.soldByName,
-      ]),
+      // One row per product line; invoice columns repeat so the file pivots cleanly.
+      sales.data.flatMap((s) =>
+        s.items.map((item) => [
+          s.id.slice(0, 6).toUpperCase(),
+          formatDate(s.createdAt),
+          formatTime(s.createdAt),
+          item.productName,
+          item.size,
+          item.qty,
+          item.returnedQty,
+          item.sellPrice,
+          itemGross(item),
+          itemCost(item),
+          itemGross(item) - itemCost(item),
+          saleTotal(s),
+          PAYMENT_LABEL[s.paymentStatus],
+          s.amountPaid,
+          saleDue(s),
+          s.customerName ?? '',
+          s.customerPhone ?? '',
+          CHANNEL_LABEL[s.channel],
+          s.soldByName,
+        ]),
+      ),
     );
     toast.success('تم تصدير تقرير المبيعات');
   }

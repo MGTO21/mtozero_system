@@ -11,7 +11,7 @@ import { Sheet } from '@/components/ui/Sheet';
 import { debtorRows, type DebtorRow } from '@/lib/analytics';
 import { downloadCsv, stamp } from '@/lib/csv';
 import { errorMessage } from '@/lib/db/collections';
-import { recordPayment, saleDue, saleTotal, useOpenDebts } from '@/lib/db/sales';
+import { recordPayment, saleDue, saleLabel, saleTotal, useOpenDebts } from '@/lib/db/sales';
 import { formatDate, money, num, whatsappNumber } from '@/lib/format';
 import { debtReminderText } from '@/lib/invoice';
 import type { Sale } from '@/lib/types';
@@ -134,9 +134,7 @@ function DebtorCard({
             {debtor.sales.map((s) => (
               <li key={s.id} className="flex items-center gap-3 px-3.5 py-2.5">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-[0.88rem] font-bold">
-                    {s.productName} — مقاس {s.size}
-                  </p>
+                  <p className="truncate text-[0.88rem] font-bold">{saleLabel(s)}</p>
                   <p className="tnum text-[0.74rem] font-semibold text-ink-400 dark:text-ink-500">
                     {formatDate(s.createdAt)} · الإجمالي {money(saleTotal(s))} · دفع {money(s.amountPaid)}
                   </p>
@@ -202,7 +200,7 @@ function PaymentSheet({ sale, onClose }: { sale: Sale | null; onClose: () => voi
       open
       onClose={onClose}
       title="تسجيل تسديد"
-      subtitle={`${sale.customerName ?? 'عميل'} — ${sale.productName}`}
+      subtitle={`${sale.customerName ?? 'عميل'} — ${saleLabel(sale)}`}
       footer={
         <Button block size="lg" loading={busy} disabled={amount <= 0 || amount > due} onClick={() => void submit()}>
           تسجيل {money(amount)}

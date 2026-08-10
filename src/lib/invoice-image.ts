@@ -1,5 +1,5 @@
 import { formatDate, money } from '@/lib/format';
-import { netQty, saleDue, saleGross, saleTotal } from '@/lib/db/sales';
+import { itemGross, itemNetQty, saleDue, saleGross, saleTotal } from '@/lib/db/sales';
 import type { Sale, ShopSettings } from '@/lib/types';
 
 /**
@@ -75,14 +75,15 @@ function row(
 }
 
 export async function renderInvoicePng(sale: Sale, settings: ShopSettings): Promise<Blob | null> {
-  const qty = netQty(sale);
+  const items = sale.items.filter((i) => itemNetQty(i) > 0);
   const gross = saleGross(sale);
   const total = saleTotal(sale);
   const due = saleDue(sale);
 
-  // Height grows with the optional discount and balance lines.
+  // The canvas has no layout engine, so its height is computed up front from the
+  // number of product lines plus the optional discount and balance rows.
   const extraRows = (sale.creditUsed > 0 ? 1 : 0) + (due > 0 ? 2 : 0);
-  const H = 760 + extraRows * 46;
+  const H = 680 + Math.max(1, items.length) * 76 + extraRows * 46;
 
   const canvas = document.createElement('canvas');
   const scale = 2; // retina-quality output for phone screens
@@ -166,17 +167,30 @@ export async function renderInvoicePng(sale: Sale, settings: ShopSettings): Prom
   line(ctx, y);
   y += 46;
 
-  // item block
-  ctx.textAlign = 'right';
-  ctx.fillStyle = INK;
-  ctx.font = '700 26px "IBM Plex Sans Arabic", system-ui, sans-serif';
-  ctx.fillText(sale.productName, W - PAD, y);
-  y += 36;
+  // One block per line on the invoice, with its own subtotal on the left.
+  for (const item of items) {
+    const itemQty = itemNetQty(item);
 
-  ctx.font = '500 21px "IBM Plex Sans Arabic", system-ui, sans-serif';
-  ctx.fillStyle = MUTED;
-  ctx.fillText(`المقاس ${sale.size}   ·   الكمية ${qty}   ·   سعر القطعة ${money(sale.sellPrice)}`, W - PAD, y);
-  y += 44;
+    ctx.textAlign = 'right';
+    ctx.fillStyle = INK;
+    ctx.font = '700 26px "IBM Plex Sans Arabic", system-ui, sans-serif';
+    ctx.fillText(item.productName, W - PAD, y);
+
+    ctx.textAlign = 'left';
+    ctx.font = '800 26px Cairo, system-ui, sans-serif';
+    ctx.fillText(money(itemGross(item)), PAD, y);
+    y += 34;
+
+    ctx.textAlign = 'right';
+    ctx.font = '500 21px "IBM Plex Sans Arabic", system-ui, sans-serif';
+    ctx.fillStyle = MUTED;
+    ctx.fillText(
+      `المقاس ${item.size}   ·   الكمية ${itemQty}   ·   سعر القطعة ${money(item.sellPrice)}`,
+      W - PAD,
+      y,
+    );
+    y += 42;
+  }
 
   line(ctx, y);
   y += 50;

@@ -1,5 +1,5 @@
 import { formatDate, money, whatsappNumber } from '@/lib/format';
-import { netQty, saleDue, saleTotal } from '@/lib/db/sales';
+import { itemGross, itemNetQty, saleDue, saleGross, saleTotal } from '@/lib/db/sales';
 import type { Sale } from '@/lib/types';
 
 const SHOP_NAME = 'Mtozero Shop';
@@ -9,19 +9,32 @@ const SHOP_NAME = 'Mtozero Shop';
  * survive copy/paste into any chat app without formatting artefacts.
  */
 export function invoiceText(sale: Sale): string {
-  const qty = netQty(sale);
+  const gross = saleGross(sale);
   const total = saleTotal(sale);
   const due = saleDue(sale);
+  const live = sale.items.filter((i) => itemNetQty(i) > 0);
 
   const lines: string[] = [];
   lines.push(`🧾 فاتورة ${SHOP_NAME}`);
   if (sale.customerName) lines.push(`العميل: ${sale.customerName}`);
   lines.push(`التاريخ: ${formatDate(sale.createdAt)}`);
   lines.push('');
-  lines.push(`المنتج: ${sale.productName}`);
-  lines.push(`المقاس: ${sale.size}`);
-  lines.push(`الكمية: ${qty}`);
-  lines.push(`سعر القطعة: ${money(sale.sellPrice)}`);
+
+  for (const item of live) {
+    const qty = itemNetQty(item);
+    // One compact line per product keeps a multi-item ticket readable in chat.
+    lines.push(
+      qty > 1
+        ? `• ${item.productName} — مقاس ${item.size} × ${qty} = ${money(itemGross(item))}`
+        : `• ${item.productName} — مقاس ${item.size} = ${money(itemGross(item))}`,
+    );
+  }
+
+  lines.push('');
+  if (sale.creditUsed > 0) {
+    lines.push(`المجموع: ${money(gross)}`);
+    lines.push(`خصم رصيد الإحالة: ${money(sale.creditUsed)}-`);
+  }
   lines.push(`الإجمالي: ${money(total)}`);
 
   if (due > 0) {

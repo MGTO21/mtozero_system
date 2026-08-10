@@ -105,8 +105,13 @@ export interface Product {
   lastSoldAt?: Timestamp | null;
 }
 
-export interface Sale {
-  id: string;
+/**
+ * One line on an invoice: a product in a size, at the price actually charged.
+ *
+ * Returns are tracked per line, not per invoice, because a customer who brings
+ * back one of three shoes must not invalidate the rest of the ticket.
+ */
+export interface SaleItem {
   productId: string;
   productName: string; // snapshot at sale time
   size: string;
@@ -116,8 +121,22 @@ export interface Sale {
   costPrice: number;
   /** Exact: sellPrice*qty minus the real cost of each lot taken. */
   profit: number;
-  /** Which batches this sale drew from, newest-arriving last. */
+  /** Which batches this line drew from, newest-arriving last. */
   lots: ConsumedLot[];
+  /** Units of this line given back; the line keeps qty - returnedQty. */
+  returnedQty: number;
+}
+
+/**
+ * One invoice. A single sale can carry several products and sizes — a customer
+ * buying two shoes and a shirt is one ticket, one payment and one debt entry,
+ * not three.
+ */
+export interface Sale {
+  id: string;
+  items: SaleItem[];
+  /** Sum of line profits minus referral credit, kept denormalized for reports. */
+  profit: number;
   customerName?: string;
   customerPhone?: string;
   /** Link to the customers collection, set whenever a phone number was given. */
@@ -130,8 +149,6 @@ export interface Sale {
   soldByName: string;
   channel: Channel;
   note?: string;
-  /** Units given back through the returns flow; total is qty - returnedQty. */
-  returnedQty: number;
   createdAt: Timestamp | null;
 }
 

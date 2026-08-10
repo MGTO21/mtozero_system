@@ -6,7 +6,7 @@ import { useToast } from '@/components/providers/ToastProvider';
 import { Button } from '@/components/ui/Button';
 import { Sheet } from '@/components/ui/Sheet';
 import { errorMessage } from '@/lib/db/collections';
-import { netQty, recordReturn } from '@/lib/db/sales';
+import { itemNetQty, recordReturn } from '@/lib/db/sales';
 import { money } from '@/lib/format';
 import type { Sale } from '@/lib/types';
 
@@ -14,7 +14,13 @@ import type { Sale } from '@/lib/types';
  * Partial or full return. The sale is never deleted — it keeps its history and the
  * returned units go back into the size's stock.
  */
-export function ReturnSheet({ sale, onClose }: { sale: Sale | null; onClose: () => void }) {
+export interface ReturnTarget {
+  sale: Sale;
+  /** Which line of the invoice is being returned. */
+  itemIndex: number;
+}
+
+export function ReturnSheet({ target, onClose }: { target: ReturnTarget | null; onClose: () => void }) {
   const actor = useActor();
   const toast = useToast();
   const [qty, setQty] = useState(1);
@@ -22,20 +28,22 @@ export function ReturnSheet({ sale, onClose }: { sale: Sale | null; onClose: () 
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
-    if (sale) {
-      setQty(Math.min(1, netQty(sale)) || 1);
+    if (target) {
+      setQty(1);
       setReason('');
     }
-  }, [sale]);
+  }, [target]);
 
-  if (!sale) return null;
-  const max = netQty(sale);
+  if (!target) return null;
+  const item = target.sale.items[target.itemIndex];
+  if (!item) return null;
+  const max = itemNetQty(item);
 
   async function submit() {
-    if (!sale) return;
+    if (!target) return;
     setBusy(true);
     try {
-      await recordReturn(sale, qty, reason, actor);
+      await recordReturn(target.sale, target.itemIndex, qty, reason, actor);
       toast.success('تم تسجيل الإرجاع وإعادة الكمية للمخزون');
       onClose();
     } catch (err) {
@@ -50,7 +58,7 @@ export function ReturnSheet({ sale, onClose }: { sale: Sale | null; onClose: () 
       open
       onClose={onClose}
       title="إرجاع / استبدال"
-      subtitle={`${sale.productName} — مقاس ${sale.size}`}
+      subtitle={`${item.productName} — مقاس ${item.size}`}
       footer={
         <div className="flex gap-2">
           <Button block size="lg" variant="danger" loading={busy} onClick={() => void submit()} disabled={max === 0}>
@@ -101,7 +109,7 @@ export function ReturnSheet({ sale, onClose }: { sale: Sale | null; onClose: () 
 
           <div className="surface-sunken flex items-center justify-between px-3.5 py-2.5">
             <span className="text-[0.82rem] font-bold text-ink-500 dark:text-ink-400">قيمة المرتجع</span>
-            <span className="tnum font-display text-num font-black text-bad">{money(sale.sellPrice * qty)}</span>
+            <span className="tnum font-display text-num font-black text-bad">{money(item.sellPrice * qty)}</span>
           </div>
 
           <div>
@@ -118,8 +126,8 @@ export function ReturnSheet({ sale, onClose }: { sale: Sale | null; onClose: () 
           </div>
 
           <p className="text-[0.78rem] leading-relaxed text-ink-400 dark:text-ink-500">
-            ستعود {qty} قطعة لمقاس {sale.size} في المخزون، وسيُعدَّل الربح والمبلغ المستحق تلقائياً.
-            العملية تبقى مسجّلة في المبيعات ولا تُحذف.
+            ستعود {qty} قطعة لمقاس {item.size} في المخزون، وسيُعدَّل الربح والمبلغ المستحق تلقائياً.
+            بقية أصناف الفاتورة لا تتأثر، والعملية تبقى مسجّلة ولا تُحذف.
           </p>
         </div>
       )}

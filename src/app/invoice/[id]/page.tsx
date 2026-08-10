@@ -4,7 +4,7 @@ import { useParams } from 'next/navigation';
 import { BrandMark } from '@/components/layout/Brand';
 import { Button } from '@/components/ui/Button';
 import { LoadingBlock } from '@/components/ui/Feedback';
-import { saleDue, saleGross, saleTotal, netQty, useSale } from '@/lib/db/sales';
+import { itemGross, itemNetQty, saleDue, saleGross, saleTotal, netQty, useSale } from '@/lib/db/sales';
 import { useSettings } from '@/lib/db/settings';
 import { formatDate, money, num } from '@/lib/format';
 
@@ -92,13 +92,17 @@ export default function InvoicePrintPage() {
             </tr>
           </thead>
           <tbody>
-            <tr className="border-b border-ink-200 text-[0.9rem]">
-              <td className="py-3 font-bold">{sale.productName}</td>
-              <td className="tnum py-3">{sale.size}</td>
-              <td className="tnum py-3">{num(qty)}</td>
-              <td className="tnum py-3">{money(sale.sellPrice)}</td>
-              <td className="tnum py-3 font-bold">{money(saleGross(sale))}</td>
-            </tr>
+            {sale.items
+              .filter((item) => itemNetQty(item) > 0)
+              .map((item, index) => (
+                <tr key={`${item.productId}-${item.size}-${index}`} className="border-b border-ink-200 text-[0.9rem]">
+                  <td className="py-3 font-bold">{item.productName}</td>
+                  <td className="tnum py-3">{item.size}</td>
+                  <td className="tnum py-3">{num(itemNetQty(item))}</td>
+                  <td className="tnum py-3">{money(item.sellPrice)}</td>
+                  <td className="tnum py-3 font-bold">{money(itemGross(item))}</td>
+                </tr>
+              ))}
           </tbody>
         </table>
 

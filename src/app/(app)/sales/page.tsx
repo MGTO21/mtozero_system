@@ -10,7 +10,16 @@ import { EmptyState, ErrorBlock, SkeletonRows } from '@/components/ui/Feedback';
 import { IconCopy, IconDownload, IconReceipt, IconReturn, IconWhatsApp } from '@/components/ui/Icons';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { summarize } from '@/lib/analytics';
-import { netQty, saleDue, saleTotal, useSalesBetween } from '@/lib/db/sales';
+import {
+  itemCost,
+  itemGross,
+  itemNetQty,
+  netQty,
+  saleDue,
+  saleLabel,
+  saleTotal,
+  useSalesBetween,
+} from '@/lib/db/sales';
 import { downloadCsv, stamp } from '@/lib/csv';
 import { formatDate, formatTime, money, num } from '@/lib/format';
 import { copyText, invoiceText, whatsappLink } from '@/lib/invoice';
@@ -24,7 +33,8 @@ export default function SalesPage() {
   const { canSeeProfit } = useAuth();
   const toast = useToast();
   const [status, setStatus] = useState<StatusFilter>('all');
-  const [returning, setReturning] = useState<Sale | null>(null);
+  // Returns target one line of an invoice, so both the sale and the line are held.
+  const [returning, setReturning] = useState<{ sale: Sale; itemIndex: number } | null>(null);
 
   const visible = useMemo(
     () => (status === 'all' ? sales : sales.filter((s) => s.paymentStatus === status)),
@@ -34,6 +44,7 @@ export default function SalesPage() {
 
   function exportCsv() {
     const headers = [
+      'رقم الفاتورة',
       'التاريخ',
       'الوقت',
       'المنتج',
@@ -41,8 +52,9 @@ export default function SalesPage() {
       'الكمية',
       'المرتجع',
       'سعر القطعة',
-      'الإجمالي',
+      'قيمة الصنف',
       ...(canSeeProfit ? ['التكلفة', 'الربح'] : []),
+      'إجمالي الفاتورة',
       'حالة الدفع',
       'المدفوع',
       'المتبقي',
@@ -51,24 +63,30 @@ export default function SalesPage() {
       'القناة',
       'البائع',
     ];
-    const rows = visible.map((s) => [
-      formatDate(s.createdAt),
-      formatTime(s.createdAt),
-      s.productName,
-      s.size,
-      s.qty,
-      s.returnedQty,
-      s.sellPrice,
-      saleTotal(s),
-      ...(canSeeProfit ? [s.costPrice * netQty(s), s.profit] : []),
-      PAYMENT_LABEL[s.paymentStatus],
-      s.amountPaid,
-      saleDue(s),
-      s.customerName ?? '',
-      s.customerPhone ?? '',
-      CHANNEL_LABEL[s.channel],
-      s.soldByName,
-    ]);
+    // One row per product line so the file can be pivoted by product in Excel;
+    // invoice-level columns repeat, which is what makes that pivot possible.
+    const rows = visible.flatMap((s) =>
+      s.items.map((item) => [
+        s.id.slice(0, 6).toUpperCase(),
+        formatDate(s.createdAt),
+        formatTime(s.createdAt),
+        item.productName,
+        item.size,
+        item.qty,
+        item.returnedQty,
+        item.sellPrice,
+        itemGross(item),
+        ...(canSeeProfit ? [itemCost(item), itemGross(item) - itemCost(item)] : []),
+        saleTotal(s),
+        PAYMENT_LABEL[s.paymentStatus],
+        s.amountPaid,
+        saleDue(s),
+        s.customerName ?? '',
+        s.customerPhone ?? '',
+        CHANNEL_LABEL[s.channel],
+        s.soldByName,
+      ]),
+    );
     downloadCsv(`mtozero-sales-${stamp(range.from)}_${stamp(range.to)}`, headers, rows);
     toast.success('تم تصدير الملف');
   }
@@ -138,20 +156,19 @@ export default function SalesPage() {
           {visible.map((s) => {
             const due = saleDue(s);
             const kept = netQty(s);
+            const returned = s.items.reduce((sum, i) => sum + i.returnedQty, 0);
+            const live = s.items.filter((i) => itemNetQty(i) > 0);
             return (
               <li key={s.id} className="surface p-3">
                 <div className="flex items-start gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <h3 className="text-[0.98rem] leading-snug">{s.productName}</h3>
-                      <span className="tnum chip bg-ink-200 text-ink-600 dark:bg-ink-800 dark:text-ink-300">
-                        مقاس {s.size}
-                      </span>
+                      <h3 className="text-[0.98rem] leading-snug">{saleLabel(s)}</h3>
                       <span className="tnum chip bg-ink-200 text-ink-600 dark:bg-ink-800 dark:text-ink-300">
                         {num(kept)} قطعة
                       </span>
-                      {s.returnedQty > 0 ? (
-                        <span className="tnum chip bg-bad/15 text-bad">مرتجع {num(s.returnedQty)}</span>
+                      {returned > 0 ? (
+                        <span className="tnum chip bg-bad/15 text-bad">مرتجع {num(returned)}</span>
                       ) : null}
                       <span
                         className={`chip ${
@@ -187,6 +204,41 @@ export default function SalesPage() {
                   </div>
                 </div>
 
+                {/* Line breakdown. A single-item ticket needs no expansion, so it
+                    is shown inline; anything larger gets its own list. */}
+                <ul className="mt-2 space-y-1 border-t border-ink-200 pt-2 dark:border-ink-800">
+                  {s.items.map((item, index) => {
+                    const itemKept = itemNetQty(item);
+                    return (
+                      <li
+                        key={`${item.productId}-${item.size}-${index}`}
+                        className={`flex items-center gap-2 text-[0.82rem] ${itemKept === 0 ? 'opacity-50' : ''}`}
+                      >
+                        <span className="tnum shrink-0 rounded border border-ink-200 px-1.5 py-0.5 text-[0.72rem] font-bold text-ink-500 dark:border-ink-700 dark:text-ink-400">
+                          {item.size}
+                        </span>
+                        <span className="min-w-0 flex-1 truncate font-semibold">{item.productName}</span>
+                        <span className="tnum shrink-0 text-ink-400 dark:text-ink-500">
+                          {num(itemKept)} × {money(item.sellPrice)}
+                        </span>
+                        <span className="tnum shrink-0 font-bold">{money(itemGross(item))}</span>
+                        {itemKept > 0 ? (
+                          <button
+                            onClick={() => setReturning({ sale: s, itemIndex: index })}
+                            aria-label={`إرجاع ${item.productName}`}
+                            title="إرجاع هذا الصنف"
+                            className="shrink-0 rounded p-1 text-ink-400 transition-colors hover:bg-bad/10 hover:text-bad"
+                          >
+                            <IconReturn className="h-3.5 w-3.5" />
+                          </button>
+                        ) : (
+                          <span className="shrink-0 chip bg-bad/15 text-bad">مرتجع</span>
+                        )}
+                      </li>
+                    );
+                  })}
+                </ul>
+
                 <div className="mt-2 flex items-center gap-1 border-t border-ink-200 pt-2 dark:border-ink-800">
                   <IconButton
                     label="نسخ الفاتورة"
@@ -208,15 +260,9 @@ export default function SalesPage() {
                     <IconWhatsApp className="h-[1.05rem] w-[1.05rem]" />
                   </a>
                   <span className="flex-1" />
-                  {kept > 0 ? (
-                    <button
-                      onClick={() => setReturning(s)}
-                      className="inline-flex items-center gap-1.5 rounded-card px-2.5 py-1.5 text-[0.78rem] font-bold text-ink-500 transition-colors hover:bg-bad/10 hover:text-bad dark:text-ink-400"
-                    >
-                      <IconReturn className="h-4 w-4" />
-                      إرجاع
-                    </button>
-                  ) : null}
+                  <span className="tnum text-[0.72rem] font-semibold text-ink-400 dark:text-ink-500">
+                    {num(live.length)} صنف
+                  </span>
                 </div>
               </li>
             );
@@ -224,7 +270,7 @@ export default function SalesPage() {
         </ul>
       )}
 
-      <ReturnSheet sale={returning} onClose={() => setReturning(null)} />
+      <ReturnSheet target={returning} onClose={() => setReturning(null)} />
     </>
   );
 }

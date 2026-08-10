@@ -1,5 +1,14 @@
 import type { Expense, Product, Sale } from '@/lib/types';
-import { keptLots, netQty, saleDue, saleTotal } from '@/lib/db/sales';
+import {
+  itemCost,
+  itemGross,
+  itemNetQty,
+  keptLots,
+  netQty,
+  saleCost,
+  saleDue,
+  saleTotal,
+} from '@/lib/db/sales';
 import { dateKey, toDate } from '@/lib/format';
 import { totalStock } from '@/lib/db/products';
 
@@ -21,10 +30,10 @@ export function summarize(sales: Sale[]): SalesSummary {
   let collected = 0;
 
   for (const s of sales) {
-    const kept = netQty(s);
     revenue += saleTotal(s);
-    cost += s.costPrice * kept;
-    units += kept;
+    // Real cost of the batches still with the customer, summed across all lines.
+    cost += saleCost(s);
+    units += netQty(s);
     outstanding += saleDue(s);
     collected += Math.min(s.amountPaid, saleTotal(s));
   }
@@ -83,18 +92,21 @@ export interface ProductRank {
   profit: number;
 }
 
+/** Ranked per product line, so a mixed invoice credits each product separately. */
 export function topProducts(sales: Sale[], limit = 5): ProductRank[] {
   const map = new Map<string, ProductRank>();
   for (const s of sales) {
-    const kept = netQty(s);
-    if (kept <= 0) continue;
-    const entry =
-      map.get(s.productId) ??
-      { productId: s.productId, productName: s.productName, units: 0, revenue: 0, profit: 0 };
-    entry.units += kept;
-    entry.revenue += saleTotal(s);
-    entry.profit += s.profit;
-    map.set(s.productId, entry);
+    for (const item of s.items) {
+      const kept = itemNetQty(item);
+      if (kept <= 0) continue;
+      const entry =
+        map.get(item.productId) ??
+        { productId: item.productId, productName: item.productName, units: 0, revenue: 0, profit: 0 };
+      entry.units += kept;
+      entry.revenue += itemGross(item);
+      entry.profit += itemGross(item) - itemCost(item);
+      map.set(item.productId, entry);
+    }
   }
   return [...map.values()].sort((a, b) => b.units - a.units || b.revenue - a.revenue).slice(0, limit);
 }
@@ -167,8 +179,10 @@ export function restockPriority(products: Product[], sales: Sale[], days = 30): 
   for (const s of sales) {
     const at = toDate(s.createdAt)?.getTime() ?? 0;
     if (at < since) continue;
-    const key = `${s.productId}|${s.size}`;
-    sold.set(key, (sold.get(key) ?? 0) + netQty(s));
+    for (const item of s.items) {
+      const key = `${item.productId}|${item.size}`;
+      sold.set(key, (sold.get(key) ?? 0) + itemNetQty(item));
+    }
   }
 
   const rows: RestockRow[] = [];
@@ -268,17 +282,20 @@ export function shipmentStats(products: Product[], sales: Sale[]): Map<string, S
   }
 
   for (const sale of sales) {
-    const kept = keptLots(sale);
-    const units = kept.reduce((sum, l) => sum + l.qty, 0);
-    if (units === 0) continue;
-    // Revenue is split across lots in proportion to the units drawn from each.
-    const perUnitRevenue = saleTotal(sale) / units;
-    for (const lot of kept) {
-      const entry = bucket(lot.shipmentId);
-      entry.soldUnits += lot.qty;
-      entry.soldRevenue += perUnitRevenue * lot.qty;
-      entry.soldCost += lot.costPrice * lot.qty;
-      entry.profit += perUnitRevenue * lot.qty - lot.costPrice * lot.qty;
+    // Attribution is per line: an invoice can draw from several shipments at once.
+    for (const item of sale.items) {
+      const kept = keptLots(item);
+      const units = kept.reduce((sum, l) => sum + l.qty, 0);
+      if (units === 0) continue;
+      // Revenue is split across lots in proportion to the units drawn from each.
+      const perUnitRevenue = itemGross(item) / units;
+      for (const lot of kept) {
+        const entry = bucket(lot.shipmentId);
+        entry.soldUnits += lot.qty;
+        entry.soldRevenue += perUnitRevenue * lot.qty;
+        entry.soldCost += lot.costPrice * lot.qty;
+        entry.profit += perUnitRevenue * lot.qty - lot.costPrice * lot.qty;
+      }
     }
   }
 
