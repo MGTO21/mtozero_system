@@ -58,7 +58,14 @@ export function Spinner({ className = 'h-5 w-5' }: { className?: string }) {
   );
 }
 
-/** Small square action button used inside list rows. */
+/**
+ * Square action button used inside list rows.
+ *
+ * The visible box stays compact so dense lists still read as lists, but an
+ * invisible ::after pad extends the tap target to 44px — this app is used
+ * one-handed on a phone in the middle of a sale, and a 36px target is a missed
+ * tap waiting to happen.
+ */
 export function IconButton({
   label,
   children,
@@ -69,7 +76,8 @@ export function IconButton({
     <button
       aria-label={label}
       title={label}
-      className={`inline-flex h-9 w-9 items-center justify-center rounded-card text-ink-500 transition-colors
+      className={`relative inline-flex h-9 w-9 items-center justify-center rounded-card text-ink-500 transition-colors
+        after:absolute after:left-1/2 after:top-1/2 after:h-11 after:w-11 after:-translate-x-1/2 after:-translate-y-1/2 after:content-['']
         hover:bg-ink-100 hover:text-ink-800 dark:text-ink-400 dark:hover:bg-ink-800 dark:hover:text-ink-50 ${className}`}
       {...rest}
     >

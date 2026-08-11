@@ -26,6 +26,29 @@
   h3,
   h4 {
     @apply font-display font-extrabold tracking-tight;
+    /* Arabic headings otherwise strand a single word on the last line. */
+    text-wrap: balance;
+  }
+
+  /* Long Arabic paragraphs read better without ragged one-word lines. */
+  p {
+    text-wrap: pretty;
+  }
+
+  /*
+   * Respect the OS "reduce motion" setting. The sheet slide and the pulsing
+   * skeletons are the two that actually trigger discomfort, and none of the
+   * motion here carries meaning that is lost when it stops.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
   }
 
   /* Numbers must line up in columns and never shift width while typing. */
@@ -62,9 +85,15 @@
     @apply bg-brand-500/35;
   }
 
+  /* Firefox. The webkit thumb below must match these, or the two engines
+     disagree about the scrollbar colour in light mode. */
   * {
     scrollbar-width: thin;
-    scrollbar-color: theme('colors.ink.600') transparent;
+    scrollbar-color: theme('colors.ink.300') transparent;
+  }
+
+  .dark * {
+    scrollbar-color: theme('colors.ink.700') transparent;
   }
 
   ::-webkit-scrollbar {
@@ -86,18 +115,30 @@
 }
 
 @layer components {
-  /* Surface: flat, one hairline border, no stacked shadows. */
+  /*
+   * Three surface tiers, deliberately few. A page where every card looks equally
+   * important has no hierarchy at all:
+   *   .surface-key   — the one thing the screen is about (today's takings, the total)
+   *   .surface       — ordinary content
+   *   .surface-sunken — insets and read-only summaries inside a card
+   */
   .surface {
     @apply rounded-card border border-ink-200 bg-white dark:border-ink-750 dark:bg-ink-850;
+  }
+
+  .surface-key {
+    @apply rounded-card border border-ink-200 bg-white shadow-lift dark:border-ink-700 dark:bg-ink-850;
   }
 
   .surface-sunken {
     @apply rounded-card border border-ink-200 bg-ink-100/60 dark:border-ink-800 dark:bg-ink-900;
   }
 
+  /* Matches the 2.75rem button height so a field and a button align on one row,
+     and clears the 44px minimum touch target on a phone. */
   .field {
-    @apply w-full rounded-card border border-ink-200 bg-white px-3 py-2.5 text-[0.95rem] outline-none transition
-           placeholder:text-ink-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25
+    @apply block min-h-[2.75rem] w-full rounded-card border border-ink-200 bg-white px-3 py-2.5 text-[0.95rem]
+           outline-none transition placeholder:text-ink-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25
            dark:border-ink-700 dark:bg-ink-900 dark:placeholder:text-ink-500;
   }
 

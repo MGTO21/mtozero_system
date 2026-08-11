@@ -78,8 +78,9 @@ export default function DashboardPage() {
         <SkeletonRows count={3} />
       ) : (
         <>
-          {/* Hero: today's number is the one the owner checks most. */}
-          <section className="surface mb-3 overflow-hidden">
+          {/* Hero: today's number is the one the owner checks most, so it gets the
+              only raised surface on the page. */}
+          <section className="surface-key mb-3 overflow-hidden">
             <div className="flex flex-wrap items-end justify-between gap-4 p-4">
               <div>
                 <p className="text-[0.8rem] font-bold text-ink-400 dark:text-ink-500">مبيعات اليوم</p>

@@ -516,7 +516,7 @@ function QuickSale() {
 
       {/* Sticky confirm bar: the total is the largest number on screen. */}
       <div className="sticky bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 lg:bottom-4">
-        <div className="surface flex items-center gap-3 p-3 shadow-lift">
+        <div className="surface-key flex items-center gap-3 p-3">
           <div className="min-w-0 flex-1">
             <p className="text-[0.72rem] font-bold text-ink-400 dark:text-ink-500">الإجمالي</p>
             <p className="tnum font-display text-num-lg font-black">{money(total)}</p>

@@ -206,9 +206,15 @@ function TabLink({ item, active }: { item: { href: string; label: string; icon: 
   return (
     <Link
       href={item.href}
-      className={`flex flex-1 flex-col items-center gap-1 py-2.5 text-[0.66rem] font-bold transition-colors
+      aria-current={active ? 'page' : undefined}
+      className={`relative flex flex-1 flex-col items-center gap-1 py-2.5 text-[0.66rem] font-bold transition-colors
         ${active ? 'text-brand-500' : 'text-ink-500 dark:text-ink-400'}`}
     >
+      {/* A bar, not just a colour: the active tab has to be identifiable without
+          relying on hue alone. */}
+      {active ? (
+        <span className="absolute inset-x-[22%] top-0 h-0.5 rounded-b-full bg-brand-500" aria-hidden="true" />
+      ) : null}
       <item.icon className="h-[1.35rem] w-[1.35rem]" />
       {item.label}
     </Link>
