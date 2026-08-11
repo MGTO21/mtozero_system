@@ -81,20 +81,22 @@ export default function InventoryPage() {
 
   async function onArchive(product: Product) {
     const archiving = !product.isArchived;
-    const ok = await confirm({
+    await confirm({
       title: archiving ? 'أرشفة المنتج' : 'استرجاع المنتج',
       message: archiving
         ? `سيُخفى "${product.name}" من قوائم البيع، لكن تاريخ مبيعاته يبقى محفوظاً في التقارير. يمكنك استرجاعه في أي وقت.`
         : `سيعود "${product.name}" للظهور في المخزون وشاشة البيع.`,
       confirmLabel: archiving ? 'أرشفة' : 'استرجاع',
+      // The dialog holds its spinner until the write lands.
+      action: async () => {
+        try {
+          await setArchived(product, archiving, actor);
+          toast.success(archiving ? 'تمت الأرشفة' : 'تم الاسترجاع');
+        } catch (err) {
+          toast.error(errorMessage(err));
+        }
+      },
     });
-    if (!ok) return;
-    try {
-      await setArchived(product, archiving, actor);
-      toast.success(archiving ? 'تمت الأرشفة' : 'تم الاسترجاع');
-    } catch (err) {
-      toast.error(errorMessage(err));
-    }
   }
 
   return (

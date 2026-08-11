@@ -67,13 +67,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={api}>
       {children}
-      <div
-        aria-live="polite"
-        className="pointer-events-none fixed inset-x-0 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-[80] flex flex-col items-center gap-2 px-4 sm:bottom-6 sm:right-6 sm:left-auto sm:items-end"
-      >
+      {/* No aria-live on the container: each toast carries its own role, so a
+          failed sale interrupts while a routine success waits its turn. */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-[80] flex flex-col items-center gap-2 px-4 sm:bottom-6 sm:right-6 sm:left-auto sm:items-end">
         {toasts.map((t) => (
           <div
             key={t.id}
+            role={t.kind === 'error' ? 'alert' : 'status'}
             className={`pointer-events-auto flex w-full max-w-sm items-center gap-2.5 rounded-card border px-3.5 py-3 text-sm font-semibold shadow-lift backdrop-blur-md animate-toast-in ${TONES[t.kind]}`}
           >
             <span className="shrink-0">{ICONS[t.kind]}</span>

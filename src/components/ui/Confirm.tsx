@@ -9,6 +9,12 @@ interface ConfirmOptions {
   message: string;
   confirmLabel?: string;
   danger?: boolean;
+  /**
+   * The work to carry out once confirmed. When given, the dialog stays open with
+   * a spinner until it settles — on a slow connection, closing immediately makes
+   * a two-second write look like nothing happened, and invites a second tap.
+   */
+  action?: () => Promise<unknown>;
 }
 
 /**
@@ -32,22 +38,35 @@ export function useConfirm() {
     setBusy(false);
   };
 
+  async function onConfirm() {
+    if (!state) return;
+    if (!state.action) {
+      settle(true);
+      return;
+    }
+    setBusy(true);
+    try {
+      await state.action();
+    } finally {
+      // The caller reports its own success or failure; the dialog's only job is
+      // to stay put until the work is actually over.
+      settle(true);
+    }
+  }
+
   const dialog = state ? (
-    <Sheet open onClose={() => settle(false)} title={state.title}>
+    <Sheet open onClose={() => (busy ? undefined : settle(false))} title={state.title}>
       <p className="text-[0.95rem] leading-relaxed text-ink-600 dark:text-ink-300">{state.message}</p>
       <div className="mt-6 flex gap-2">
         <Button
           variant={state.danger ? 'danger' : 'primary'}
           block
           loading={busy}
-          onClick={() => {
-            setBusy(true);
-            settle(true);
-          }}
+          onClick={() => void onConfirm()}
         >
           {state.confirmLabel ?? 'تأكيد'}
         </Button>
-        <Button variant="secondary" block onClick={() => settle(false)}>
+        <Button variant="secondary" block disabled={busy} onClick={() => settle(false)}>
           إلغاء
         </Button>
       </div>

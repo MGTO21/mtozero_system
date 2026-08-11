@@ -34,19 +34,21 @@ export default function ExpensesPage() {
   }, [expenses]);
 
   async function remove(expense: Expense) {
-    const ok = await confirm({
+    await confirm({
       title: 'حذف المصروف',
       message: `سيُحذف "${expense.title}" بمبلغ ${money(expense.amount)} نهائياً من السجل، وسيتغيّر صافي الربح في التقارير.`,
       confirmLabel: 'حذف',
       danger: true,
+      // The only hard delete in the system — the dialog waits for it to land.
+      action: async () => {
+        try {
+          await deleteExpense(expense, actor);
+          toast.success('تم حذف المصروف');
+        } catch (err) {
+          toast.error(errorMessage(err));
+        }
+      },
     });
-    if (!ok) return;
-    try {
-      await deleteExpense(expense, actor);
-      toast.success('تم حذف المصروف');
-    } catch (err) {
-      toast.error(errorMessage(err));
-    }
   }
 
   return (
