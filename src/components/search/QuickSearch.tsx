@@ -39,10 +39,13 @@ export function QuickSearch({ open, onClose }: { open: boolean; onClose: () => v
 
   useEffect(() => {
     if (!open) return;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     return () => {
       document.body.style.overflow = prev;
+      // Ctrl+K is a keyboard flow; closing must hand the caret back, not drop it.
+      previouslyFocused?.focus?.();
     };
   }, [open]);
 
@@ -109,7 +112,8 @@ export function QuickSearch({ open, onClose }: { open: boolean; onClose: () => v
 
   return (
     <div className="fixed inset-0 z-[90] flex items-start justify-center px-4 pt-[12vh]">
-      <button aria-label="إغلاق" onClick={onClose} className="absolute inset-0 bg-ink-950/75 backdrop-blur-sm" />
+      {/* Escape closes; a full-screen tab stop would only get in the way. */}
+      <div aria-hidden="true" onClick={onClose} className="absolute inset-0 bg-ink-950/75 backdrop-blur-sm" />
 
       <div
         role="dialog"
@@ -122,6 +126,11 @@ export function QuickSearch({ open, onClose }: { open: boolean; onClose: () => v
           <input
             ref={inputRef}
             value={term}
+            role="combobox"
+            aria-expanded={results.length > 0}
+            aria-controls="quick-search-results"
+            aria-activedescendant={results.length > 0 ? `quick-search-option-${active}` : undefined}
+            aria-autocomplete="list"
             onChange={(e) => {
               setTerm(e.target.value);
               setActive(0);
@@ -156,10 +165,16 @@ export function QuickSearch({ open, onClose }: { open: boolean; onClose: () => v
                   {num(results.length)} منتج متوفر بمقاس {asSize}
                 </p>
               ) : null}
-              <ul>
+              {/* Listbox semantics so the arrow-key highlight is actually announced
+                  — without them a screen-reader user hears nothing while moving. */}
+              <ul role="listbox" id="quick-search-results" aria-label="نتائج البحث">
                 {results.map((r, i) => (
-                  <li key={r.kind === 'product' ? r.product.id : r.customer.id}>
+                  <li key={r.kind === 'product' ? r.product.id : r.customer.id} role="presentation">
                     <button
+                      id={`quick-search-option-${i}`}
+                      role="option"
+                      aria-selected={i === active}
+                      tabIndex={-1}
                       onMouseEnter={() => setActive(i)}
                       onClick={() => go(r)}
                       className={`flex w-full items-center gap-3 rounded-card px-3 py-2.5 text-right transition-colors

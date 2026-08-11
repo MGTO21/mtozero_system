@@ -1,8 +1,11 @@
 'use client';
 
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { IconButton } from './Button';
 import { IconX } from './Icons';
+
+const FOCUSABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
 interface Props {
   open: boolean;
@@ -20,17 +23,66 @@ interface Props {
  * that becomes a centered panel on desktop.
  */
 export function Sheet({ open, onClose, title, subtitle, children, footer, wide }: Props) {
+  const panelRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     if (!open) return;
+    const panel = panelRef.current;
+    const previouslyFocused = document.activeElement as HTMLElement | null;
+
+    const focusables = () =>
+      panel
+        ? [...panel.querySelectorAll<HTMLElement>(FOCUSABLE)].filter(
+            (el) => el.offsetParent !== null || el === document.activeElement,
+          )
+        : [];
+
+    /*
+     * On a desktop the first field is focused so the form can be filled without
+     * touching the mouse. On a phone that would throw the on-screen keyboard up
+     * over the sheet before the user has even read it, so there the panel itself
+     * takes focus instead.
+     */
+    const usesPointer = window.matchMedia('(pointer: fine)').matches;
+    const firstField = panel?.querySelector<HTMLElement>('input:not([type="hidden"]):not([disabled]), textarea, select');
+    if (usesPointer && firstField) firstField.focus();
+    else panel?.focus();
+
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        onClose();
+        return;
+      }
+      if (e.key !== 'Tab') return;
+
+      // Keep Tab inside the dialog: everything behind it is inert to the eye and
+      // must be inert to the keyboard too.
+      const items = focusables();
+      if (items.length === 0) {
+        e.preventDefault();
+        return;
+      }
+      const first = items[0]!;
+      const last = items[items.length - 1]!;
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
     };
+
     document.addEventListener('keydown', onKey);
     const prev = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+
     return () => {
       document.removeEventListener('keydown', onKey);
       document.body.style.overflow = prev;
+      // Send focus back where it came from, so closing a sheet does not dump the
+      // user at the top of the page.
+      previouslyFocused?.focus?.();
     };
   }, [open, onClose]);
 
@@ -38,16 +90,20 @@ export function Sheet({ open, onClose, title, subtitle, children, footer, wide }
 
   return (
     <div className="fixed inset-0 z-[70] flex items-end justify-center sm:items-center">
-      <button
-        aria-label="إغلاق"
+      {/* Not a button: Escape and the × already give an accessible way out, and a
+          full-screen tab stop would just be noise for screen-reader users. */}
+      <div
+        aria-hidden="true"
         onClick={onClose}
         className="absolute inset-0 bg-ink-950/70 backdrop-blur-sm"
       />
       <div
+        ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={`relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-2xl border-t border-ink-200
+        tabIndex={-1}
+        className={`relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-2xl border-t border-ink-200 outline-none
           bg-white shadow-lift animate-sheet-up dark:border-ink-750 dark:bg-ink-850
           sm:rounded-card sm:border ${wide ? 'sm:max-w-2xl' : 'sm:max-w-md'}`}
       >
