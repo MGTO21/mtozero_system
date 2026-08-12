@@ -80,16 +80,28 @@ service cloud.firestore {
     match /sales/{saleId} {
       allow read: if member();
       allow create: if member() && request.resource.data.soldBy == request.auth.uid;
-      // Updates cover debt repayments and returns. The immutable core of the sale
-      // (what was sold, by whom, at what cost) may not be rewritten.
+      // Updates cover debt repayments and returns.
+      //
+      // These guards used to name productId/size/qty/sellPrice/costPrice, which
+      // stopped existing at the top level when a sale became a multi-item invoice.
+      // Reading a missing field denies the whole rule, so every repayment and
+      // every return failed against cart-format sales.
+      //
+      // What stays immutable is who sold it, when, and how many lines it has —
+      // a line can neither be added nor removed after the fact. The 'items' guard
+      // is skipped for sales written before the cart, which have no items array.
+      //
+      // Values inside a line (returnedQty, profit, costPrice) must stay writable
+      // because a return recomputes them. Rules cannot walk an array to verify
+      // each element, so line-level tampering is bounded by the app being the only
+      // writer and by every change landing in activityLog — not by this rule.
       allow update: if member()
-        && request.resource.data.productId == resource.data.productId
-        && request.resource.data.size == resource.data.size
-        && request.resource.data.qty == resource.data.qty
-        && request.resource.data.sellPrice == resource.data.sellPrice
-        && request.resource.data.costPrice == resource.data.costPrice
         && request.resource.data.soldBy == resource.data.soldBy
-        && request.resource.data.createdAt == resource.data.createdAt;
+        && request.resource.data.createdAt == resource.data.createdAt
+        && (
+          !('items' in resource.data)
+          || request.resource.data.items.size() == resource.data.items.size()
+        );
       // A sale is reversed with a return, not erased.
       allow delete: if false;
     }
