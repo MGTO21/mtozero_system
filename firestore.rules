@@ -165,6 +165,18 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    /* ---------- marketing campaigns ---------- */
+    match /campaigns/{campaignId} {
+      allow read: if member();
+      allow create: if member() && request.resource.data.createdBy == request.auth.uid;
+      // Working the send queue only ever appends to sentTo; nothing else moves.
+      allow update: if member()
+        && request.resource.data.message == resource.data.message
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if isOwner();
+    }
+
     /* ---------- shop settings ---------- */
     match /settings/{docId} {
       allow read: if member();

@@ -190,6 +190,7 @@ export type ActivityAction =
   | 'received_stock'
   | 'grouped_shipments'
   | 'awarded_referral'
+  | 'sent_campaign'
   | 'edited_settings';
 
 export interface ActivityEntry {
@@ -247,6 +248,23 @@ export interface Referral {
   referredName: string;
   saleId: string;
   reward: number;
+  createdAt: Timestamp | null;
+}
+
+/**
+ * A marketing blast that was actually sent. Recorded so the owner can see who
+ * has already heard this, and avoid messaging the same person twice in a week.
+ */
+export interface Campaign {
+  id: string;
+  title: string;
+  message: string;
+  segment: string;
+  /** Customer ids the owner marked as sent while working through the queue. */
+  sentTo: string[];
+  recipientCount: number;
+  createdBy: string;
+  createdByName: string;
   createdAt: Timestamp | null;
 }
 
@@ -328,6 +346,7 @@ export const ACTION_LABEL: Record<ActivityAction, string> = {
   received_stock: 'استلام بضاعة',
   grouped_shipments: 'دمج شحنات',
   awarded_referral: 'مكافأة إحالة',
+  sent_campaign: 'حملة تسويقية',
   edited_settings: 'تعديل إعدادات المتجر',
 };
 

@@ -10,6 +10,7 @@ export const COL = {
   shipmentGroups: 'shipmentGroups',
   customers: 'customers',
   referrals: 'referrals',
+  campaigns: 'campaigns',
   settings: 'settings',
 } as const;
 

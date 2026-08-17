@@ -25,6 +25,7 @@ const TONE: Record<ActivityAction, string> = {
   received_stock: 'bg-accent-500/15 text-accent-500',
   grouped_shipments: 'bg-ink-200 text-ink-600 dark:bg-ink-800 dark:text-ink-300',
   awarded_referral: 'bg-good/15 text-good',
+  sent_campaign: 'bg-accent-500/15 text-accent-500',
   edited_settings: 'bg-ink-200 text-ink-600 dark:bg-ink-800 dark:text-ink-300',
 };
 

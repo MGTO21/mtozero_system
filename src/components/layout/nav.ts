@@ -7,6 +7,7 @@ import {
   IconGauge,
   IconHistory,
   IconReceipt,
+  IconMegaphone,
   IconShip,
   IconStore,
   IconTag,
@@ -39,6 +40,7 @@ export const NAV: NavItem[] = [
   { href: '/sales', label: 'المبيعات', icon: IconReceipt, section: 'daily' },
   { href: '/close', label: 'تقفيل اليوم', icon: IconCashRegister, section: 'daily' },
   { href: '/customers', label: 'العملاء', icon: IconUserCircle, section: 'daily' },
+  { href: '/campaigns', label: 'حملات واتساب', icon: IconMegaphone, section: 'daily', ownerOnly: true },
   { href: '/debts', label: 'الديون', icon: IconDebt, section: 'daily' },
 
   { href: '/inventory', label: 'المخزون', icon: IconBoxes, section: 'stock' },
