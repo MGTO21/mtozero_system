@@ -1,4 +1,4 @@
-import type { Expense, Product, Sale } from '@/lib/types';
+import type { Category, Expense, Product, Sale } from '@/lib/types';
 import {
   itemCost,
   itemGross,
@@ -109,6 +109,115 @@ export function topProducts(sales: Sale[], limit = 5): ProductRank[] {
     }
   }
   return [...map.values()].sort((a, b) => b.units - a.units || b.revenue - a.revenue).slice(0, limit);
+}
+
+/* ---------- what the stock on the shelves is worth ---------- */
+
+export interface InventoryValue {
+  units: number;
+  /** Products that still have at least one piece. */
+  products: number;
+  /** Money actually paid to suppliers for what is still unsold. */
+  costValue: number;
+  /** What it would bring in if every piece sold at its list price. */
+  retailValue: number;
+  expectedProfit: number;
+  marginPct: number;
+}
+
+const EMPTY_VALUE: InventoryValue = {
+  units: 0,
+  products: 0,
+  costValue: 0,
+  retailValue: 0,
+  expectedProfit: 0,
+  marginPct: 0,
+};
+
+/**
+ * Values the stock on hand two ways: what it cost and what it should sell for.
+ *
+ * The cost side is exact rather than estimated — every lot carries the price of
+ * the shipment it arrived in, so a size holding two pieces from a cheap January
+ * batch and three from an expensive March one is valued at the real mixture, not
+ * at an average that flatters one and punishes the other.
+ */
+export function inventoryValue(products: Product[]): InventoryValue {
+  let units = 0;
+  let counted = 0;
+  let costValue = 0;
+  let retailValue = 0;
+
+  for (const product of products) {
+    if (product.isArchived) continue;
+    let productUnits = 0;
+
+    for (const size of product.sizes) {
+      for (const lot of size.lots) {
+        costValue += lot.qty * lot.costPrice;
+      }
+      productUnits += size.qty;
+    }
+
+    if (productUnits === 0) continue;
+    counted += 1;
+    units += productUnits;
+    retailValue += productUnits * product.sellPrice;
+  }
+
+  const expectedProfit = retailValue - costValue;
+  return {
+    units,
+    products: counted,
+    costValue,
+    retailValue,
+    expectedProfit,
+    marginPct: retailValue === 0 ? 0 : (expectedProfit / retailValue) * 100,
+  };
+}
+
+export function inventoryValueByCategory(products: Product[]): Record<Category, InventoryValue> {
+  return {
+    shoes: inventoryValue(products.filter((p) => p.category === 'shoes')),
+    clothing: inventoryValue(products.filter((p) => p.category === 'clothing')),
+  };
+}
+
+/**
+ * Capital frozen in stock that has not moved in `days`.
+ *
+ * For a shop that pays for a whole shipment up front, this is the number that
+ * hurts: cash already spent, sitting in cartons, unavailable for the next order.
+ */
+export function deadCapital(products: Product[], days = 60): InventoryValue {
+  const stale = staleProducts(products, days).map((row) => row.product);
+  return stale.length === 0 ? EMPTY_VALUE : inventoryValue(stale);
+}
+
+export interface ProductValueRow {
+  product: Product;
+  units: number;
+  costValue: number;
+  retailValue: number;
+}
+
+/** Per-product valuation, heaviest first — where the money actually sits. */
+export function productValues(products: Product[]): ProductValueRow[] {
+  const rows: ProductValueRow[] = [];
+
+  for (const product of products) {
+    if (product.isArchived) continue;
+    let units = 0;
+    let costValue = 0;
+    for (const size of product.sizes) {
+      units += size.qty;
+      for (const lot of size.lots) costValue += lot.qty * lot.costPrice;
+    }
+    if (units === 0) continue;
+    rows.push({ product, units, costValue, retailValue: units * product.sellPrice });
+  }
+
+  return rows.sort((a, b) => b.costValue - a.costValue);
 }
 
 export interface LowStockRow {

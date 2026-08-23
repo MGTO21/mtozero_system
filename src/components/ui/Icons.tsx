@@ -235,6 +235,16 @@ export const IconPhone = (p: IconProps) => (
   </Base>
 );
 
+/** Stock-take: a clipboard — counting the shelves against the record. */
+export const IconClipboard = (p: IconProps) => (
+  <Base {...p}>
+    <path d="M9 4.5H7.5A1.5 1.5 0 0 0 6 6v13a1.5 1.5 0 0 0 1.5 1.5h9A1.5 1.5 0 0 0 18 19V6a1.5 1.5 0 0 0-1.5-1.5H15" />
+    <rect x="9" y="3" width="6" height="3.2" rx="1" />
+    <path d="M9.5 11.5l1.6 1.6 3.4-3.4" />
+    <path d="M9.5 16.5h5" />
+  </Base>
+);
+
 /** Campaigns: a megaphone — one message going out to many. */
 export const IconMegaphone = (p: IconProps) => (
   <Base {...p}>

@@ -191,6 +191,7 @@ export type ActivityAction =
   | 'grouped_shipments'
   | 'awarded_referral'
   | 'sent_campaign'
+  | 'stock_count'
   | 'edited_settings';
 
 export interface ActivityEntry {
@@ -248,6 +249,40 @@ export interface Referral {
   referredName: string;
   saleId: string;
   reward: number;
+  createdAt: Timestamp | null;
+}
+
+/** One counted size during a stock-take. */
+export interface StockCountLine {
+  productId: string;
+  productName: string;
+  size: string;
+  /** What the system believed was on the shelf. */
+  systemQty: number;
+  /** What was actually there. */
+  countedQty: number;
+  /** Average unit cost at count time, used to value the difference. */
+  costPrice: number;
+}
+
+/**
+ * A physical count and the corrections it produced.
+ *
+ * Stock always drifts from the system — an unrecorded sale, a miscount on
+ * receiving, a damaged piece, a theft. Without a count the valuation slowly
+ * becomes fiction, so every count is kept as a permanent record of what was
+ * found and what it was worth.
+ */
+export interface StockCount {
+  id: string;
+  note?: string;
+  lines: StockCountLine[];
+  /** Value of what was missing, at cost. */
+  shortageValue: number;
+  /** Value of what turned up unexpectedly, at cost. */
+  surplusValue: number;
+  countedBy: string;
+  countedByName: string;
   createdAt: Timestamp | null;
 }
 
@@ -347,6 +382,7 @@ export const ACTION_LABEL: Record<ActivityAction, string> = {
   grouped_shipments: 'دمج شحنات',
   awarded_referral: 'مكافأة إحالة',
   sent_campaign: 'حملة تسويقية',
+  stock_count: 'جرد مخزون',
   edited_settings: 'تعديل إعدادات المتجر',
 };
 

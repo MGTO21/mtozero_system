@@ -144,7 +144,7 @@ function validate(input: ProductInput) {
  * decreases are taken from the newest lots first, so the oldest (and usually
  * cheapest) batch stays traceable for as long as possible.
  */
-function applyManualQty(
+export function applyManualQty(
   current: SizeStock,
   targetQty: number,
   costPrice: number,

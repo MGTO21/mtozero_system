@@ -11,6 +11,7 @@ export const COL = {
   customers: 'customers',
   referrals: 'referrals',
   campaigns: 'campaigns',
+  stockCounts: 'stockCounts',
   settings: 'settings',
 } as const;
 

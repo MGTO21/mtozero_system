@@ -177,6 +177,14 @@ service cloud.firestore {
       allow delete: if isOwner();
     }
 
+    /* ---------- stock counts ---------- */
+    match /stockCounts/{countId} {
+      allow read: if member();
+      allow create: if member() && request.resource.data.countedBy == request.auth.uid;
+      // A count is evidence of what was found on a given day — append only.
+      allow update, delete: if false;
+    }
+
     /* ---------- shop settings ---------- */
     match /settings/{docId} {
       allow read: if member();

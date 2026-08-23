@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useMemo } from 'react';
 import { RestockPanel } from '@/components/inventory/RestockPanel';
+import { ValuePanel } from '@/components/inventory/ValuePanel';
 import { SalesChart } from '@/components/dashboard/SalesChart';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { Button } from '@/components/ui/Button';
@@ -169,6 +170,17 @@ export default function DashboardPage() {
                   </ol>
                 )}
               </section>
+
+              {/* Cost is visible here, so it follows the same gate as profit. */}
+              {canSeeProfit ? (
+                <section className="surface p-4">
+                  <SectionTitle>قيمة المخزون الحالية</SectionTitle>
+                  <ValuePanel products={products} compact />
+                  <Link href="/inventory" className="mt-3 block text-[0.8rem] font-bold text-brand-500">
+                    التفصيل حسب المنتج
+                  </Link>
+                </section>
+              ) : null}
 
               {isOwner && stale.length > 0 ? (
                 <section className="surface p-4">

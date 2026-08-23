@@ -7,6 +7,7 @@ import {
   IconGauge,
   IconHistory,
   IconReceipt,
+  IconClipboard,
   IconMegaphone,
   IconShip,
   IconStore,
@@ -45,6 +46,7 @@ export const NAV: NavItem[] = [
 
   { href: '/inventory', label: 'المخزون', icon: IconBoxes, section: 'stock' },
   { href: '/shipments', label: 'الشحنات', icon: IconShip, section: 'stock' },
+  { href: '/stocktake', label: 'جرد المخزون', icon: IconClipboard, section: 'stock' },
 
   { href: '/expenses', label: 'المصروفات', icon: IconWallet, section: 'admin' },
   { href: '/reports', label: 'التقارير', icon: IconChart, section: 'admin', ownerOnly: true },

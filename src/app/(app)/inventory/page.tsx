@@ -3,17 +3,20 @@
 import { useMemo, useState } from 'react';
 import { ProductCard } from '@/components/inventory/ProductCard';
 import { ProductForm } from '@/components/inventory/ProductForm';
+import { ValuePanel } from '@/components/inventory/ValuePanel';
 import { useActor, useAuth } from '@/components/providers/AuthProvider';
 import { useToast } from '@/components/providers/ToastProvider';
 import { Button } from '@/components/ui/Button';
 import { useConfirm } from '@/components/ui/Confirm';
 import { EmptyState, ErrorBlock, SkeletonRows } from '@/components/ui/Feedback';
-import { IconBoxes, IconPlus, IconSearch, IconX } from '@/components/ui/Icons';
-import { PageHeader } from '@/components/ui/PageHeader';
+import { IconBoxes, IconDownload, IconPlus, IconSearch, IconX } from '@/components/ui/Icons';
+import { PageHeader, SectionTitle } from '@/components/ui/PageHeader';
+import { inventoryValue, productValues } from '@/lib/analytics';
+import { downloadCsv, stamp } from '@/lib/csv';
 import { errorMessage } from '@/lib/db/collections';
 import { setArchived, totalStock, useProducts } from '@/lib/db/products';
 import { num } from '@/lib/format';
-import type { Category, Product } from '@/lib/types';
+import { CATEGORY_LABEL, type Category, type Product } from '@/lib/types';
 
 type Filter = 'all' | Category | 'low' | 'archived';
 
@@ -79,6 +82,64 @@ export default function InventoryPage() {
   const activeCount = products.filter((p) => !p.isArchived).length;
   const totalPieces = products.reduce((sum, p) => (p.isArchived ? sum : sum + totalStock(p)), 0);
 
+  /**
+   * A stock-take sheet: every product with its quantity, what it cost and what it
+   * should sell for. This is the file an owner takes into the store room to count
+   * against, and the one an accountant asks for at year end.
+   */
+  function exportValuation() {
+    const rows = productValues(products).map((row) => [
+      row.product.name,
+      row.product.brand ?? '',
+      CATEGORY_LABEL[row.product.category],
+      row.product.sku ?? '',
+      row.units,
+      row.product.sizes
+        .filter((s) => s.qty > 0)
+        .map((s) => `${s.size}:${s.qty}`)
+        .join(' | '),
+      Math.round(row.costValue / row.units),
+      row.product.sellPrice,
+      row.costValue,
+      row.retailValue,
+      row.retailValue - row.costValue,
+    ]);
+
+    const totals = inventoryValue(products);
+    rows.push([
+      'الإجمالي',
+      '',
+      '',
+      '',
+      totals.units,
+      '',
+      '',
+      '',
+      totals.costValue,
+      totals.retailValue,
+      totals.expectedProfit,
+    ]);
+
+    downloadCsv(
+      `mtozero-inventory-${stamp()}`,
+      [
+        'المنتج',
+        'الماركة',
+        'الفئة',
+        'الكود',
+        'الكمية',
+        'المقاسات',
+        'متوسط التكلفة',
+        'سعر البيع',
+        'قيمة التكلفة',
+        'قيمة البيع',
+        'الربح المتوقع',
+      ],
+      rows,
+    );
+    toast.success('تم تصدير جرد المخزون');
+  }
+
   async function onArchive(product: Product) {
     const archiving = !product.isArchived;
     await confirm({
@@ -116,6 +177,26 @@ export default function InventoryPage() {
           </Button>
         }
       />
+
+      {/* Valuation exposes cost prices, so it follows the profit permission. */}
+      {canSeeProfit && !loading && products.length > 0 ? (
+        <section className="surface mb-3 p-4">
+          <SectionTitle
+            action={
+              <button
+                onClick={exportValuation}
+                className="inline-flex items-center gap-1.5 text-[0.78rem] font-bold text-brand-500"
+              >
+                <IconDownload className="h-4 w-4" />
+                تصدير الجرد
+              </button>
+            }
+          >
+            قيمة المخزون الحالية
+          </SectionTitle>
+          <ValuePanel products={products} />
+        </section>
+      ) : null}
 
       <div className="mb-3 space-y-2.5">
         <div className="relative">
