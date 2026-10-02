@@ -12,11 +12,14 @@ import type { ShopSettings } from '@/lib/types';
 export const W = 900;
 export const PAD = 56;
 
-export const INK = '#0A0909';
-export const SURFACE = '#FFFFFF';
-export const MUTED = '#8A8486';
-export const LINE = '#E4E1E2';
-export const BRAND = '#E84B8A';
+// The ledger palette, matching the app's daylight theme (see globals.css).
+export const INK = '#1A1714';
+export const SURFACE = '#FCFAF5';
+export const MUTED = '#6B6257';
+export const LINE = '#D9D1C2';
+export const BRAND = '#C2306E';
+export const GOOD = '#1F7A4D';
+export const WARN = '#A8650F';
 export const ACCENT_A = '#1B9BE8';
 export const ACCENT_B = '#7E33D4';
 
@@ -57,10 +60,66 @@ export function drawDefaultMark(ctx: CanvasRenderingContext2D, x: number, y: num
 export function hLine(ctx: CanvasRenderingContext2D, y: number): void {
   ctx.strokeStyle = LINE;
   ctx.lineWidth = 1;
+  ctx.setLineDash([]);
   ctx.beginPath();
   ctx.moveTo(PAD, y);
   ctx.lineTo(W - PAD, y);
   ctx.stroke();
+}
+
+/** The till-receipt perforation between sections. */
+export function perforation(ctx: CanvasRenderingContext2D, y: number): void {
+  ctx.strokeStyle = '#B9B0A0';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([10, 8]);
+  ctx.beginPath();
+  ctx.moveTo(PAD, y);
+  ctx.lineTo(W - PAD, y);
+  ctx.stroke();
+  ctx.setLineDash([]);
+}
+
+/** Splits text into lines that fit maxWidth with the current font. */
+export function wrapText(ctx: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+  const words = text.split(/\s+/).filter(Boolean);
+  const lines: string[] = [];
+  let current = '';
+  for (const word of words) {
+    const next = current ? `${current} ${word}` : word;
+    if (ctx.measureText(next).width > maxWidth && current) {
+      lines.push(current);
+      current = word;
+    } else {
+      current = next;
+    }
+  }
+  if (current) lines.push(current);
+  return lines;
+}
+
+/**
+ * A rubber stamp, slightly rotated, centred on (x, y): how the paper ledger marks
+ * a bill paid or owed, and readable at a glance in a chat thumbnail.
+ */
+export function drawStamp(ctx: CanvasRenderingContext2D, x: number, y: number, text: string, color: string): void {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate((-6 * Math.PI) / 180);
+  ctx.font = '900 30px Cairo, system-ui, sans-serif';
+  ctx.direction = 'rtl';
+  const w = ctx.measureText(text).width + 40;
+  const h = 58;
+  ctx.strokeStyle = color;
+  ctx.lineWidth = 4;
+  ctx.strokeRect(-w / 2, -h / 2, w, h);
+  ctx.lineWidth = 1.5;
+  ctx.strokeRect(-w / 2 + 6, -h / 2 + 6, w - 12, h - 12);
+  ctx.fillStyle = color;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(text, 0, 2);
+  ctx.restore();
+  ctx.textBaseline = 'alphabetic';
 }
 
 /** Right-aligned label / left-aligned value, the natural pairing in an RTL bill. */

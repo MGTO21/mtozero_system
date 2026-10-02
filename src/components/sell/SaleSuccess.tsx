@@ -3,12 +3,13 @@
 import { useState } from 'react';
 import { useToast } from '@/components/providers/ToastProvider';
 import { Button } from '@/components/ui/Button';
-import { IconCheck, IconCopy, IconDownload, IconImage, IconWhatsApp } from '@/components/ui/Icons';
+import { IconCopy, IconImage, IconPrinter, IconQueue, IconWhatsApp } from '@/components/ui/Icons';
 import { Sheet } from '@/components/ui/Sheet';
-import { saleDue, saleLabel, saleTotal, type RemainingStock } from '@/lib/db/sales';
+import { saleLabel, type RemainingStock } from '@/lib/db/sales';
 import { useSettings } from '@/lib/db/settings';
 import { money, num } from '@/lib/format';
-import { copyText, invoiceText, whatsappLink } from '@/lib/invoice';
+import { useInvoice } from '@/lib/hooks/useInvoice';
+import { STATUS_LABEL, copyText, invoiceText, whatsappLink } from '@/lib/invoice';
 import { renderInvoicePng, shareInvoice } from '@/lib/invoice-image';
 import type { Sale } from '@/lib/types';
 
@@ -23,17 +24,18 @@ interface Props {
 export function SaleSuccess({ sale, remaining, onClose, onSellAnother }: Props) {
   const toast = useToast();
   const { settings } = useSettings();
+  const invoice = useInvoice(sale);
   const [rendering, setRendering] = useState(false);
 
-  if (!sale) return null;
+  if (!sale || !invoice) return null;
 
-  async function makeInvoice() {
-    if (!sale) return;
+  async function makeImage() {
+    if (!invoice) return;
     setRendering(true);
     try {
-      const blob = await renderInvoicePng(sale, settings);
+      const blob = await renderInvoicePng(invoice, settings);
       if (!blob) throw new Error('render failed');
-      const result = await shareInvoice(blob, sale);
+      const result = await shareInvoice(blob, invoice);
       toast.success(result === 'shared' ? 'تم فتح المشاركة' : 'تم تنزيل صورة الفاتورة');
     } catch {
       toast.error('تعذّر إنشاء صورة الفاتورة.');
@@ -42,18 +44,24 @@ export function SaleSuccess({ sale, remaining, onClose, onSellAnother }: Props) 
     }
   }
 
-  const due = saleDue(sale);
-  const message = invoiceText(sale);
+  const stampTone = invoice.pending
+    ? 'border-warn text-warn'
+    : invoice.status === 'paid'
+      ? 'border-good text-good'
+      : invoice.status === 'partial'
+        ? 'border-warn text-warn'
+        : 'border-brand-500 text-brand-500';
 
   return (
     <Sheet
       open
       onClose={onClose}
-      title="تم تسجيل البيع"
+      title={`فاتورة ${invoice.number}`}
+      subtitle={saleLabel(sale)}
       footer={
         <div className="flex gap-2">
-          <Button block size="lg" onClick={onSellAnother}>
-            بيع آخر
+          <Button block size="lg" variant="ink" onClick={onSellAnother}>
+            بيع جديد
           </Button>
           <Button variant="secondary" size="lg" onClick={onClose}>
             إغلاق
@@ -61,33 +69,40 @@ export function SaleSuccess({ sale, remaining, onClose, onSellAnother }: Props) 
         </div>
       }
     >
-      <div className="flex flex-col items-center text-center">
-        <div className="flex h-14 w-14 items-center justify-center rounded-full bg-good/15 text-good">
-          <IconCheck className="h-7 w-7" />
+      <div className="ticket rounded-card border border-line-strong px-5 py-4">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[0.8rem] font-bold text-fg-3">الإجمالي</p>
+            <p className="tnum font-display text-num-xl font-black text-brand-500">{money(invoice.total)}</p>
+          </div>
+          <span className={`stamp animate-stamp ${stampTone}`}>
+            {invoice.pending ? 'على الجهاز' : STATUS_LABEL[invoice.status]}
+          </span>
         </div>
-        <p className="mt-3 text-[0.9rem] font-bold">{saleLabel(sale)}</p>
-        <p className="tnum mt-1 font-display text-num-xl font-black text-brand-500">{money(saleTotal(sale))}</p>
-
-        {due > 0 ? (
-          <p className="tnum mt-1.5 rounded-card bg-warn/12 px-3 py-1.5 text-[0.82rem] font-bold text-warn">
-            متبقٍ على العميل {money(due)} — سيظهر في صفحة الديون
+        {invoice.due > 0 ? (
+          <p className="tnum mt-1 text-[0.86rem] font-bold text-warn">متبقٍ على العميل {money(invoice.due)} — في صفحة الديون</p>
+        ) : null}
+        {invoice.pending ? (
+          <p className="mt-2 flex items-center gap-1.5 text-[0.82rem] font-bold text-fg-2">
+            <IconQueue className="h-4 w-4 shrink-0 text-warn" />
+            محفوظة على الجهاز — تُرسل للنظام أول ما ترجع الشبكة. الفاتورة جاهزة للعميل من هسي.
           </p>
         ) : null}
 
         {/* What is left of each size just sold — the seller's immediate next question. */}
-        <ul className="mt-3 w-full space-y-1">
+        <ul className="perf-rows mt-3 border-t border-dashed border-line-strong">
           {sale.items.map((item, index) => {
             const left = remaining[`${item.productId}|${item.size}`] ?? 0;
             return (
               <li
                 key={`${item.productId}-${item.size}-${index}`}
-                className="tnum flex items-center justify-between gap-2 text-[0.8rem] font-bold"
+                className="tnum flex items-center justify-between gap-2 py-1.5 text-[0.84rem] font-bold"
               >
                 <span className="min-w-0 truncate text-fg-2">
-                  {item.productName} — مقاس {item.size}
+                  {item.productName} — {item.size}
                 </span>
-                <span className={left > 0 ? 'shrink-0 text-fg-2' : 'shrink-0 text-bad'}>
-                  {left > 0 ? `باقي ${num(left)}` : 'نفد'}
+                <span className={left > 0 ? 'shrink-0 text-fg-3' : 'shrink-0 text-bad'}>
+                  {left > 0 ? `باقي ${num(left)}` : 'نفد المقاس'}
                 </span>
               </li>
             );
@@ -95,52 +110,52 @@ export function SaleSuccess({ sale, remaining, onClose, onSellAnother }: Props) 
         </ul>
       </div>
 
-      <div className="surface-sunken mt-5 p-3">
-        <p className="mb-2 text-[0.75rem] font-bold text-fg-2">رسالة الفاتورة للعميل</p>
-        <pre className="max-h-44 overflow-y-auto whitespace-pre-wrap break-words font-sans text-[0.82rem] leading-relaxed text-fg">
-          {message}
-        </pre>
-      </div>
-
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        <Button
-          className="col-span-2"
-          icon={<IconImage className="h-4 w-4" />}
-          loading={rendering}
-          onClick={() => void makeInvoice()}
-        >
-          فاتورة بالصورة واللوغو
-        </Button>
+      <p className="ledger-head mt-5">أرسل الفاتورة للعميل</p>
+      <div className="grid grid-cols-2 gap-2">
         <a
-          href={`/invoice/${sale.id}`}
+          href={whatsappLink(invoice)}
           target="_blank"
           rel="noopener noreferrer"
-          className="col-span-2 inline-flex h-11 items-center justify-center gap-2 rounded-card border border-line font-bold transition hover:border-line-strong dark:hover:border-ink-600"
+          className="press col-span-2 inline-flex h-12 items-center justify-center gap-2 rounded-card bg-good font-display font-extrabold text-white"
         >
-          <IconDownload className="h-4 w-4" />
-          نسخة للطباعة / حفظ PDF
+          <IconWhatsApp className="h-5 w-5" />
+          {sale.customerPhone ? 'واتساب للعميل مباشرة' : 'إرسال واتساب'}
+        </a>
+        <Button variant="secondary" icon={<IconImage className="h-4 w-4" />} loading={rendering} onClick={() => void makeImage()}>
+          صورة الفاتورة
+        </Button>
+        <a
+          href={`/invoice?id=${sale.id}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="press inline-flex h-12 items-center justify-center gap-2 rounded-card border border-line-strong bg-surface font-display font-extrabold"
+        >
+          <IconPrinter className="h-4 w-4" />
+          طباعة / PDF
         </a>
         <Button
-          variant="secondary"
+          variant="ghost"
+          className="col-span-2"
           icon={<IconCopy className="h-4 w-4" />}
           onClick={async () => {
-            const ok = await copyText(message);
-            if (ok) toast.success('تم نسخ الفاتورة');
-            else toast.error('تعذّر النسخ — انسخ النص يدوياً');
+            const ok = await copyText(invoiceText(invoice));
+            if (ok) toast.success('تم نسخ نص الفاتورة');
+            else toast.error('تعذّر النسخ');
           }}
         >
           نسخ النص
         </Button>
-        <a
-          href={whatsappLink(sale)}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex h-11 items-center justify-center gap-2 rounded-card bg-good font-bold text-ink-950 transition hover:brightness-110"
-        >
-          <IconWhatsApp className="h-4 w-4" />
-          فتح واتساب
-        </a>
       </div>
+
+      {invoice.referralCode ? (
+        <p className="mt-3 text-center text-[0.8rem] font-semibold text-fg-3">
+          الفاتورة فيها كود العميل{' '}
+          <span dir="ltr" className="font-black text-fg">
+            {invoice.referralCode}
+          </span>{' '}
+          — كل صاحب يجيبو بيكسب خصم.
+        </p>
+      ) : null}
     </Sheet>
   );
 }

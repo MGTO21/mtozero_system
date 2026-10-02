@@ -117,6 +117,11 @@ export interface SaleItem {
   size: string;
   qty: number;
   sellPrice: number; // actual unit price charged (may differ from product default)
+  /**
+   * The product's list price at the moment of sale, so the invoice can show the
+   * customer what they saved. Equals `sellPrice` on sales recorded before this.
+   */
+  listPrice: number;
   /** Weighted average unit cost of the lots consumed — for display only. */
   costPrice: number;
   /** Exact: sellPrice*qty minus the real cost of each lot taken. */
@@ -326,6 +331,8 @@ export interface ShopSettings {
   /** Compressed logo data URI, drawn onto generated invoices. */
   logoData: string | null;
   invoiceFooter: string;
+  /** Printed on every invoice; a clear policy settles return arguments before they start. */
+  returnPolicy: string;
   /** Credit granted to the referrer per successful referral. */
   referralReward: number;
   updatedAt: Timestamp | null;
@@ -337,7 +344,8 @@ export const DEFAULT_SETTINGS: ShopSettings = {
   phone: '',
   address: 'الأبيض — شمال كردفان',
   logoData: null,
-  invoiceFooter: 'شكراً لثقتك بينا 🤍',
+  invoiceFooter: 'شكراً لثقتك بينا',
+  returnPolicy: 'الاستبدال خلال 3 أيام بالفاتورة، والقطعة بحالتها الأصلية.',
   referralReward: 1000,
   updatedAt: null,
 };

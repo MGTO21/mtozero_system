@@ -98,6 +98,7 @@ function mapItem(raw: Record<string, unknown>): SaleItem {
     size: String(raw.size ?? ''),
     qty,
     sellPrice: Number(raw.sellPrice ?? 0),
+    listPrice: Number(raw.listPrice ?? raw.sellPrice ?? 0),
     costPrice,
     profit: Number(raw.profit ?? 0),
     lots: mapLots(raw.lots, qty, costPrice),
@@ -478,6 +479,9 @@ export async function recordSale(
           size: line.size,
           qty: line.qty,
           sellPrice: line.sellPrice,
+          // Read inside the transaction, like the cost: the list price as it
+          // stood when the customer paid, not after a later price change.
+          listPrice: Math.max(line.sellPrice, Number(data.sellPrice ?? line.sellPrice)),
           costPrice: averageCost(taken),
           profit: line.sellPrice * line.qty - lotsCost(taken),
           lots: taken,

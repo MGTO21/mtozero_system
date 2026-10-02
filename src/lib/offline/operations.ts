@@ -168,6 +168,7 @@ function previewItems(cart: CartLine[]): SaleItem[] {
       size: line.size,
       qty: line.qty,
       sellPrice: line.sellPrice,
+      listPrice: Math.max(line.sellPrice, line.product.sellPrice),
       costPrice: averageCost(taken),
       profit: line.sellPrice * line.qty - lotsCost(taken),
       lots: taken,

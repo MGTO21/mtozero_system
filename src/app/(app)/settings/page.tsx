@@ -62,7 +62,7 @@ export default function SettingsPage() {
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-card border border-dashed border-line-strong bg-ink-100 text-fg-3 transition hover:border-brand-500 hover:text-brand-500  dark:bg-ink-900"
+              className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-card border border-dashed border-line-strong bg-sunken text-fg-3 transition hover:border-fg hover:text-fg"
             >
               {form.logoData ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -167,6 +167,21 @@ export default function SettingsPage() {
                 onChange={(e) => patch({ invoiceFooter: e.target.value })}
               />
             </div>
+            <div className="sm:col-span-2">
+              <label className="label" htmlFor="s-policy">
+                سياسة الاستبدال والإرجاع
+              </label>
+              <textarea
+                id="s-policy"
+                rows={2}
+                className="field resize-none"
+                value={form.returnPolicy}
+                onChange={(e) => patch({ returnPolicy: e.target.value })}
+              />
+              <p className="mt-1 text-[0.76rem] text-fg-3">
+                تُطبع على كل فاتورة. سياسة واضحة مكتوبة تقفل نقاش «اشتريتها قبل شهر» من البداية.
+              </p>
+            </div>
           </div>
         </section>
 
@@ -191,7 +206,7 @@ export default function SettingsPage() {
           </p>
         </section>
 
-        <Button size="lg" loading={busy} onClick={() => void save()}>
+        <Button variant="ink" size="lg" block loading={busy} onClick={() => void save()}>
           حفظ الإعدادات
         </Button>
       </div>

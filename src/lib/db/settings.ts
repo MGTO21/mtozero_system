@@ -16,6 +16,7 @@ function mapSettings(raw: Record<string, unknown>): ShopSettings {
     address: String(raw.address ?? DEFAULT_SETTINGS.address),
     logoData: (raw.logoData as string) || null,
     invoiceFooter: String(raw.invoiceFooter ?? DEFAULT_SETTINGS.invoiceFooter),
+    returnPolicy: String(raw.returnPolicy ?? DEFAULT_SETTINGS.returnPolicy),
     referralReward: Number(raw.referralReward ?? DEFAULT_SETTINGS.referralReward),
     updatedAt: (raw.updatedAt as Timestamp) ?? null,
   };
