@@ -1,8 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import { SizeGrid } from '@/components/inventory/SizeGrid';
 import { useActor } from '@/components/providers/AuthProvider';
 import { useToast } from '@/components/providers/ToastProvider';
@@ -34,6 +34,7 @@ const CHANNELS: Channel[] = ['whatsapp', 'facebook', 'in_person', 'other'];
 
 function QuickSale() {
   const params = useSearchParams();
+  const router = useRouter();
   const { data: products, loading } = useProducts();
   const { settings } = useSettings();
   const actor = useActor();
@@ -72,11 +73,23 @@ function QuickSale() {
     [sellable, productId],
   );
 
-  // Deep link from the inventory card: /sell?product=<id>
+  // Deep link from the inventory card: /sell?product=<id>. Applied exactly once,
+  // then dropped from the URL. Re-applying it whenever no product was selected
+  // put the same product straight back after "add to invoice" and after "change",
+  // so a second item could never be picked when the sale started from inventory.
+  const presetApplied = useRef(false);
   useEffect(() => {
+    if (presetApplied.current) return;
     const preset = params.get('product');
-    if (preset && !productId && sellable.some((p) => p.id === preset)) setProductId(preset);
-  }, [params, productId, sellable]);
+    if (!preset) {
+      presetApplied.current = true;
+      return;
+    }
+    if (!sellable.some((p) => p.id === preset)) return; // products still loading
+    presetApplied.current = true;
+    setProductId(preset);
+    router.replace('/sell', { scroll: false });
+  }, [params, sellable, router]);
 
   // Defaults follow the product; the seller only touches them to give a discount.
   //
