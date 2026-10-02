@@ -6,7 +6,8 @@ import { useToast } from '@/components/providers/ToastProvider';
 import { Button } from '@/components/ui/Button';
 import { Sheet } from '@/components/ui/Sheet';
 import { errorMessage } from '@/lib/db/collections';
-import { itemNetQty, recordReturn } from '@/lib/db/sales';
+import { itemNetQty } from '@/lib/db/sales';
+import { submitReturn } from '@/lib/offline/operations';
 import { money } from '@/lib/format';
 import type { Sale } from '@/lib/types';
 
@@ -43,8 +44,12 @@ export function ReturnSheet({ target, onClose }: { target: ReturnTarget | null; 
     if (!target) return;
     setBusy(true);
     try {
-      await recordReturn(target.sale, target.itemIndex, qty, reason, actor);
-      toast.success('تم تسجيل الإرجاع وإعادة الكمية للمخزون');
+      const result = await submitReturn(target.sale, target.itemIndex, qty, reason, actor);
+      toast.success(
+        result.queued
+          ? 'سُجّل الإرجاع على الجهاز — يُرسل عند عودة الشبكة'
+          : 'تم تسجيل الإرجاع وإعادة الكمية للمخزون',
+      );
       onClose();
     } catch (err) {
       toast.error(errorMessage(err, 'تعذّر تسجيل الإرجاع.'));

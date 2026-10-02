@@ -11,6 +11,7 @@ import {
 import { doc, getDoc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { auth, db, isFirebaseConfigured } from '@/lib/firebase';
+import { isNetworkError } from '@/lib/offline/write';
 import type { AppUser, Role } from '@/lib/types';
 
 interface AuthState {
@@ -81,18 +82,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           });
         }
       } catch (err) {
-        setProfileError(
-          err instanceof Error && err.message.includes('permission')
-            ? 'حسابك غير مُصرَّح له. اطلب من المالك إضافتك للنظام.'
-            : 'تعذّر تحميل بيانات حسابك.',
-        );
+        // No connection is not an account problem: the cached profile below
+        // carries the session, and the self-heal simply waits for a signal.
+        if (!isNetworkError(err)) {
+          setProfileError(
+            err instanceof Error && err.message.includes('permission')
+              ? 'حسابك غير مُصرَّح له. اطلب من المالك إضافتك للنظام.'
+              : 'تعذّر تحميل بيانات حسابك.',
+          );
+        }
       }
 
       // Live subscription so a role change by the owner applies without re-login.
       unsubProfile = onSnapshot(
         ref,
+        { includeMetadataChanges: true },
         (snap) => {
           if (!snap.exists()) {
+            // "Not in the offline cache" is not "does not exist" — wait for the
+            // server before telling someone their account is gone.
+            if (snap.metadata.fromCache) return;
             setProfile(null);
             setProfileError('لا يوجد ملف مستخدم لهذا الحساب. تواصل مع المالك.');
           } else {
@@ -107,7 +116,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           }
           setLoading(false);
         },
-        () => {
+        (err) => {
+          if (isNetworkError(err)) return;
           setProfileError('تعذّر الوصول لبيانات الحساب. تحقّق من الاتصال أو الصلاحيات.');
           setLoading(false);
         },

@@ -150,7 +150,16 @@ export interface Sale {
   channel: Channel;
   note?: string;
   createdAt: Timestamp | null;
+  /**
+   * Set only on device-side copies of a sale still in the offline queue:
+   * 'pending' is waiting for a connection, 'conflict' was refused by the server
+   * and needs someone to decide. Never stored in Firestore.
+   */
+  pending?: SyncState;
 }
+
+/** Where a queued operation stands. See lib/offline/outbox.ts. */
+export type SyncState = 'pending' | 'conflict';
 
 export interface Expense {
   id: string;
@@ -192,7 +201,10 @@ export type ActivityAction =
   | 'awarded_referral'
   | 'sent_campaign'
   | 'stock_count'
-  | 'edited_settings';
+  | 'stock_adjusted'
+  | 'edited_settings'
+  | 'sync_conflict'
+  | 'sync_discarded';
 
 export interface ActivityEntry {
   id: string;
@@ -212,6 +224,8 @@ export interface DebtPayment {
   receivedBy: string;
   receivedByName: string;
   createdAt: Timestamp | null;
+  /** Device-side only — see `Sale.pending`. */
+  pending?: SyncState;
 }
 
 /**
@@ -348,6 +362,8 @@ export interface SaleReturn {
   createdBy: string;
   createdByName: string;
   createdAt: Timestamp | null;
+  /** Device-side only — see `Sale.pending`. */
+  pending?: SyncState;
 }
 
 export const CATEGORY_LABEL: Record<Category, string> = {
@@ -391,7 +407,10 @@ export const ACTION_LABEL: Record<ActivityAction, string> = {
   awarded_referral: 'مكافأة إحالة',
   sent_campaign: 'حملة تسويقية',
   stock_count: 'جرد مخزون',
+  stock_adjusted: 'تعديل كمية يدوي',
   edited_settings: 'تعديل إعدادات المتجر',
+  sync_conflict: 'عملية معلّقة تحتاج مراجعة',
+  sync_discarded: 'إلغاء عملية معلّقة',
 };
 
 export const EXPENSE_CATEGORIES = [

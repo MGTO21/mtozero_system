@@ -1,18 +1,35 @@
 import type { SVGProps } from 'react';
 
 /**
- * Every icon here is used for one specific meaning in the app. Nothing decorative:
+ * The shop's own icon set, drawn for this app — not a library.
+ *
+ * Style: solid "stamp" shapes with cut-outs, like the rubber stamps and printed
+ * forms of a shop ledger. Solid glyphs read at a glance on a phone in daylight,
+ * where hairline outline icons wash out — and they do not look like every other
+ * template on the web.
+ *
+ * Every icon is used for one specific meaning in the app. Nothing decorative:
  * if a concept has no icon it stays as text.
  */
 type IconProps = SVGProps<SVGSVGElement>;
 
-function Base({ children, ...props }: IconProps) {
+/** Filled glyph. Holes are cut with even-odd so they show whatever is behind. */
+function Solid({ children, ...props }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" fillRule="evenodd" clipRule="evenodd" aria-hidden="true" {...props}>
+      {children}
+    </svg>
+  );
+}
+
+/** Line glyph, for the few marks that are lines by nature (arrows, ×, +). */
+function Line({ children, ...props }: IconProps) {
   return (
     <svg
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth={1.8}
+      strokeWidth={2.4}
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden="true"
@@ -25,233 +42,239 @@ function Base({ children, ...props }: IconProps) {
 
 /* ---------- navigation ---------- */
 
-/** Dashboard: a gauge — "how is the shop doing right now". */
+/** Home / today's briefing: a gauge — "how is the shop doing right now". */
 export const IconGauge = (p: IconProps) => (
-  <Base {...p}>
-    <path d="M12 14.5 16 9" />
-    <circle cx="12" cy="14.5" r="1.4" fill="currentColor" stroke="none" />
-    <path d="M3.5 17.5a9.5 9.5 0 1 1 17 0" />
-    <path d="M3.5 17.5h3M17.5 17.5h3" />
-  </Base>
+  <Solid {...p}>
+    <path d="M2 18a10 10 0 0 1 20 0v1a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1v-1Z M12 15.8a1.8 1.8 0 1 0 0 3.6 1.8 1.8 0 0 0 0-3.6Z M13.3 16.3l3.6-5.7-1-.6-3.6 5.7Z" />
+  </Solid>
 );
 
-/** Inventory: a stacked shoebox. */
+/** Inventory: shoeboxes on a shelf. */
 export const IconBoxes = (p: IconProps) => (
-  <Base {...p}>
-    <path d="M3 8.5 12 5l9 3.5-9 3.5-9-3.5Z" />
-    <path d="M3 8.5v7L12 19l9-3.5v-7" />
-    <path d="M12 12v7" />
-  </Base>
+  <Solid {...p}>
+    <path d="M4.5 4h15v6.5h-15Z M10 6.4h4v1.5h-4Z" />
+    <path d="M3 12.5h18V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1Z M9.5 15.3h5v1.7h-5Z" />
+  </Solid>
 );
 
-/** Quick sale: price tag being handed over. */
+/** Selling: a price tag. */
 export const IconTag = (p: IconProps) => (
-  <Base {...p}>
-    <path d="M13.6 3.4H20v6.4l-9.3 9.3a2 2 0 0 1-2.9 0l-3.5-3.5a2 2 0 0 1 0-2.9l9.3-9.3Z" />
-    <circle cx="16.6" cy="6.9" r="1.3" fill="currentColor" stroke="none" />
-  </Base>
+  <Solid {...p}>
+    <path d="M3 12.6V4a1 1 0 0 1 1-1h8.6a1 1 0 0 1 .7.3l7.4 7.4a1 1 0 0 1 0 1.4l-8.6 8.6a1 1 0 0 1-1.4 0L3.3 13.3a1 1 0 0 1-.3-.7Z M7.6 5.7a1.9 1.9 0 1 0 0 3.8 1.9 1.9 0 0 0 0-3.8Z" />
+  </Solid>
 );
 
-/** Sales log: a receipt roll. */
+/** Sales log: a till receipt with a torn edge. */
 export const IconReceipt = (p: IconProps) => (
-  <Base {...p}>
-    <path d="M6 3h12v16.5a1.5 1.5 0 0 1-2.3 1.3L12 18.6l-3.7 2.2A1.5 1.5 0 0 1 6 19.5V3Z" />
-    <path d="M9.5 7.5h5M9.5 11h5" />
-  </Base>
+  <Solid {...p}>
+    <path d="M5 3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v18.2l-2.33-1.5-2.33 1.5-2.34-1.5-2.33 1.5-2.34-1.5L5 21.2Z M8 6.5h8v1.8H8Z M8 10.5h8v1.8H8Z M8 14.5h4.5v1.8H8Z" />
+  </Solid>
 );
 
-/** Reports: comparison bars. */
+/** Reports: comparison bars on a baseline. */
 export const IconChart = (p: IconProps) => (
-  <Base {...p}>
-    <path d="M4 20h16" />
-    <path d="M7 20V11M12 20V5M17 20v-6" />
-  </Base>
+  <Solid {...p}>
+    <path d="M3 19.5h18V21H3Z M5 11h3.6v7H5Z M10.2 4.5h3.6V18h-3.6Z M15.4 13.5H19V18h-3.6Z" />
+  </Solid>
 );
 
-/** Expenses: cash leaving the drawer. */
+/** Expenses: a wallet with its clasp. */
 export const IconWallet = (p: IconProps) => (
-  <Base {...p}>
-    <path d="M3 8.5A2.5 2.5 0 0 1 5.5 6H18a3 3 0 0 1 3 3v6a3 3 0 0 1-3 3H5.5A2.5 2.5 0 0 1 3 15.5v-7Z" />
-    <path d="M3 10h12" />
-    <circle cx="17.5" cy="13.5" r="1.2" fill="currentColor" stroke="none" />
-  </Base>
+  <Solid {...p}>
+    <path d="M3 6.5a2 2 0 0 1 2-2h11.5a1 1 0 0 1 1 1V7H19a2 2 0 0 1 2 2v9.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z M14.5 11.5H21v4h-6.5a2 2 0 0 1 0-4Z M16.4 12.7a.8.8 0 1 0 0 1.6.8.8 0 0 0 0-1.6Z" />
+  </Solid>
 );
 
-/** Debts: an IOU note. */
+/** Debts: stacked coins with a minus — money still owed. */
 export const IconDebt = (p: IconProps) => (
-  <Base {...p}>
-    <path d="M4 5.5A1.5 1.5 0 0 1 5.5 4h9L20 9.5v9A1.5 1.5 0 0 1 18.5 20h-13A1.5 1.5 0 0 1 4 18.5v-13Z" />
-    <path d="M14 4v6h6" />
-    <path d="M8.5 15.5h6M11.5 12.5v6" />
-  </Base>
+  <Solid {...p}>
+    <path d="M3 9.2a1 1 0 0 1 1-1h7.5a1 1 0 0 1 1 1v1.3a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1Z" />
+    <path d="M3 13.5a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1V15a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1Z" />
+    <path d="M3 17.8a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1.7a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1Z" />
+    <path d="M17 3.5a4.5 4.5 0 1 1 0 9 4.5 4.5 0 0 1 0-9Z M14.8 7.2h4.4v1.6h-4.4Z" />
+  </Solid>
 );
 
 /** Team: two people. */
 export const IconUsers = (p: IconProps) => (
-  <Base {...p}>
-    <circle cx="9" cy="8" r="3.2" />
-    <path d="M3.5 19.5c0-3 2.5-5 5.5-5s5.5 2 5.5 5" />
-    <path d="M16 5.6a3.2 3.2 0 0 1 0 6.3M17.5 14.9c1.9.6 3.2 2.3 3.2 4.6" />
-  </Base>
+  <Solid {...p}>
+    <circle cx="9" cy="7.5" r="3.4" />
+    <path d="M2.5 20.5a6.5 6.5 0 0 1 13 0v.5h-13Z" />
+    <circle cx="16.8" cy="6.6" r="2.7" />
+    <path d="M15 13.1a5.6 5.6 0 0 1 6.5 5.4v1h-4.3a8.2 8.2 0 0 0-2.2-6.4Z" />
+  </Solid>
 );
 
-/** Activity log: clock turning back. */
+/** Activity log: a clock face. */
 export const IconHistory = (p: IconProps) => (
-  <Base {...p}>
-    <path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1" />
-    <path d="M3.5 4.5V9H8" />
-    <path d="M12 8v4.4l3 1.8" />
-  </Base>
+  <Solid {...p}>
+    <path d="M12 2.5a9.5 9.5 0 1 1 0 19 9.5 9.5 0 0 1 0-19Z M11.1 6.5h1.8v5.1l3.2 1.9-.9 1.5-4.1-2.5Z" />
+  </Solid>
+);
+
+/** More: four tiles — the rest of the app. */
+export const IconGrid = (p: IconProps) => (
+  <Solid {...p}>
+    <rect x="3.5" y="3.5" width="7.2" height="7.2" rx="1.4" />
+    <rect x="13.3" y="3.5" width="7.2" height="7.2" rx="1.4" />
+    <rect x="3.5" y="13.3" width="7.2" height="7.2" rx="1.4" />
+    <rect x="13.3" y="13.3" width="7.2" height="7.2" rx="1.4" />
+  </Solid>
 );
 
 /* ---------- actions ---------- */
 
 export const IconSearch = (p: IconProps) => (
-  <Base {...p}>
-    <circle cx="10.5" cy="10.5" r="6.5" />
-    <path d="M15.4 15.4 20 20" />
-  </Base>
+  <Line {...p}>
+    <circle cx="10.5" cy="10.5" r="6.2" />
+    <path d="M15.5 15.5 20 20" strokeWidth={3} />
+  </Line>
 );
 
 export const IconPlus = (p: IconProps) => (
-  <Base {...p} strokeWidth={2.2}>
+  <Line {...p} strokeWidth={2.6}>
     <path d="M12 5v14M5 12h14" />
-  </Base>
+  </Line>
 );
 
 export const IconMinus = (p: IconProps) => (
-  <Base {...p} strokeWidth={2.2}>
+  <Line {...p} strokeWidth={2.6}>
     <path d="M5 12h14" />
-  </Base>
+  </Line>
 );
 
 export const IconEdit = (p: IconProps) => (
-  <Base {...p}>
-    <path d="M4 20h4L19.2 8.8a2 2 0 0 0 0-2.8l-1.2-1.2a2 2 0 0 0-2.8 0L4 16v4Z" />
-    <path d="M14.5 6.5 17.5 9.5" />
-  </Base>
+  <Solid {...p}>
+    <path d="M15.6 3.6a2 2 0 0 1 2.8 0l2 2a2 2 0 0 1 0 2.8L9 19.8 3.5 21l1.2-5.5Z M14.2 6.8l3 3-1.2 1.2-3-3Z" />
+  </Solid>
 );
 
-/** Archive (never a trash can — products are archived, not deleted). */
+/** Archive — never a trash can: products are archived, not deleted. */
 export const IconArchive = (p: IconProps) => (
-  <Base {...p}>
-    <path d="M3.5 6.5h17v3h-17z" />
-    <path d="M5 9.5v9A1.5 1.5 0 0 0 6.5 20h11a1.5 1.5 0 0 0 1.5-1.5v-9" />
-    <path d="M10 13.5h4" />
-  </Base>
+  <Solid {...p}>
+    <path d="M3 4.5a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1V8a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1Z" />
+    <path d="M4.5 10.5h15V19a1.5 1.5 0 0 1-1.5 1.5H6A1.5 1.5 0 0 1 4.5 19Z M9.5 13h5v1.8h-5Z" />
+  </Solid>
 );
 
 export const IconRestore = (p: IconProps) => (
-  <Base {...p}>
-    <path d="M4 12a8 8 0 1 1 2.5 5.8" />
-    <path d="M4 17.5V12h5.5" />
-    <path d="M12 9v3.5l2.5 1.5" />
-  </Base>
+  <svg viewBox="0 0 24 24" aria-hidden="true" {...p}>
+    <path d="M5.2 12a7 7 0 1 1 2 4.9" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" />
+    <path d="M2 9.5h6.4L5.2 14Z" fill="currentColor" />
+  </svg>
 );
 
 export const IconTrash = (p: IconProps) => (
-  <Base {...p}>
-    <path d="M4.5 7h15M9.5 7V5.2A1.2 1.2 0 0 1 10.7 4h2.6a1.2 1.2 0 0 1 1.2 1.2V7" />
-    <path d="M6.5 7l.9 12a1.5 1.5 0 0 0 1.5 1.4h6.2a1.5 1.5 0 0 0 1.5-1.4l.9-12" />
-  </Base>
+  <Solid {...p}>
+    <path d="M4 5.5h16v2H4Z M9.5 2.8h5v2h-5Z" />
+    <path d="M5.8 8.5h12.4l-.9 11.6a1.5 1.5 0 0 1-1.5 1.4H8.2a1.5 1.5 0 0 1-1.5-1.4Z M9.4 11h1.6v7.5H9.4Z M13 11h1.6v7.5H13Z" />
+  </Solid>
 );
 
 export const IconDownload = (p: IconProps) => (
-  <Base {...p}>
-    <path d="M12 4v11" />
-    <path d="M8 11.5 12 15.5 16 11.5" />
-    <path d="M4.5 19.5h15" />
-  </Base>
+  <Solid {...p}>
+    <path d="M10.8 3h2.4v8.2l2.9-2.9 1.7 1.7L12 15.8 6.2 10l1.7-1.7 2.9 2.9Z" />
+    <path d="M3 15h2.6v3.4h12.8V15H21v4.5a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 19.5Z" />
+  </Solid>
 );
 
 export const IconCopy = (p: IconProps) => (
-  <Base {...p}>
-    <rect x="9" y="9" width="11" height="11" rx="2" />
-    <path d="M15 6.5V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h.5" />
-  </Base>
+  <Solid {...p}>
+    <path d="M4 4a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v2H8.5a2 2 0 0 0-2 2v8H5a1 1 0 0 1-1-1Z" />
+    <path d="M8.5 8.5a1 1 0 0 1 1-1H19a1 1 0 0 1 1 1V20a1 1 0 0 1-1 1H9.5a1 1 0 0 1-1-1Z" />
+  </Solid>
 );
 
 export const IconCheck = (p: IconProps) => (
-  <Base {...p} strokeWidth={2.4}>
+  <Line {...p} strokeWidth={2.8}>
     <path d="M4.5 12.5 9.5 17.5 19.5 6.5" />
-  </Base>
+  </Line>
 );
 
 export const IconX = (p: IconProps) => (
-  <Base {...p} strokeWidth={2.2}>
+  <Line {...p} strokeWidth={2.6}>
     <path d="M6 6l12 12M18 6 6 18" />
-  </Base>
+  </Line>
 );
 
 export const IconChevronLeft = (p: IconProps) => (
-  <Base {...p} strokeWidth={2.2}>
+  <Line {...p} strokeWidth={2.6}>
     <path d="M14.5 5.5 8 12l6.5 6.5" />
-  </Base>
+  </Line>
 );
 
 export const IconChevronDown = (p: IconProps) => (
-  <Base {...p} strokeWidth={2.2}>
+  <Line {...p} strokeWidth={2.6}>
     <path d="M5.5 9.5 12 16l6.5-6.5" />
-  </Base>
+  </Line>
 );
 
 export const IconFilter = (p: IconProps) => (
-  <Base {...p}>
-    <path d="M4 6.5h16M7 12h10M10 17.5h4" />
-  </Base>
+  <Solid {...p}>
+    <path d="M3 5.4h18v2.2H3Z M6.5 10.9h11v2.2h-11Z M10 16.4h4v2.2h-4Z" />
+  </Solid>
 );
 
 export const IconLogout = (p: IconProps) => (
-  <Base {...p}>
-    <path d="M14.5 4.5h-8A1.5 1.5 0 0 0 5 6v12a1.5 1.5 0 0 0 1.5 1.5h8" />
-    <path d="M12 12h8M17 8.5 20.5 12 17 15.5" />
-  </Base>
+  <Solid {...p}>
+    <path d="M4 3.5a1 1 0 0 1 1-1h8.5a1 1 0 0 1 1 1V8h-2.2V4.7H6.2v14.6h6.1V16h2.2v4.5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1Z" />
+    <path d="M10 10.9h7.3l-2-2 1.5-1.5L21.3 12l-4.5 4.6-1.5-1.5 2-2H10Z" />
+  </Solid>
 );
 
 export const IconMoon = (p: IconProps) => (
-  <Base {...p}>
-    <path d="M20 14.2A8.2 8.2 0 0 1 9.8 4A8.5 8.5 0 1 0 20 14.2Z" />
-  </Base>
+  <Solid {...p}>
+    <path d="M20.5 14.6A8.6 8.6 0 0 1 9.4 3.5 9 9 0 1 0 20.5 14.6Z" />
+  </Solid>
 );
 
 export const IconSun = (p: IconProps) => (
-  <Base {...p}>
-    <circle cx="12" cy="12" r="4.2" />
-    <path d="M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6 7 7M17 17l1.4 1.4M18.4 5.6 17 7M7 17l-1.4 1.4" />
-  </Base>
+  <svg viewBox="0 0 24 24" aria-hidden="true" {...p}>
+    <circle cx="12" cy="12" r="4.4" fill="currentColor" />
+    <path
+      d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.5 1.5M17.2 17.2l1.5 1.5M18.7 5.3l-1.5 1.5M6.8 17.2l-1.5 1.5"
+      stroke="currentColor"
+      strokeWidth={2.3}
+      strokeLinecap="round"
+    />
+  </svg>
 );
 
 export const IconImage = (p: IconProps) => (
-  <Base {...p}>
-    <rect x="3.5" y="4.5" width="17" height="15" rx="2" />
-    <circle cx="9" cy="10" r="1.6" />
-    <path d="M4 17l4.5-4.5 3.5 3.5 3-3 5 5" />
-  </Base>
+  <Solid {...p}>
+    <path d="M3 5a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1Z M5 6h14v10.2l-3.8-3.8-3 3-4.3-4.3L5 14.2Z M15 7.5a1.6 1.6 0 1 0 0 3.2 1.6 1.6 0 0 0 0-3.2Z" />
+  </Solid>
 );
 
 export const IconPhone = (p: IconProps) => (
-  <Base {...p}>
-    <path d="M6.2 3.7 8.9 4.4a1.5 1.5 0 0 1 1.1 1.2l.4 2.2a1.5 1.5 0 0 1-.6 1.5l-1.2.9a10.5 10.5 0 0 0 5.2 5.2l.9-1.2a1.5 1.5 0 0 1 1.5-.6l2.2.4a1.5 1.5 0 0 1 1.2 1.1l.7 2.7a1.5 1.5 0 0 1-1.5 1.9C10.4 19.7 4.3 13.6 4.3 5.2a1.5 1.5 0 0 1 1.9-1.5Z" />
-  </Base>
+  <Solid {...p}>
+    <path d="M6.2 3.2 9 3.9a1.5 1.5 0 0 1 1.1 1.2l.5 2.5a1.5 1.5 0 0 1-.6 1.5l-1.3 1a11 11 0 0 0 5.2 5.2l1-1.3a1.5 1.5 0 0 1 1.5-.6l2.5.5a1.5 1.5 0 0 1 1.2 1.1l.7 2.8a1.5 1.5 0 0 1-1.5 1.9C10.2 20.2 3.8 13.8 3.8 4.7a1.5 1.5 0 0 1 1.9-1.5Z" />
+  </Solid>
 );
 
-/** Stock-take: a clipboard — counting the shelves against the record. */
+/** Printing an invoice. */
+export const IconPrinter = (p: IconProps) => (
+  <Solid {...p}>
+    <path d="M7 2.5h10V7H7Z" />
+    <path d="M3 9a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1h-2v-3.5H6V18H4a1 1 0 0 1-1-1Z" />
+    <path d="M7.5 15.5h9v6h-9Z M9.5 17.6h5v1.3h-5Z" />
+  </Solid>
+);
+
+/** Stock-take: a clipboard with a tick — counting the shelves against the record. */
 export const IconClipboard = (p: IconProps) => (
-  <Base {...p}>
-    <path d="M9 4.5H7.5A1.5 1.5 0 0 0 6 6v13a1.5 1.5 0 0 0 1.5 1.5h9A1.5 1.5 0 0 0 18 19V6a1.5 1.5 0 0 0-1.5-1.5H15" />
-    <rect x="9" y="3" width="6" height="3.2" rx="1" />
-    <path d="M9.5 11.5l1.6 1.6 3.4-3.4" />
-    <path d="M9.5 16.5h5" />
-  </Base>
+  <Solid {...p}>
+    <path d="M5 4.5a1 1 0 0 1 1-1h2.2v1.3a1.2 1.2 0 0 0 1.2 1.2h5.2a1.2 1.2 0 0 0 1.2-1.2V3.5H18a1 1 0 0 1 1 1V21a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1Z M8.3 12.6l1.3-1.3 2 2 4.1-4.1 1.3 1.3-5.4 5.4Z M8.5 17.5h7v1.6h-7Z" />
+    <path d="M9.4 1.8h5.2v2.8H9.4Z" />
+  </Solid>
 );
 
 /** Campaigns: a megaphone — one message going out to many. */
 export const IconMegaphone = (p: IconProps) => (
-  <Base {...p}>
-    <path d="M4 10.5v3a2 2 0 0 0 2 2h1.5l9.5 4.5V4L7.5 8.5H6a2 2 0 0 0-2 2Z" />
-    <path d="M7.5 8.5v7" />
-    <path d="M20 10v4" />
-  </Base>
+  <Solid {...p}>
+    <path d="M3 9.5a1 1 0 0 1 1-1h3.5L18 3.8a.7.7 0 0 1 1 .6v15.2a.7.7 0 0 1-1 .6L7.5 15.5h-.7l1 4.3a.8.8 0 0 1-.8 1H5.6a.8.8 0 0 1-.8-.6l-1.1-4.7H4a1 1 0 0 1-1-1Z" />
+    <path d="M20.4 9.5H22v5h-1.6Z" />
+  </Solid>
 );
 
 export const IconWhatsApp = (p: IconProps) => (
@@ -266,109 +289,120 @@ export const IconFacebook = (p: IconProps) => (
   </svg>
 );
 
+/** Shop settings: a shopfront with its awning. */
 export const IconStore = (p: IconProps) => (
-  <Base {...p}>
-    <path d="M4 9.5V19a1.5 1.5 0 0 0 1.5 1.5h13A1.5 1.5 0 0 0 20 19V9.5" />
-    <path d="M3 9.5 5 4h14l2 5.5a2.6 2.6 0 0 1-4.5 1.7 2.6 2.6 0 0 1-4.5 0 2.6 2.6 0 0 1-4.5 0A2.6 2.6 0 0 1 3 9.5Z" />
-  </Base>
+  <Solid {...p}>
+    <path d="M2.5 9 4.6 3.5h14.8L21.5 9v.4a2.6 2.6 0 0 1-4.7 1.5 2.6 2.6 0 0 1-4.8 0 2.6 2.6 0 0 1-4.8 0A2.6 2.6 0 0 1 2.5 9.4Z" />
+    <path d="M4 12.7a4 4 0 0 0 3.2-.4 4 4 0 0 0 4.8.2 4 4 0 0 0 4.8-.2 4 4 0 0 0 3.2.4V20a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1Z M10 15.5h4V21h-4Z" />
+  </Solid>
 );
 
 /** Shipments: a cargo crate on a pallet. */
 export const IconShip = (p: IconProps) => (
-  <Base {...p}>
-    <path d="M6 4.5h12v9H6z" />
-    <path d="M6 8.5h12" />
-    <path d="M12 4.5v9" />
-    <path d="M3.5 17.5h17" />
-    <path d="M6.5 17.5V20M17.5 17.5V20" />
-  </Base>
+  <Solid {...p}>
+    <path d="M4 3h16a1 1 0 0 1 1 1v11.5a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1Z M5 8.9h6.2v1.4H5Z M12.8 8.9H19v1.4h-6.2Z M11.3 5h1.4v9.5h-1.4Z" />
+    <path d="M2.5 18h19v1.5h-19Z M4 19.5h2.5V21H4Z M10.75 19.5h2.5V21h-2.5Z M17.5 19.5H20V21h-2.5Z" />
+  </Solid>
 );
 
 /** A single customer, distinct from the team icon which shows two people. */
 export const IconUserCircle = (p: IconProps) => (
-  <Base {...p}>
-    <circle cx="12" cy="9.2" r="3.4" />
-    <path d="M5.4 19.6a6.8 6.8 0 0 1 13.2 0" />
-    <circle cx="12" cy="12" r="9.2" />
-  </Base>
+  <Solid {...p}>
+    <path d="M12 2.5a9.5 9.5 0 1 1 0 19 9.5 9.5 0 0 1 0-19Z M12 6a3.3 3.3 0 1 0 0 6.6A3.3 3.3 0 0 0 12 6Z M5.9 17.9a7 7 0 0 1 12.2 0 8 8 0 0 1-12.2 0Z" />
+  </Solid>
 );
 
-/** Referral: one node branching into two. */
+/** Referral: one customer bringing in two. */
 export const IconShare = (p: IconProps) => (
-  <Base {...p}>
-    <circle cx="6" cy="12" r="2.6" />
-    <circle cx="18" cy="6" r="2.6" />
-    <circle cx="18" cy="18" r="2.6" />
-    <path d="M8.4 10.8 15.6 7.2M8.4 13.2l7.2 3.6" />
-  </Base>
+  <svg viewBox="0 0 24 24" aria-hidden="true" {...p}>
+    <path d="M8.2 10.9 15.8 7M8.2 13.1l7.6 3.9" stroke="currentColor" strokeWidth={2.2} />
+    <circle cx="6" cy="12" r="3.1" fill="currentColor" />
+    <circle cx="18" cy="5.8" r="3.1" fill="currentColor" />
+    <circle cx="18" cy="18.2" r="3.1" fill="currentColor" />
+  </svg>
+);
+
+/** Waiting to be sent: a stack with a clock — work held on this device. */
+export const IconQueue = (p: IconProps) => (
+  <Solid {...p}>
+    <path d="M3 5a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1.6H3Z" />
+    <path d="M3 9.2h9.6a7 7 0 0 0-1.4 3.4H3Z" />
+    <path d="M3 15.2h8.3a7 7 0 0 0 .8 3.4H4a1 1 0 0 1-1-1Z" />
+    <path d="M17.5 9.5a5.5 5.5 0 1 1 0 11 5.5 5.5 0 0 1 0-11Z M16.8 12h1.4v3l1.9 1.2-.7 1.2-2.6-1.6Z" />
+  </Solid>
+);
+
+/** Syncing with the server: two arrows chasing each other. */
+export const IconSync = (p: IconProps) => (
+  <svg viewBox="0 0 24 24" aria-hidden="true" {...p}>
+    <path
+      d="M19 10.5A7.2 7.2 0 0 0 6.3 7.4M5 13.5a7.2 7.2 0 0 0 12.7 3.1"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={2.4}
+      strokeLinecap="round"
+    />
+    <path d="M20.6 4.4v6.5h-6.5Z M3.4 19.6v-6.5h6.5Z" fill="currentColor" />
+  </svg>
 );
 
 /* ---------- stock state (distinct shapes, not just colour) ---------- */
 
-/** A size that is in stock: solid, closed square. */
+/** A size that is in stock: solid square with a tick. */
 export const IconSizeIn = (p: IconProps) => (
-  <Base {...p}>
-    <rect x="4.5" y="4.5" width="15" height="15" rx="2.5" />
-    <path d="M8.5 12.2 11 14.7 15.8 9.5" />
-  </Base>
+  <Solid {...p}>
+    <path d="M5.5 3.5h13a2 2 0 0 1 2 2v13a2 2 0 0 1-2 2h-13a2 2 0 0 1-2-2v-13a2 2 0 0 1 2-2Z M7.6 12.4l1.4-1.4 2.2 2.2 4.1-4.2 1.4 1.4-5.5 5.6Z" />
+  </Solid>
 );
 
-/** A size that is sold out: dashed, open square — reads differently even in greyscale. */
+/** A size that is sold out: dashed, empty square — reads differently even in greyscale. */
 export const IconSizeOut = (p: IconProps) => (
-  <Base {...p} strokeDasharray="3 2.6">
-    <rect x="4.5" y="4.5" width="15" height="15" rx="2.5" />
-  </Base>
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeDasharray="3.2 2.6" aria-hidden="true" {...p}>
+    <rect x="4.5" y="4.5" width="15" height="15" rx="2" />
+  </svg>
 );
 
 /** Low stock warning: triangle. Used only where an action is needed. */
 export const IconAlert = (p: IconProps) => (
-  <Base {...p}>
-    <path d="M12 4.2 21 19.5H3L12 4.2Z" />
-    <path d="M12 10v4" />
-    <circle cx="12" cy="16.8" r="0.9" fill="currentColor" stroke="none" />
-  </Base>
+  <Solid {...p}>
+    <path d="M12 2.8a1.4 1.4 0 0 1 1.2.7l8.4 14.8a1.4 1.4 0 0 1-1.2 2.1H3.6a1.4 1.4 0 0 1-1.2-2.1L10.8 3.5a1.4 1.4 0 0 1 1.2-.7Z M11 8.5h2v6h-2Z M12 15.8a1.2 1.2 0 1 0 0 2.4 1.2 1.2 0 0 0 0-2.4Z" />
+  </Solid>
 );
 
-/** Stale stock: hourglass. */
+/** Stale stock: an hourglass with the sand run down. */
 export const IconHourglass = (p: IconProps) => (
-  <Base {...p}>
-    <path d="M7 3.5h10M7 20.5h10" />
-    <path d="M8 3.5v3.2c0 2 4 3.6 4 5.3s-4 3.3-4 5.3v3.2" />
-    <path d="M16 3.5v3.2c0 2-4 3.6-4 5.3s4 3.3 4 5.3v3.2" />
-  </Base>
+  <Solid {...p}>
+    <path d="M5 2.5h14v2H5Z M5 19.5h14v2H5Z" />
+    <path d="M6.5 4.5h11v2.2c0 2.3-3.4 3.8-3.4 5.3s3.4 3 3.4 5.3v2.2h-11v-2.2c0-2.3 3.4-3.8 3.4-5.3S6.5 9 6.5 6.7Z M8.6 6.5h6.8c-.3 1.1-2.2 2.2-3.4 3-1.2-.8-3.1-1.9-3.4-3Z" />
+  </Solid>
 );
 
-/** Return / exchange: arrow curving back into the box. */
+/** Return / exchange: arrow turning back. */
 export const IconReturn = (p: IconProps) => (
-  <Base {...p}>
-    <path d="M9.5 5.5 5.5 9.5 9.5 13.5" />
-    <path d="M5.5 9.5h9a4.5 4.5 0 0 1 0 9H10" />
-  </Base>
+  <svg viewBox="0 0 24 24" aria-hidden="true" {...p}>
+    <path d="M6 10.5h8.5a4.5 4.5 0 0 1 0 9H11" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" />
+    <path d="M9.5 5.2v10.6L3 10.5Z" fill="currentColor" />
+  </svg>
 );
 
-/** Daily close: a cash drawer being counted. */
+/** Daily close: the cash register. */
 export const IconCashRegister = (p: IconProps) => (
-  <Base {...p}>
-    <path d="M3.5 10.5h17V19a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 19v-8.5Z" />
-    <path d="M6 10.5V6a1.5 1.5 0 0 1 1.5-1.5h9A1.5 1.5 0 0 1 18 6v4.5" />
-    <path d="M9.5 15h5" />
-    <path d="M9 7.5h6" />
-  </Base>
+  <Solid {...p}>
+    <path d="M6 2.5h12a1 1 0 0 1 1 1V8H5V3.5a1 1 0 0 1 1-1Z M7.5 4.4h9V6h-9Z" />
+    <path d="M3 10a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v6H3Z M6 11h2v1.6H6Z M9.5 11h2v1.6h-2Z M13 11h2v1.6h-2Z M6 13.5h2v1.6H6Z M9.5 13.5h2v1.6h-2Z M13 13.5h2v1.6h-2Z" />
+    <path d="M3 17.3h18V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1Z M10 18.5h4v1.3h-4Z" />
+  </Solid>
 );
 
 export const IconInstall = (p: IconProps) => (
-  <Base {...p}>
-    <rect x="6.5" y="2.5" width="11" height="19" rx="2.5" />
-    <path d="M12 7.5v6M9.5 11 12 13.5 14.5 11" />
-  </Base>
+  <Solid {...p}>
+    <path d="M7 2h10a1.5 1.5 0 0 1 1.5 1.5v17A1.5 1.5 0 0 1 17 22H7a1.5 1.5 0 0 1-1.5-1.5v-17A1.5 1.5 0 0 1 7 2Z M11.1 5.5h1.8v5.3l1.9-1.9 1.3 1.3L12 14.3l-4.1-4.1 1.3-1.3 1.9 1.9Z M10.5 17.8h3v1.4h-3Z" />
+  </Solid>
 );
 
+/** No connection: a cloud struck through. */
 export const IconOffline = (p: IconProps) => (
-  <Base {...p}>
-    <path d="M4 4l16 16" />
-    <path d="M8.6 8.7A6.5 6.5 0 0 0 5 11" />
-    <path d="M12.5 5.6c2.6.15 5 1.3 6.7 3.1" />
-    <path d="M8.2 13.8a4 4 0 0 1 1.6-1.1M14 12.9c.6.2 1.2.5 1.7 1" />
-    <circle cx="12" cy="18" r="1" fill="currentColor" stroke="none" />
-  </Base>
+  <Solid {...p}>
+    <path d="M7 19a4.5 4.5 0 0 1-.6-9 6 6 0 0 1 11.5 1.6A3.8 3.8 0 0 1 17.5 19Z M3.9 2.7l17.4 17.4-1.3 1.3L2.6 4Z" />
+  </Solid>
 );

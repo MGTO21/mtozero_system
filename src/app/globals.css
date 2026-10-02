@@ -2,30 +2,144 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Colour tokens. RGB triples so Tailwind can apply opacity (`bg-brand-500/15`).
+ *
+ * Daylight paper is the default: the shop works in a bright storefront and on
+ * phones out in the street, where a dark screen turns into a mirror. The dark
+ * theme is kept as an option for evenings and is warm, not blue.
+ */
 @layer base {
   :root {
+    color-scheme: light;
+
+    --white: 252 250 245;
+
+    /* Paper → ink. */
+    --ink-50: 243 239 230;
+    --ink-100: 234 228 216;
+    --ink-200: 217 209 194;
+    --ink-300: 185 176 160;
+    --ink-400: 141 132 119;
+    --ink-500: 105 97 87;
+    --ink-600: 79 72 63;
+    --ink-700: 58 52 45;
+    --ink-750: 46 41 35;
+    --ink-800: 36 32 27;
+    --ink-850: 30 26 22;
+    --ink-900: 26 23 20;
+    --ink-950: 16 14 12;
+
+    /* Fuchsia, deepened for text on paper (#C2306E clears 4.5:1). */
+    --brand-50: 251 237 243;
+    --brand-100: 247 219 231;
+    --brand-200: 239 184 208;
+    --brand-300: 226 133 172;
+    --brand-400: 212 79 135;
+    --brand-500: 194 48 110;
+    --brand-600: 170 36 94;
+    --brand-700: 142 28 78;
+    --brand-800: 115 26 65;
+    --brand-900: 92 24 54;
+
+    /* Logo blue, deepened the same way. */
+    --accent-50: 234 244 251;
+    --accent-100: 208 230 246;
+    --accent-200: 163 204 234;
+    --accent-300: 104 166 214;
+    --accent-400: 49 128 190;
+    --accent-500: 18 96 155;
+    --accent-600: 16 82 133;
+    --accent-700: 17 68 110;
+    --accent-800: 19 56 89;
+    --accent-900: 20 47 73;
+
+    --good: 31 122 77;
+    --warn: 168 101 15;
+    --bad: 179 38 30;
+
+    /* Roles. */
+    --page: 243 239 230;
+    --surface: 252 250 245;
+    --sunken: 234 228 216;
+    --line: 217 209 194;
+    --line-strong: 185 176 160;
+    --fg: 26 23 20;
+    --fg-2: 79 72 63;
+    --fg-3: 122 113 101;
+  }
+
+  .dark {
     color-scheme: dark;
+
+    --white: 252 250 245;
+
+    --ink-50: 246 242 234;
+    --ink-100: 236 230 219;
+    --ink-200: 214 206 192;
+    --ink-300: 178 169 154;
+    --ink-400: 141 132 119;
+    --ink-500: 112 104 93;
+    --ink-600: 84 77 68;
+    --ink-700: 60 54 47;
+    --ink-750: 48 43 37;
+    --ink-800: 38 34 29;
+    --ink-850: 29 26 22;
+    --ink-900: 22 19 16;
+    --ink-950: 15 13 11;
+
+    --brand-50: 60 18 36;
+    --brand-100: 82 24 49;
+    --brand-200: 120 34 72;
+    --brand-300: 247 156 194;
+    --brand-400: 241 107 162;
+    --brand-500: 232 75 138;
+    --brand-600: 210 47 112;
+    --brand-700: 175 33 90;
+    --brand-800: 141 30 75;
+    --brand-900: 116 29 65;
+
+    --accent-50: 16 34 50;
+    --accent-100: 20 46 68;
+    --accent-200: 26 66 98;
+    --accent-300: 111 201 244;
+    --accent-400: 56 176 238;
+    --accent-500: 27 155 232;
+    --accent-600: 18 123 196;
+    --accent-700: 18 96 155;
+    --accent-800: 21 79 124;
+    --accent-900: 22 67 101;
+
+    --good: 64 196 128;
+    --warn: 232 163 61;
+    --bad: 236 98 86;
+
+    --page: 15 13 11;
+    --surface: 29 26 22;
+    --sunken: 22 19 16;
+    --line: 48 43 37;
+    --line-strong: 74 67 58;
+    --fg: 240 235 225;
+    --fg-2: 196 188 175;
+    --fg-3: 145 136 123;
   }
 
   html {
     -webkit-tap-highlight-color: transparent;
+    /* Stops iOS enlarging text on rotate and keeps our sizes in charge. */
+    -webkit-text-size-adjust: 100%;
   }
 
   body {
-    @apply bg-ink-50 text-ink-800 antialiased;
-    /* Prevent iOS rubber-banding revealing a white gutter behind the dark shell. */
+    @apply bg-page text-fg antialiased;
     overscroll-behavior-y: none;
-  }
-
-  .dark body {
-    @apply bg-ink-950 text-ink-100;
   }
 
   h1,
   h2,
   h3,
   h4 {
-    @apply font-display font-extrabold tracking-tight;
+    @apply font-display font-extrabold;
     /* Arabic headings otherwise strand a single word on the last line. */
     text-wrap: balance;
   }
@@ -57,7 +171,6 @@
     font-feature-settings: 'tnum' 1;
   }
 
-  /* Native controls inherit the dark shell instead of showing a white box. */
   input,
   select,
   textarea,
@@ -82,27 +195,22 @@
   }
 
   ::selection {
-    @apply bg-brand-500/35;
+    background: rgb(var(--brand-500) / 0.25);
   }
 
-  /* Firefox. The webkit thumb below must match these, or the two engines
-     disagree about the scrollbar colour in light mode. */
   * {
     scrollbar-width: thin;
-    scrollbar-color: theme('colors.ink.300') transparent;
-  }
-
-  .dark * {
-    scrollbar-color: theme('colors.ink.700') transparent;
+    scrollbar-color: rgb(var(--line-strong)) transparent;
   }
 
   ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
   }
 
   ::-webkit-scrollbar-thumb {
-    @apply rounded-full bg-ink-300 dark:bg-ink-700;
+    border-radius: 9999px;
+    background: rgb(var(--line-strong));
   }
 
   ::-webkit-scrollbar-track {
@@ -110,49 +218,126 @@
   }
 
   :focus-visible {
-    @apply outline-none ring-2 ring-brand-500 ring-offset-2 ring-offset-ink-50 dark:ring-offset-ink-950;
+    outline: 2px solid rgb(var(--brand-500));
+    outline-offset: 2px;
   }
 }
 
 @layer components {
   /*
-   * Three surface tiers, deliberately few. A page where every card looks equally
-   * important has no hierarchy at all:
-   *   .surface-key   — the one thing the screen is about (today's takings, the total)
-   *   .surface       — ordinary content
-   *   .surface-sunken — insets and read-only summaries inside a card
+   * Surfaces. Few, on purpose — a page where everything looks equally important
+   * has no hierarchy:
+   *   .surface        ordinary content, a sheet of paper on the desk
+   *   .surface-key    the one thing the screen is about (today's drawer, the total)
+   *   .surface-sunken read-only insets inside a card
    */
   .surface {
-    @apply rounded-card border border-ink-200 bg-white dark:border-ink-750 dark:bg-ink-850;
+    @apply rounded-card border border-line bg-surface;
   }
 
   .surface-key {
-    @apply rounded-card border border-ink-200 bg-white shadow-lift dark:border-ink-700 dark:bg-ink-850;
+    @apply rounded-card border-[1.5px] border-fg bg-surface;
   }
 
   .surface-sunken {
-    @apply rounded-card border border-ink-200 bg-ink-100/60 dark:border-ink-800 dark:bg-ink-900;
+    @apply rounded-card border border-line bg-sunken;
   }
 
-  /* Matches the 2.75rem button height so a field and a button align on one row,
-     and clears the 44px minimum touch target on a phone. */
+  /*
+   * 48px: a comfortable thumb target, and the same height as a medium button so a
+   * field and a button align on one row.
+   */
   .field {
-    @apply block min-h-[2.75rem] w-full rounded-card border border-ink-200 bg-white px-3 py-2.5 text-[0.95rem]
-           outline-none transition placeholder:text-ink-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/25
-           dark:border-ink-700 dark:bg-ink-900 dark:placeholder:text-ink-500;
+    @apply block min-h-[3rem] w-full rounded-card border border-line-strong bg-surface px-3 py-2.5 text-[1rem]
+           text-fg outline-none transition-colors placeholder:text-fg-3 focus:border-brand-500
+           focus:ring-2 focus:ring-brand-500/20;
   }
 
   .label {
-    @apply mb-1.5 block text-[0.8rem] font-bold text-ink-500 dark:text-ink-400;
+    @apply mb-1.5 block text-[0.8rem] font-bold text-fg-2;
   }
 
   .chip {
-    @apply inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[0.72rem] font-bold;
+    @apply inline-flex items-center gap-1 rounded-[4px] px-1.5 py-0.5 text-[0.72rem] font-bold leading-tight;
   }
 
-  /* Hairline separator that reads as structure, not decoration. */
-  .rule {
-    @apply border-ink-200 dark:border-ink-800;
+  /*
+   * The receipt perforation. Used between the lines of anything that is, in
+   * effect, a bill — the cart, an invoice, the day's close.
+   */
+  .perf {
+    @apply border-t border-dashed border-line-strong;
+  }
+
+  .perf-rows > * + * {
+    @apply border-t border-dashed border-line-strong;
+  }
+
+  .rows > * + * {
+    @apply border-t border-line;
+  }
+
+  /*
+   * Section heading as a ledger column title: a short label, then a rule that
+   * runs to the edge. Gives each block a start without a box around it.
+   */
+  .ledger-head {
+    @apply mb-2.5 flex items-center gap-2.5 text-[0.82rem] font-extrabold text-fg-2;
+  }
+
+  .ledger-head::after {
+    content: '';
+    @apply h-px flex-1 bg-line;
+  }
+
+  /*
+   * A ticket: the notches on both sides are the part of a till receipt you tear
+   * along. Kept for the few surfaces that ARE a bill — the confirmed sale, the
+   * running total.
+   */
+  .ticket {
+    @apply bg-surface;
+    --notch: 9px;
+    -webkit-mask:
+      radial-gradient(circle at 0 50%, transparent var(--notch), #000 calc(var(--notch) + 0.5px)) left / 51% 100% no-repeat,
+      radial-gradient(circle at 100% 50%, transparent var(--notch), #000 calc(var(--notch) + 0.5px)) right / 51% 100% no-repeat;
+    mask:
+      radial-gradient(circle at 0 50%, transparent var(--notch), #000 calc(var(--notch) + 0.5px)) left / 51% 100% no-repeat,
+      radial-gradient(circle at 100% 50%, transparent var(--notch), #000 calc(var(--notch) + 0.5px)) right / 51% 100% no-repeat;
+  }
+
+  /* A rubber-stamp status: "paid", "debt", "waiting to send". */
+  .stamp {
+    @apply inline-flex items-center gap-1 rounded-[3px] border-2 px-2 py-0.5 font-display text-[0.8rem] font-black;
+    transform: rotate(-4deg);
+  }
+
+  /* Anything tappable gets a small physical press. */
+  .press {
+    @apply transition-transform active:scale-[0.97];
+  }
+
+  /* Horizontal chip rows that scroll edge to edge on a phone. */
+  .scroller {
+    @apply -mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1;
+    scrollbar-width: none;
+  }
+
+  .scroller::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Segmented choice (payment mode, channel, range): one control, many options. */
+  .seg {
+    @apply flex rounded-card border border-line-strong bg-surface p-0.5;
+  }
+
+  .seg > button {
+    @apply flex-1 rounded-[4px] px-2 py-2 text-[0.85rem] font-bold text-fg-2 transition-colors;
+  }
+
+  .seg > button[aria-pressed='true'] {
+    @apply bg-fg text-page;
   }
 }
 
@@ -162,21 +347,17 @@
   min-height: 100dvh;
 }
 
-/* Print: the invoice route must come out on white paper regardless of theme. */
+/* Print: the invoice must come out on white paper regardless of theme. */
 @media print {
   html,
-  body {
-    background: #fff !important;
-    color: #0a0909 !important;
-  }
-
+  body,
   .dark body {
     background: #fff !important;
-    color: #0a0909 !important;
+    color: #111 !important;
   }
 
-  @page {
-    margin: 14mm;
+  .no-print {
+    display: none !important;
   }
 }
 

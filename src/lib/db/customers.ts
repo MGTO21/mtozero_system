@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  addDoc,
   collection,
   doc,
   getDocs,
@@ -10,6 +9,7 @@ import {
   query,
   runTransaction,
   serverTimestamp,
+  setDoc,
   updateDoc,
   where,
   type Timestamp,
@@ -17,6 +17,7 @@ import {
 import { db } from '@/lib/firebase';
 import { useLiveQuery } from '@/lib/hooks/useFirestore';
 import { whatsappNumber } from '@/lib/format';
+import { settle } from '@/lib/offline/write';
 import type { Customer, Referral } from '@/lib/types';
 import { AppError, COL } from './collections';
 import { logActivity } from './activity';
@@ -119,7 +120,7 @@ export async function ensureCustomer(
   if (existing) {
     // Keep the newest spelling of the name without touching money fields.
     if (input.name.trim() && input.name.trim() !== existing.name) {
-      await updateDoc(doc(db(), COL.customers, existing.id), { name: input.name.trim() });
+      await settle(updateDoc(doc(db(), COL.customers, existing.id), { name: input.name.trim() }));
       return { ...existing, name: input.name.trim() };
     }
     return existing;
@@ -132,7 +133,8 @@ export async function ensureCustomer(
     if (!referredBy) throw new AppError('كود الإحالة غير صحيح.');
   }
 
-  const created = await addDoc(collection(db(), COL.customers), {
+  const created = doc(collection(db(), COL.customers));
+  await settle(setDoc(created, {
     name,
     phone: normalized,
     note: null,
@@ -146,7 +148,7 @@ export async function ensureCustomer(
     creditEarned: 0,
     referralCount: 0,
     createdAt: serverTimestamp(),
-  });
+  }));
 
   await logActivity(actor, 'edited_user', `أضاف العميل "${name}" (${normalized})`);
   return mapCustomer(created.id, {
@@ -163,7 +165,7 @@ export async function updateCustomer(
   patch: Partial<Pick<Customer, 'name' | 'note'>>,
   actor: { uid: string; name: string },
 ): Promise<void> {
-  await updateDoc(doc(db(), COL.customers, customer.id), patch);
+  await settle(updateDoc(doc(db(), COL.customers, customer.id), patch));
   await logActivity(actor, 'edited_user', `عدّل بيانات العميل "${customer.name}"`);
 }
 
@@ -182,7 +184,14 @@ export async function awardReferralIfDue(
 ): Promise<void> {
   if (reward <= 0) return;
 
+  // Keyed by the sale, so granting twice for the same purchase is impossible —
+  // the offline queue may run this again after a dropped acknowledgement.
+  const referralRef = doc(db(), COL.referrals, saleId);
+
   const result = await runTransaction(db(), async (tx) => {
+    const already = await tx.get(referralRef);
+    if (already.exists()) return null;
+
     const customerRef = doc(db(), COL.customers, customerId);
     const snap = await tx.get(customerRef);
     if (!snap.exists()) return null;
@@ -203,7 +212,7 @@ export async function awardReferralIfDue(
       referralCount: referrer.referralCount + 1,
     });
 
-    tx.set(doc(collection(db(), COL.referrals)), {
+    tx.set(referralRef, {
       referrerId: referrer.id,
       referrerName: referrer.name,
       referredId: customer.id,

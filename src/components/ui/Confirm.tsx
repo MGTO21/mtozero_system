@@ -22,9 +22,7 @@ interface ConfirmOptions {
  * Kept as a hook so callers stay declarative and never rely on window.confirm.
  */
 export function useConfirm() {
-  const [state, setState] = useState<
-    (ConfirmOptions & { resolve: (ok: boolean) => void }) | null
-  >(null);
+  const [state, setState] = useState<(ConfirmOptions & { resolve: (ok: boolean) => void }) | null>(null);
   const [busy, setBusy] = useState(false);
 
   const confirm = (options: ConfirmOptions) =>
@@ -56,14 +54,9 @@ export function useConfirm() {
 
   const dialog = state ? (
     <Sheet open onClose={() => (busy ? undefined : settle(false))} title={state.title}>
-      <p className="text-[0.95rem] leading-relaxed text-ink-600 dark:text-ink-300">{state.message}</p>
+      <p className="text-[0.98rem] leading-relaxed text-fg-2">{state.message}</p>
       <div className="mt-6 flex gap-2">
-        <Button
-          variant={state.danger ? 'danger' : 'primary'}
-          block
-          loading={busy}
-          onClick={() => void onConfirm()}
-        >
+        <Button variant={state.danger ? 'danger' : 'ink'} block loading={busy} onClick={() => void onConfirm()}>
           {state.confirmLabel ?? 'تأكيد'}
         </Button>
         <Button variant="secondary" block disabled={busy} onClick={() => settle(false)}>

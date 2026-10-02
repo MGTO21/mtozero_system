@@ -8,7 +8,8 @@ import { IconPlus, IconSearch, IconTrash } from '@/components/ui/Icons';
 import { Sheet } from '@/components/ui/Sheet';
 import { errorMessage } from '@/lib/db/collections';
 import { useProducts } from '@/lib/db/products';
-import { receiveStock, type ReceiveLine } from '@/lib/db/shipments';
+import type { ReceiveLine } from '@/lib/db/shipments';
+import { submitReceive } from '@/lib/offline/operations';
 import { money, num } from '@/lib/format';
 import type { Shipment } from '@/lib/types';
 
@@ -60,12 +61,12 @@ export function ReceiveSheet({ shipment, onClose }: { shipment: Shipment | null;
     if (!shipment) return;
     setBusy(true);
     try {
-      const result = await receiveStock(shipment, lines, actor);
-      if (result.failed.length > 0) {
-        toast.error(`أُضيفت ${result.received} قطعة، وفشل: ${result.failed.join('، ')}`);
-      } else {
-        toast.success(`تم إدخال ${result.received} قطعة إلى المخزون`);
-      }
+      const result = await submitReceive(shipment, lines, actor);
+      toast.success(
+        result.queued
+          ? `حُفظ استلام ${totalUnits} قطعة على الجهاز — يُضاف للمخزون عند عودة الشبكة`
+          : `تم إدخال ${totalUnits} قطعة إلى المخزون`,
+      );
       setLines([]);
       onClose();
     } catch (err) {

@@ -4,6 +4,7 @@ import { doc, onSnapshot, serverTimestamp, setDoc, type Timestamp } from 'fireba
 import { useEffect, useState } from 'react';
 import { db, isFirebaseConfigured } from '@/lib/firebase';
 import { DEFAULT_SETTINGS, type ShopSettings } from '@/lib/types';
+import { settle } from '@/lib/offline/write';
 import { COL, SETTINGS_DOC } from './collections';
 import { logActivity } from './activity';
 
@@ -50,10 +51,8 @@ export async function saveSettings(
   patch: Partial<ShopSettings>,
   actor: { uid: string; name: string },
 ): Promise<void> {
-  await setDoc(
-    doc(db(), COL.settings, SETTINGS_DOC),
-    { ...patch, updatedAt: serverTimestamp() },
-    { merge: true },
+  await settle(
+    setDoc(doc(db(), COL.settings, SETTINGS_DOC), { ...patch, updatedAt: serverTimestamp() }, { merge: true }),
   );
   await logActivity(actor, 'edited_settings', 'حدّث إعدادات المتجر');
 }

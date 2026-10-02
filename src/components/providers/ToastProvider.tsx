@@ -1,6 +1,18 @@
 'use client';
 
-import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
+import { IconCheck, IconQueue, IconX } from '@/components/ui/Icons';
+import { errorMessage } from '@/lib/db/collections';
+import { WRITE_FAILED_EVENT } from '@/lib/offline/write';
 
 type ToastKind = 'success' | 'error' | 'info';
 
@@ -19,28 +31,15 @@ interface ToastApi {
 const ToastContext = createContext<ToastApi | null>(null);
 
 const ICONS: Record<ToastKind, ReactNode> = {
-  success: (
-    <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.4">
-      <path d="M4 10.5 8 14.5 16 6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  ),
-  error: (
-    <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.4">
-      <path d="M6 6l8 8M14 6l-8 8" strokeLinecap="round" />
-    </svg>
-  ),
-  info: (
-    <svg viewBox="0 0 20 20" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2.2">
-      <path d="M10 9v5M10 6.2v.2" strokeLinecap="round" />
-      <circle cx="10" cy="10" r="7.2" />
-    </svg>
-  ),
+  success: <IconCheck className="h-4 w-4" />,
+  error: <IconX className="h-4 w-4" />,
+  info: <IconQueue className="h-4 w-4" />,
 };
 
 const TONES: Record<ToastKind, string> = {
-  success: 'border-good/40 bg-good/12 text-good',
-  error: 'border-bad/45 bg-bad/12 text-bad',
-  info: 'border-ink-300/40 bg-ink-100 text-ink-700 dark:border-ink-600 dark:bg-ink-750 dark:text-ink-100',
+  success: 'bg-fg text-page',
+  error: 'bg-bad text-white',
+  info: 'bg-surface text-fg border border-line-strong',
 };
 
 export function ToastProvider({ children }: { children: ReactNode }) {
@@ -50,10 +49,23 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   const push = useCallback((kind: ToastKind, message: string) => {
     const id = nextId.current++;
     setToasts((prev) => [...prev.slice(-2), { id, kind, message }]);
-    window.setTimeout(() => {
-      setToasts((prev) => prev.filter((t) => t.id !== id));
-    }, kind === 'error' ? 5200 : 3200);
+    window.setTimeout(
+      () => {
+        setToasts((prev) => prev.filter((t) => t.id !== id));
+      },
+      kind === 'error' ? 5200 : 3400,
+    );
   }, []);
+
+  // A save that was queued offline and later refused by the server has no
+  // screen waiting for it any more; it is reported here instead of vanishing.
+  useEffect(() => {
+    const onFailed = (event: Event) => {
+      push('error', `لم يُحفظ تعديل سابق: ${errorMessage((event as CustomEvent).detail)}`);
+    };
+    window.addEventListener(WRITE_FAILED_EVENT, onFailed);
+    return () => window.removeEventListener(WRITE_FAILED_EVENT, onFailed);
+  }, [push]);
 
   const api = useMemo<ToastApi>(
     () => ({
@@ -69,12 +81,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
       {children}
       {/* No aria-live on the container: each toast carries its own role, so a
           failed sale interrupts while a routine success waits its turn. */}
-      <div className="pointer-events-none fixed inset-x-0 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-[80] flex flex-col items-center gap-2 px-4 sm:bottom-6 sm:right-6 sm:left-auto sm:items-end">
+      <div className="pointer-events-none fixed inset-x-0 bottom-[calc(5.25rem+env(safe-area-inset-bottom))] z-[80] flex flex-col items-center gap-2 px-4 lg:bottom-6 lg:left-6 lg:right-auto lg:items-start">
         {toasts.map((t) => (
           <div
             key={t.id}
             role={t.kind === 'error' ? 'alert' : 'status'}
-            className={`pointer-events-auto flex w-full max-w-sm items-center gap-2.5 rounded-card border px-3.5 py-3 text-sm font-semibold shadow-lift backdrop-blur-md animate-toast-in ${TONES[t.kind]}`}
+            className={`pointer-events-auto flex w-full max-w-sm items-center gap-2.5 rounded-card px-3.5 py-3 text-[0.9rem] font-bold shadow-lift animate-toast-in ${TONES[t.kind]}`}
           >
             <span className="shrink-0">{ICONS[t.kind]}</span>
             <span className="leading-snug">{t.message}</span>

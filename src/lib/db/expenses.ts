@@ -1,17 +1,18 @@
 'use client';
 
 import {
-  addDoc,
   collection,
   deleteDoc,
   doc,
   orderBy,
   query,
+  setDoc,
   Timestamp,
   where,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useLiveQuery } from '@/lib/hooks/useFirestore';
+import { settle } from '@/lib/offline/write';
 import type { Expense } from '@/lib/types';
 import { AppError, COL } from './collections';
 import { logActivity } from './activity';
@@ -51,19 +52,21 @@ export async function addExpense(
   if (!input.title.trim()) throw new AppError('عنوان المصروف مطلوب.');
   if (input.amount <= 0) throw new AppError('المبلغ يجب أن يكون أكبر من صفر.');
 
-  await addDoc(collection(db(), COL.expenses), {
-    title: input.title.trim(),
-    amount: input.amount,
-    category: input.category,
-    date: Timestamp.fromDate(input.date),
-    addedBy: actor.uid,
-    addedByName: actor.name,
-  });
+  await settle(
+    setDoc(doc(collection(db(), COL.expenses)), {
+      title: input.title.trim(),
+      amount: input.amount,
+      category: input.category,
+      date: Timestamp.fromDate(input.date),
+      addedBy: actor.uid,
+      addedByName: actor.name,
+    }),
+  );
 
   await logActivity(actor, 'added_expense', `أضاف مصروف "${input.title.trim()}" بمبلغ ${input.amount} ج`);
 }
 
 export async function deleteExpense(expense: Expense, actor: { uid: string; name: string }): Promise<void> {
-  await deleteDoc(doc(db(), COL.expenses, expense.id));
+  await settle(deleteDoc(doc(db(), COL.expenses, expense.id)));
   await logActivity(actor, 'deleted_expense', `حذف مصروف "${expense.title}" بمبلغ ${expense.amount} ج`);
 }

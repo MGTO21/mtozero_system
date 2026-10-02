@@ -49,17 +49,11 @@ export function Brand({ compact = false }: { compact?: boolean }) {
     <span className="inline-flex items-center gap-2.5">
       <BrandMark className={compact ? 'h-7 w-7' : 'h-9 w-9'} />
       <span className="flex flex-col leading-none">
-        <span
-          className={`font-display font-black tracking-[0.06em] text-ink-900 dark:text-white ${
-            compact ? 'text-base' : 'text-lg'
-          }`}
-        >
+        <span className={`font-display font-black tracking-[0.06em] text-fg ${compact ? 'text-base' : 'text-lg'}`}>
           MTOZERO
         </span>
         {!compact ? (
-          <span className="mt-1 text-[0.56rem] font-bold tracking-[0.34em] text-ink-400 dark:text-ink-500">
-            WEAR YOUR IDENTITY
-          </span>
+          <span className="mt-1 text-[0.56rem] font-bold tracking-[0.34em] text-fg-3">WEAR YOUR IDENTITY</span>
         ) : null}
       </span>
     </span>

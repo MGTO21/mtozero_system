@@ -30,7 +30,7 @@ export const metadata: Metadata = {
   applicationName: 'Mtozero Shop',
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'black-translucent',
+    statusBarStyle: 'default',
     title: 'Mtozero',
   },
   icons: {
@@ -50,23 +50,21 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: 'cover',
-  themeColor: [
-    { media: '(prefers-color-scheme: dark)', color: '#0A0909' },
-    { media: '(prefers-color-scheme: light)', color: '#FFFFFF' },
-  ],
+  // Updated live by ThemeProvider when the user switches theme.
+  themeColor: '#F3EFE6',
 };
 
 /**
- * Applies the stored theme before first paint so a dark-mode user never sees a
- * white flash on app launch.
+ * Applies a stored dark choice before first paint so an evening user never sees a
+ * paper flash on launch. Daylight is the default; see ThemeProvider for the key.
  */
-const THEME_BOOTSTRAP = `(function(){try{var t=localStorage.getItem('mtozero-theme');if(t!=='light'){document.documentElement.classList.add('dark');document.documentElement.style.colorScheme='dark';}}catch(e){document.documentElement.classList.add('dark');}})();`;
+const THEME_BOOTSTRAP = `(function(){try{if(localStorage.getItem('mtozero-theme-v2')==='dark'){var r=document.documentElement;r.classList.add('dark');r.style.colorScheme='dark';var m=document.querySelector('meta[name="theme-color"]');if(m)m.setAttribute('content','#0F0D0B');}}catch(e){}})();`;
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     // suppressHydrationWarning: the bootstrap script below mutates <html> before
     // React hydrates, which is exactly the mismatch we want to allow.
-    <html lang="ar" dir="rtl" suppressHydrationWarning className={`${cairo.variable} ${plex.variable} dark`}>
+    <html lang="ar" dir="rtl" suppressHydrationWarning className={`${cairo.variable} ${plex.variable}`}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOTSTRAP }} />
       </head>

@@ -16,14 +16,18 @@ interface Props {
   footer?: ReactNode;
   /** Wider variant for forms with two columns. */
   wide?: boolean;
+  /** Fills the phone screen — for long forms where a half sheet only scrolls. */
+  tall?: boolean;
 }
 
 /**
  * One dialog primitive for the whole app: a bottom sheet on phones (thumb reach)
  * that becomes a centered panel on desktop.
  */
-export function Sheet({ open, onClose, title, subtitle, children, footer, wide }: Props) {
+export function Sheet({ open, onClose, title, subtitle, children, footer, wide, tall }: Props) {
   const panelRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     if (!open) return;
@@ -50,7 +54,7 @@ export function Sheet({ open, onClose, title, subtitle, children, footer, wide }
 
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose();
+        onCloseRef.current();
         return;
       }
       if (e.key !== 'Tab') return;
@@ -84,43 +88,45 @@ export function Sheet({ open, onClose, title, subtitle, children, footer, wide }
       // user at the top of the page.
       previouslyFocused?.focus?.();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-end justify-center sm:items-center">
+    <div className="fixed inset-0 z-[70] flex items-end justify-center sm:items-center sm:p-4">
       {/* Not a button: Escape and the × already give an accessible way out, and a
           full-screen tab stop would just be noise for screen-reader users. */}
-      <div
-        aria-hidden="true"
-        onClick={onClose}
-        className="absolute inset-0 bg-ink-950/70 backdrop-blur-sm"
-      />
+      <div aria-hidden="true" onClick={onClose} className="absolute inset-0 animate-fade-in bg-ink-950/55" />
       <div
         ref={panelRef}
         role="dialog"
         aria-modal="true"
         aria-label={title}
         tabIndex={-1}
-        className={`relative flex max-h-[92dvh] w-full flex-col overflow-hidden rounded-t-2xl border-t border-ink-200 outline-none
-          bg-white shadow-lift animate-sheet-up dark:border-ink-750 dark:bg-ink-850
-          sm:rounded-card sm:border ${wide ? 'sm:max-w-2xl' : 'sm:max-w-md'}`}
+        className={`relative flex w-full flex-col overflow-hidden rounded-t-[14px] border-t border-line bg-page shadow-lift outline-none
+          animate-sheet-up sm:animate-fade-in sm:rounded-card sm:border
+          ${tall ? 'h-[94dvh] sm:h-auto sm:max-h-[90dvh]' : 'max-h-[92dvh]'}
+          ${wide ? 'sm:max-w-2xl' : 'sm:max-w-md'}`}
       >
-        <header className="flex items-start gap-3 border-b border-ink-200 px-4 py-3.5 dark:border-ink-800">
+        {/* Grab handle: tells a phone user this is a sheet that sits over the page. */}
+        <div className="flex justify-center pt-2 sm:hidden" aria-hidden="true">
+          <span className="h-1 w-10 rounded-full bg-line-strong" />
+        </div>
+
+        <header className="flex items-start gap-3 px-4 pb-3 pt-2 sm:pt-4">
           <div className="min-w-0 flex-1">
-            <h2 className="truncate text-lg">{title}</h2>
-            {subtitle ? <p className="mt-0.5 text-[0.82rem] text-ink-500 dark:text-ink-400">{subtitle}</p> : null}
+            <h2 className="truncate text-[1.2rem]">{title}</h2>
+            {subtitle ? <p className="mt-0.5 truncate text-[0.84rem] font-semibold text-fg-3">{subtitle}</p> : null}
           </div>
-          <IconButton label="إغلاق" onClick={onClose} className="-mt-1">
+          <IconButton label="إغلاق" onClick={onClose} className="-mt-0.5">
             <IconX className="h-5 w-5" />
           </IconButton>
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">{children}</div>
+        <div className="perf min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-4">{children}</div>
 
         {footer ? (
-          <footer className="border-t border-ink-200 bg-ink-50/70 px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] dark:border-ink-800 dark:bg-ink-900/60 sm:pb-3">
+          <footer className="border-t border-line bg-surface px-4 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] sm:pb-3">
             {footer}
           </footer>
         ) : null}

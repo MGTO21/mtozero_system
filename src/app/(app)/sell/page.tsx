@@ -19,9 +19,9 @@ import {
   IconTag,
 } from '@/components/ui/Icons';
 import { errorMessage } from '@/lib/db/collections';
-import { awardReferralIfDue, ensureCustomer } from '@/lib/db/customers';
 import { availableSizes, productImage, totalStock, useProducts } from '@/lib/db/products';
-import { recordSale, useSale, type CartLine, type RemainingStock } from '@/lib/db/sales';
+import { useSale, type CartLine, type RemainingStock } from '@/lib/db/sales';
+import { submitSale } from '@/lib/offline/operations';
 import { CartList } from '@/components/sell/CartList';
 import { useSettings } from '@/lib/db/settings';
 import { money, num } from '@/lib/format';
@@ -185,37 +185,33 @@ function QuickSale() {
     if (lines.length === 0) return;
     setBusy(true);
     try {
-      // The customer record is created first so the sale can spend referral credit
-      // against a document that already exists, inside one transaction.
-      const record = customer.phone.trim()
-        ? await ensureCustomer(
-            { name: customer.name, phone: customer.phone, referredByCode: customer.referredByCode },
-            actor,
-          )
-        : null;
+      // Stock left per size, worked out before the sale so a queued sale can
+      // still answer "how many are left" with the screen's own numbers.
+      const before: RemainingStock = {};
+      for (const line of lines) {
+        const key = `${line.product.id}|${line.size}`;
+        const onHand = before[key] ?? line.product.sizes.find((s) => s.size === line.size)?.qty ?? 0;
+        before[key] = Math.max(0, onHand - line.qty);
+      }
 
-      const result = await recordSale(
+      const result = await submitSale(
         {
-          lines,
+          cart: lines,
           customerName: customer.name,
           customerPhone: customer.phone,
-          customerId: record?.id ?? null,
+          referredByCode: customer.referredByCode,
           creditUsed,
           paymentStatus: payment,
           amountPaid,
           channel,
+          referralReward: settings.referralReward,
         },
         actor,
       );
 
-      setRemaining(result.remaining);
-      setLastSaleId(result.saleId);
-      toast.success('تم تسجيل البيع وخصم الكمية');
-
-      // Best-effort: a missing reward can be re-granted, a failed sale cannot.
-      if (record) {
-        void awardReferralIfDue(record.id, result.saleId, settings.referralReward, actor);
-      }
+      setRemaining(result.remaining ?? before);
+      setLastSaleId(result.id);
+      toast.success(result.queued ? 'سُجّلت البيعة على الجهاز — تُرسل عند عودة الشبكة' : 'تم تسجيل البيع وخصم الكمية');
     } catch (err) {
       toast.error(errorMessage(err, 'تعذّر تسجيل البيع.'));
     } finally {

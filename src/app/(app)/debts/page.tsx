@@ -11,7 +11,8 @@ import { Sheet } from '@/components/ui/Sheet';
 import { debtorRows, type DebtorRow } from '@/lib/analytics';
 import { downloadCsv, stamp } from '@/lib/csv';
 import { errorMessage } from '@/lib/db/collections';
-import { recordPayment, saleDue, saleLabel, saleTotal, useOpenDebts } from '@/lib/db/sales';
+import { saleDue, saleLabel, saleTotal, useOpenDebts } from '@/lib/db/sales';
+import { submitPayment } from '@/lib/offline/operations';
 import { formatDate, money, num, whatsappNumber } from '@/lib/format';
 import { debtReminderText } from '@/lib/invoice';
 import type { Sale } from '@/lib/types';
@@ -185,8 +186,8 @@ function PaymentSheet({ sale, onClose }: { sale: Sale | null; onClose: () => voi
     if (!sale) return;
     setBusy(true);
     try {
-      await recordPayment(sale.id, amount, actor);
-      toast.success('تم تسجيل التسديد');
+      const result = await submitPayment(sale, amount, actor);
+      toast.success(result.queued ? 'سُجّل التسديد على الجهاز — يُرسل عند عودة الشبكة' : 'تم تسجيل التسديد');
       onClose();
     } catch (err) {
       toast.error(errorMessage(err, 'تعذّر تسجيل التسديد.'));

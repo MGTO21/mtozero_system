@@ -27,7 +27,10 @@ const TONE: Record<ActivityAction, string> = {
   awarded_referral: 'bg-good/15 text-good',
   sent_campaign: 'bg-accent-500/15 text-accent-500',
   stock_count: 'bg-warn/15 text-warn',
+  stock_adjusted: 'bg-warn/15 text-warn',
   edited_settings: 'bg-ink-200 text-ink-600 dark:bg-ink-800 dark:text-ink-300',
+  sync_conflict: 'bg-bad/15 text-bad',
+  sync_discarded: 'bg-bad/15 text-bad',
 };
 
 export default function ActivityPage() {

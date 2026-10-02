@@ -1,7 +1,6 @@
 'use client';
 
 import {
-  addDoc,
   arrayUnion,
   collection,
   doc,
@@ -9,11 +8,13 @@ import {
   orderBy,
   query,
   serverTimestamp,
+  setDoc,
   updateDoc,
   type Timestamp,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useLiveQuery } from '@/lib/hooks/useFirestore';
+import { settle } from '@/lib/offline/write';
 import { toDate } from '@/lib/format';
 import type { Campaign } from '@/lib/types';
 import { AppError, COL } from './collections';
@@ -47,7 +48,8 @@ export async function createCampaign(
 ): Promise<string> {
   if (!input.message.trim()) throw new AppError('اكتب نص الرسالة أولاً.');
 
-  const created = await addDoc(collection(db(), COL.campaigns), {
+  const created = doc(collection(db(), COL.campaigns));
+  await settle(setDoc(created, {
     title: input.title.trim() || 'حملة بدون عنوان',
     message: input.message.trim(),
     segment: input.segment,
@@ -56,7 +58,7 @@ export async function createCampaign(
     createdBy: actor.uid,
     createdByName: actor.name,
     createdAt: serverTimestamp(),
-  });
+  }));
 
   await logActivity(
     actor,
@@ -72,7 +74,7 @@ export async function createCampaign(
  * each other's progress.
  */
 export async function markSent(campaignId: string, customerId: string): Promise<void> {
-  await updateDoc(doc(db(), COL.campaigns, campaignId), { sentTo: arrayUnion(customerId) });
+  await settle(updateDoc(doc(db(), COL.campaigns, campaignId), { sentTo: arrayUnion(customerId) }));
 }
 
 /**

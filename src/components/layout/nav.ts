@@ -3,12 +3,13 @@ import {
   IconBoxes,
   IconCashRegister,
   IconChart,
+  IconClipboard,
   IconDebt,
   IconGauge,
   IconHistory,
-  IconReceipt,
-  IconClipboard,
   IconMegaphone,
+  IconQueue,
+  IconReceipt,
   IconShip,
   IconStore,
   IconTag,
@@ -33,16 +34,18 @@ export interface NavItem {
   section: NavSection;
   /** Owner-only routes are hidden from employees and blocked by the route guard. */
   ownerOnly?: boolean;
+  /** Reachable, titled and guarded, but not listed in the menus. */
+  hidden?: boolean;
 }
 
 export const NAV: NavItem[] = [
   { href: '/dashboard', label: 'الرئيسية', icon: IconGauge, section: 'daily' },
-  { href: '/sell', label: 'بيع سريع', icon: IconTag, section: 'daily' },
+  { href: '/sell', label: 'بيع', icon: IconTag, section: 'daily' },
   { href: '/sales', label: 'المبيعات', icon: IconReceipt, section: 'daily' },
+  { href: '/debts', label: 'الديون', icon: IconDebt, section: 'daily' },
   { href: '/close', label: 'تقفيل اليوم', icon: IconCashRegister, section: 'daily' },
   { href: '/customers', label: 'العملاء', icon: IconUserCircle, section: 'daily' },
   { href: '/campaigns', label: 'حملات واتساب', icon: IconMegaphone, section: 'daily', ownerOnly: true },
-  { href: '/debts', label: 'الديون', icon: IconDebt, section: 'daily' },
 
   { href: '/inventory', label: 'المخزون', icon: IconBoxes, section: 'stock' },
   { href: '/shipments', label: 'الشحنات', icon: IconShip, section: 'stock' },
@@ -53,6 +56,8 @@ export const NAV: NavItem[] = [
   { href: '/activity', label: 'سجل النشاط', icon: IconHistory, section: 'admin', ownerOnly: true },
   { href: '/team', label: 'الفريق', icon: IconUsers, section: 'admin', ownerOnly: true },
   { href: '/settings', label: 'إعدادات المتجر', icon: IconStore, section: 'admin', ownerOnly: true },
+
+  { href: '/sync', label: 'عمليات بدون شبكة', icon: IconQueue, section: 'admin', hidden: true },
 ];
 
 export const SECTION_ORDER: NavSection[] = ['daily', 'stock', 'admin'];
@@ -61,8 +66,15 @@ export const SECTION_ORDER: NavSection[] = ['daily', 'stock', 'admin'];
 export const OWNER_ONLY_ROUTES = NAV.filter((n) => n.ownerOnly).map((n) => n.href);
 
 export function visibleNav(isOwner: boolean): NavItem[] {
-  return NAV.filter((n) => isOwner || !n.ownerOnly);
+  return NAV.filter((n) => !n.hidden && (isOwner || !n.ownerOnly));
 }
 
-/** The four tabs plus the sell button that make up the mobile bottom bar. */
-export const MOBILE_TABS = ['/dashboard', '/inventory', '/sales', '/debts'] as const;
+/**
+ * The phone's bottom bar, either side of the sell button: the four screens
+ * opened dozens of times a day. Everything else is one tap away in "More".
+ */
+export const MOBILE_TABS = ['/dashboard', '/sales', '/inventory', '/debts'] as const;
+
+export function navItemFor(pathname: string): NavItem | undefined {
+  return NAV.find((n) => pathname === n.href || pathname.startsWith(`${n.href}/`));
+}

@@ -11,9 +11,17 @@ import {
   Timestamp,
   where,
 } from 'firebase/firestore';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { db } from '@/lib/firebase';
 import { useLiveQuery } from '@/lib/hooks/useFirestore';
+import { useOutbox } from '@/lib/offline/outbox';
+import {
+  applyPendingToSales,
+  inWindow,
+  pendingPayments,
+  pendingReturns,
+  pendingSales,
+} from '@/lib/offline/overlay';
 import type {
   Channel,
   ConsumedLot,
@@ -23,11 +31,46 @@ import type {
   Sale,
   SaleItem,
   SaleReturn,
-  SizeStock,
 } from '@/lib/types';
 import { AppError, COL } from './collections';
 import { logActivity } from './activity';
-import { normalizeStoredSizes, reconcileSize } from './products';
+import { normalizeStoredSizes } from './products';
+import {
+  averageCost,
+  consumeFifo,
+  itemNetQty,
+  lotsAfterReturns,
+  lotsCost,
+  reconcileSize,
+  saleDue,
+  saleTotal,
+  statusFor,
+  takeNewest,
+} from './sale-math';
+
+// The arithmetic is shared with the offline overlay and lives in sale-math.ts;
+// it is re-exported so every screen keeps importing it from here.
+export {
+  averageCost,
+  consumeFifo,
+  invoiceNumber,
+  itemCost,
+  itemGross,
+  itemNetQty,
+  keptLots,
+  lineCount,
+  lotsAfterReturns,
+  lotsCost,
+  netQty,
+  saleCost,
+  saleDue,
+  saleGross,
+  saleLabel,
+  saleProfit,
+  saleTotal,
+  statusFor,
+  takeNewest,
+} from './sale-math';
 
 function mapLots(raw: unknown, fallbackQty: number, fallbackCost: number): ConsumedLot[] {
   const lots = Array.isArray(raw) ? (raw as ConsumedLot[]) : [];
@@ -92,211 +135,16 @@ export function mapSale(id: string, raw: Record<string, unknown>): Sale {
   };
 }
 
-/* ---------- lot arithmetic ---------- */
-
-/**
- * Takes `qty` units out of a size, oldest batch first.
- *
- * FIFO matters for money, not tidiness: the January shipment and the March
- * shipment cost different amounts, and the profit on a sale has to reflect which
- * one actually left the shelf.
- */
-export function consumeFifo(size: SizeStock, qty: number): { lots: SizeStock['lots']; taken: ConsumedLot[] } {
-  const lots = [...(size.lots ?? [])].sort((a, b) => a.receivedAt - b.receivedAt);
-  const taken: ConsumedLot[] = [];
-  let remaining = qty;
-
-  for (let i = 0; i < lots.length && remaining > 0; i++) {
-    const lot = lots[i]!;
-    const take = Math.min(lot.qty, remaining);
-    if (take <= 0) continue;
-    lots[i] = { ...lot, qty: lot.qty - take };
-    taken.push({
-      shipmentId: lot.shipmentId,
-      qty: take,
-      costPrice: lot.costPrice,
-      receivedAt: lot.receivedAt,
-    });
-    remaining -= take;
-  }
-
-  if (remaining > 0) throw new AppError('الكمية المطلوبة أكبر من المتوفر في الدفعات.');
-  return { lots, taken };
-}
-
-/**
- * Picks `qty` units from the newest end of a line's lots, skipping units already
- * returned. Returns come off the most recently consumed batch first — the mirror
- * image of FIFO consumption.
- */
-export function takeNewest(lots: ConsumedLot[], alreadyReturned: number, qty: number): ConsumedLot[] {
-  const available = lotsAfterReturns(lots, alreadyReturned);
-  const picked: ConsumedLot[] = [];
-  let remaining = qty;
-
-  for (let i = available.length - 1; i >= 0 && remaining > 0; i--) {
-    const take = Math.min(available[i]!.qty, remaining);
-    picked.push({ ...available[i]!, qty: take });
-    remaining -= take;
-  }
-  return picked;
-}
-
-/** Total money paid to suppliers for the units in these lots. */
-export function lotsCost(lots: ConsumedLot[]): number {
-  return lots.reduce((sum, l) => sum + l.qty * l.costPrice, 0);
-}
-
-/** Weighted average unit cost, used wherever a single cost figure is displayed. */
-export function averageCost(lots: ConsumedLot[]): number {
-  const units = lots.reduce((sum, l) => sum + l.qty, 0);
-  return units === 0 ? 0 : lotsCost(lots) / units;
-}
-
-/**
- * The lots still with the customer after `returned` units went back, oldest first.
- * Returns give back the most recently taken units, mirroring consumption.
- */
-export function lotsAfterReturns(lots: ConsumedLot[], returned: number): ConsumedLot[] {
-  let toDrop = returned;
-  const out = [...lots];
-  for (let i = out.length - 1; i >= 0 && toDrop > 0; i--) {
-    const take = Math.min(out[i]!.qty, toDrop);
-    out[i] = { ...out[i]!, qty: out[i]!.qty - take };
-    toDrop -= take;
-  }
-  return out.filter((l) => l.qty > 0);
-}
-
-/** The lots a line still holds after its own returns. */
-export function keptLots(item: SaleItem): ConsumedLot[] {
-  return lotsAfterReturns(item.lots, item.returnedQty);
-}
-
-/* ---------- derived money helpers (single source of truth) ---------- */
-
-/** Units of one line the customer actually kept. */
-export function itemNetQty(item: SaleItem): number {
-  return Math.max(0, item.qty - item.returnedQty);
-}
-
-/** Value of one line after its returns, before any invoice-level credit. */
-export function itemGross(item: SaleItem): number {
-  return item.sellPrice * itemNetQty(item);
-}
-
-/** Real supplier cost of the units this line still holds. */
-export function itemCost(item: SaleItem): number {
-  return lotsCost(keptLots(item));
-}
-
-/** Units kept across the whole invoice. */
-export function netQty(sale: Sale): number {
-  return sale.items.reduce((sum, i) => sum + itemNetQty(i), 0);
-}
-
-/** Distinct lines still on the invoice. */
-export function lineCount(sale: Sale): number {
-  return sale.items.filter((i) => itemNetQty(i) > 0).length;
-}
-
-/** Ticket value before referral credit — used when showing the discount line. */
-export function saleGross(sale: Sale): number {
-  return sale.items.reduce((sum, i) => sum + itemGross(i), 0);
-}
-
-/** What the customer actually owes: kept lines less any referral credit applied. */
-export function saleTotal(sale: Sale): number {
-  return Math.max(0, saleGross(sale) - sale.creditUsed);
-}
-
-export function saleDue(sale: Sale): number {
-  return Math.max(0, saleTotal(sale) - sale.amountPaid);
-}
-
-/** Cost of goods across the invoice, from the batches actually consumed. */
-export function saleCost(sale: Sale): number {
-  return sale.items.reduce((sum, i) => sum + itemCost(i), 0);
-}
-
-/** Profit recomputed from current state; credit is a cost the shop absorbs. */
-export function saleProfit(sale: Sale): number {
-  return saleGross(sale) - sale.creditUsed - saleCost(sale);
-}
-
-/** One-line description for lists: the first product, plus a count of the rest. */
-export function saleLabel(sale: Sale): string {
-  const live = sale.items.filter((i) => itemNetQty(i) > 0);
-  const shown = live.length > 0 ? live : sale.items;
-  const first = shown[0];
-  if (!first) return 'فاتورة فارغة';
-  if (shown.length === 1) return `${first.productName} — مقاس ${first.size}`;
-  return `${first.productName} و${shown.length - 1} صنف آخر`;
-}
-
-export function statusFor(total: number, paid: number): PaymentStatus {
-  if (paid >= total) return 'paid';
-  if (paid <= 0) return 'debt';
-  return 'partial';
-}
-
-/* ---------- queries ---------- */
-
-export function useSalesBetween(from: Date | null, to: Date | null) {
-  return useLiveQuery<Sale>(
-    () => {
-      if (!from || !to) return null;
-      return query(
-        collection(db(), COL.sales),
-        where('createdAt', '>=', Timestamp.fromDate(from)),
-        where('createdAt', '<=', Timestamp.fromDate(to)),
-        orderBy('createdAt', 'desc'),
-      );
-    },
-    [from?.getTime() ?? 0, to?.getTime() ?? 0],
-    mapSale,
-  );
-}
-
-/** Every sale still carrying a balance. Sorted client-side to avoid a composite index. */
-export function useOpenDebts() {
-  const state = useLiveQuery<Sale>(
-    () => query(collection(db(), COL.sales), where('paymentStatus', 'in', ['debt', 'partial'])),
-    [],
-    mapSale,
-  );
-  const data = [...state.data]
-    .filter((s) => saleDue(s) > 0)
-    .sort((a, b) => (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0));
-  return { ...state, data };
-}
-
-/**
- * Debt repayments in a window. These are cash that arrived today for goods sold
- * on an earlier day, so a daily close cannot be computed from sales alone.
- */
-export function usePaymentsBetween(from: Date | null, to: Date | null) {
-  return useLiveQuery<DebtPayment>(
-    () => {
-      if (!from || !to) return null;
-      return query(
-        collection(db(), COL.payments),
-        where('createdAt', '>=', Timestamp.fromDate(from)),
-        where('createdAt', '<=', Timestamp.fromDate(to)),
-        orderBy('createdAt', 'desc'),
-      );
-    },
-    [from?.getTime() ?? 0, to?.getTime() ?? 0],
-    (id, raw) => ({
-      id,
-      saleId: String(raw.saleId ?? ''),
-      customerName: String(raw.customerName ?? ''),
-      amount: Number(raw.amount ?? 0),
-      receivedBy: String(raw.receivedBy ?? ''),
-      receivedByName: String(raw.receivedByName ?? 'مستخدم'),
-      createdAt: (raw.createdAt as Timestamp) ?? null,
-    }),
-  );
+function mapPayment(id: string, raw: Record<string, unknown>): DebtPayment {
+  return {
+    id,
+    saleId: String(raw.saleId ?? ''),
+    customerName: String(raw.customerName ?? ''),
+    amount: Number(raw.amount ?? 0),
+    receivedBy: String(raw.receivedBy ?? ''),
+    receivedByName: String(raw.receivedByName ?? 'مستخدم'),
+    createdAt: (raw.createdAt as Timestamp) ?? null,
+  };
 }
 
 export function mapReturn(id: string, raw: Record<string, unknown>): SaleReturn {
@@ -318,13 +166,99 @@ export function mapReturn(id: string, raw: Record<string, unknown>): SaleReturn 
   };
 }
 
+const byNewest = <T extends { createdAt: Timestamp | null }>(a: T, b: T) =>
+  (b.createdAt?.toMillis() ?? 0) - (a.createdAt?.toMillis() ?? 0);
+
+/**
+ * Server rows plus this device's queued rows for the same window. A queued row
+ * whose id already came back from the server is the same record mid-handover,
+ * so the server copy wins and it is never counted twice.
+ */
+function mergeById<T extends { id: string; createdAt: Timestamp | null }>(server: T[], local: T[]): T[] {
+  if (local.length === 0) return server;
+  const seen = new Set(server.map((r) => r.id));
+  return [...server, ...local.filter((r) => !seen.has(r.id))].sort(byNewest);
+}
+
+/* ---------- queries ---------- */
+
+export function useSalesBetween(from: Date | null, to: Date | null) {
+  const state = useLiveQuery<Sale>(
+    () => {
+      if (!from || !to) return null;
+      return query(
+        collection(db(), COL.sales),
+        where('createdAt', '>=', Timestamp.fromDate(from)),
+        where('createdAt', '<=', Timestamp.fromDate(to)),
+        orderBy('createdAt', 'desc'),
+      );
+    },
+    [from?.getTime() ?? 0, to?.getTime() ?? 0],
+    mapSale,
+  );
+  const outbox = useOutbox();
+  const fromMs = from?.getTime() ?? null;
+  const toMs = to?.getTime() ?? null;
+  const data = useMemo(() => {
+    const local = pendingSales(outbox.filter((e) => inWindow(e, fromMs, toMs)));
+    return applyPendingToSales(mergeById(state.data, local), outbox);
+  }, [state.data, outbox, fromMs, toMs]);
+  return { ...state, data };
+}
+
+/** Every sale still carrying a balance. Sorted client-side to avoid a composite index. */
+export function useOpenDebts() {
+  const state = useLiveQuery<Sale>(
+    () => query(collection(db(), COL.sales), where('paymentStatus', 'in', ['debt', 'partial'])),
+    [],
+    mapSale,
+  );
+  const outbox = useOutbox();
+  const data = useMemo(
+    () =>
+      applyPendingToSales(mergeById(state.data, pendingSales(outbox)), outbox)
+        .filter((s) => saleDue(s) > 0)
+        .sort(byNewest),
+    [state.data, outbox],
+  );
+  return { ...state, data };
+}
+
+/**
+ * Debt repayments in a window. These are cash that arrived today for goods sold
+ * on an earlier day, so a daily close cannot be computed from sales alone.
+ */
+export function usePaymentsBetween(from: Date | null, to: Date | null) {
+  const state = useLiveQuery<DebtPayment>(
+    () => {
+      if (!from || !to) return null;
+      return query(
+        collection(db(), COL.payments),
+        where('createdAt', '>=', Timestamp.fromDate(from)),
+        where('createdAt', '<=', Timestamp.fromDate(to)),
+        orderBy('createdAt', 'desc'),
+      );
+    },
+    [from?.getTime() ?? 0, to?.getTime() ?? 0],
+    mapPayment,
+  );
+  const outbox = useOutbox();
+  const fromMs = from?.getTime() ?? null;
+  const toMs = to?.getTime() ?? null;
+  const data = useMemo(
+    () => mergeById(state.data, pendingPayments(outbox.filter((e) => inWindow(e, fromMs, toMs)))),
+    [state.data, outbox, fromMs, toMs],
+  );
+  return { ...state, data };
+}
+
 /**
  * Returns recorded in a window. The daily close needs these because a refund is
  * cash leaving the drawer today against goods that may have been sold weeks ago —
  * invisible in both the day's sales and its debt repayments.
  */
 export function useReturnsBetween(from: Date | null, to: Date | null) {
-  return useLiveQuery<SaleReturn>(
+  const state = useLiveQuery<SaleReturn>(
     () => {
       if (!from || !to) return null;
       return query(
@@ -337,21 +271,41 @@ export function useReturnsBetween(from: Date | null, to: Date | null) {
     [from?.getTime() ?? 0, to?.getTime() ?? 0],
     mapReturn,
   );
+  const outbox = useOutbox();
+  const fromMs = from?.getTime() ?? null;
+  const toMs = to?.getTime() ?? null;
+  const data = useMemo(
+    () => mergeById(state.data, pendingReturns(outbox.filter((e) => inWindow(e, fromMs, toMs)))),
+    [state.data, outbox, fromMs, toMs],
+  );
+  return { ...state, data };
 }
 
-/** Single sale, live — used by the invoice/return sheets. */
+/**
+ * Single sale, live — used by the invoice and return sheets. A sale still in the
+ * offline queue is served from the queue, so its invoice can be shared at once.
+ */
 export function useSale(saleId: string | null) {
-  const [sale, setSale] = useState<Sale | null>(null);
+  const [server, setServer] = useState<Sale | null>(null);
+  const outbox = useOutbox();
+
   useEffect(() => {
     if (!saleId) {
-      setSale(null);
+      setServer(null);
       return;
     }
-    return onSnapshot(doc(db(), COL.sales, saleId), (snap) => {
-      setSale(snap.exists() ? mapSale(snap.id, snap.data()) : null);
-    });
+    return onSnapshot(
+      doc(db(), COL.sales, saleId),
+      (snap) => setServer(snap.exists() ? mapSale(snap.id, snap.data()) : null),
+      () => setServer(null),
+    );
   }, [saleId]);
-  return sale;
+
+  return useMemo(() => {
+    if (!saleId) return null;
+    const base = server ?? pendingSales(outbox).find((s) => s.id === saleId) ?? null;
+    return base ? (applyPendingToSales([base], outbox)[0] ?? null) : null;
+  }, [saleId, server, outbox]);
 }
 
 /* ---------- the write path ---------- */
@@ -365,8 +319,17 @@ export interface CartLine {
   sellPrice: number;
 }
 
+/** What the transaction needs of a cart line — no product snapshot, no image. */
+export interface SaleLine {
+  productId: string;
+  productName: string;
+  size: string;
+  qty: number;
+  sellPrice: number;
+}
+
 export interface SaleInput {
-  lines: CartLine[];
+  lines: SaleLine[];
   customerName?: string;
   customerPhone?: string;
   /** Existing customer record, when the buyer was matched or created up front. */
@@ -380,8 +343,55 @@ export interface SaleInput {
   note?: string;
 }
 
+/**
+ * How a write is being made. `id` fixes the document so a replay can tell it
+ * already happened; `at` is when the seller actually did it, which is what the
+ * day's figures must count — not when the phone found a signal.
+ */
+export interface ReplayOptions {
+  id: string;
+  at: number;
+  /** True when draining the offline queue rather than serving a live tap. */
+  replay: boolean;
+}
+
 /** Stock left of a size after the sale, keyed `productId|size`. */
 export type RemainingStock = Record<string, number>;
+
+/** Turns cart lines into the shape the transaction and the queue store. */
+export function toSaleLines(lines: CartLine[]): SaleLine[] {
+  return lines.map((l) => ({
+    productId: l.product.id,
+    productName: l.product.name,
+    size: l.size,
+    qty: Math.floor(l.qty),
+    sellPrice: l.sellPrice,
+  }));
+}
+
+/** What the customer pays now, from the chosen payment mode. Shared by both paths. */
+export function effectivePaid(status: PaymentStatus, total: number, typed: number | undefined): number {
+  if (status === 'paid') return total;
+  if (status === 'debt') return 0;
+  return Math.min(Math.max(0, typed ?? 0), total);
+}
+
+export function validateSale(input: SaleInput): { gross: number; credit: number; total: number; paid: number } {
+  if (input.lines.length === 0) throw new AppError('السلة فارغة — أضف صنفاً واحداً على الأقل.');
+  for (const line of input.lines) {
+    if (line.qty <= 0) throw new AppError('الكمية يجب أن تكون قطعة واحدة على الأقل.');
+    if (line.sellPrice <= 0) throw new AppError(`سعر البيع غير صحيح لـ "${line.productName}".`);
+  }
+  const gross = input.lines.reduce((sum, l) => sum + l.sellPrice * l.qty, 0);
+  // Referral credit is applied before payment: it lowers what the customer owes,
+  // so a fully-credited sale is 'paid' with no cash at all.
+  const credit = Math.min(Math.max(0, input.creditUsed ?? 0), gross);
+  const total = gross - credit;
+  const paid = effectivePaid(input.paymentStatus, total, input.amountPaid);
+  if (input.paymentStatus === 'partial' && paid <= 0)
+    throw new AppError('أدخل المبلغ المدفوع، أو اختر "دين كامل".');
+  return { gross, credit, total, paid };
+}
 
 /**
  * Records a whole invoice and decrements stock for every line in ONE transaction.
@@ -395,46 +405,33 @@ export type RemainingStock = Record<string, number>;
  *  - selling the last unit leaves the size at exactly 0, never negative;
  *  - a size emptied by another device mid-sale fails the WHOLE invoice, writing
  *    nothing at all;
- *  - referral credit is spent in the same transaction, so it cannot leak.
+ *  - referral credit is spent in the same transaction, so it cannot leak;
+ *  - running it twice with the same id is a no-op the second time, which is what
+ *    lets the offline queue retry after a dropped acknowledgement.
  */
 export async function recordSale(
   input: SaleInput,
   actor: { uid: string; name: string },
-): Promise<{ saleId: string; remaining: RemainingStock }> {
+  options: ReplayOptions,
+): Promise<{ saleId: string; remaining: RemainingStock; alreadyApplied: boolean }> {
   const lines = input.lines.map((l) => ({ ...l, qty: Math.floor(l.qty) }));
-  if (lines.length === 0) throw new AppError('السلة فارغة — أضف صنفاً واحداً على الأقل.');
-  for (const line of lines) {
-    if (line.qty <= 0) throw new AppError('الكمية يجب أن تكون قطعة واحدة على الأقل.');
-    if (line.sellPrice <= 0) throw new AppError(`سعر البيع غير صحيح لـ "${line.product.name}".`);
-  }
-
-  const gross = lines.reduce((sum, l) => sum + l.sellPrice * l.qty, 0);
-  // Referral credit is applied before payment: it lowers what the customer owes,
-  // so a fully-credited sale is 'paid' with no cash at all.
-  const credit = Math.min(Math.max(0, input.creditUsed ?? 0), gross);
-  const total = gross - credit;
-  const paid =
-    input.paymentStatus === 'paid'
-      ? total
-      : input.paymentStatus === 'debt'
-        ? 0
-        : Math.min(Math.max(0, input.amountPaid ?? 0), total);
-
-  if (input.paymentStatus === 'partial' && paid <= 0)
-    throw new AppError('أدخل المبلغ المدفوع، أو اختر "دين كامل".');
+  const { credit, total, paid } = validateSale({ ...input, lines });
 
   // Group by product so each document is read and written exactly once.
-  const byProduct = new Map<string, CartLine[]>();
+  const byProduct = new Map<string, SaleLine[]>();
   for (const line of lines) {
-    byProduct.set(line.product.id, [...(byProduct.get(line.product.id) ?? []), line]);
+    byProduct.set(line.productId, [...(byProduct.get(line.productId) ?? []), line]);
   }
 
   const productIds = [...byProduct.keys()];
-  const saleRef = doc(collection(db(), COL.sales));
+  const saleRef = doc(db(), COL.sales, options.id);
   const customerRef = input.customerId ? doc(db(), COL.customers, input.customerId) : null;
 
-  const remaining = await runTransaction(db(), async (tx) => {
+  const result = await runTransaction(db(), async (tx) => {
     // Every read must precede every write in a Firestore transaction.
+    const existing = await tx.get(saleRef);
+    if (existing.exists()) return { left: {} as RemainingStock, alreadyApplied: true };
+
     const productSnaps = await Promise.all(
       productIds.map((id) => tx.get(doc(db(), COL.products, id))),
     );
@@ -450,15 +447,15 @@ export async function recordSale(
 
     const items: SaleItem[] = [];
     const left: RemainingStock = {};
-    const updates: { ref: ReturnType<typeof doc>; sizes: SizeStock[] }[] = [];
+    const updates: { ref: ReturnType<typeof doc>; sizes: ReturnType<typeof normalizeStoredSizes> }[] = [];
 
     productSnaps.forEach((snap, i) => {
       const productId = productIds[i]!;
       const productLines = byProduct.get(productId)!;
-      if (!snap.exists()) throw new AppError(`المنتج "${productLines[0]!.product.name}" غير موجود.`);
+      if (!snap.exists()) throw new AppError(`المنتج "${productLines[0]!.productName}" غير موجود.`);
 
       const data = snap.data();
-      const productName = String(data.name ?? productLines[0]!.product.name);
+      const productName = String(data.name ?? productLines[0]!.productName);
       let sizes = normalizeStoredSizes(data);
 
       for (const line of productLines) {
@@ -514,7 +511,10 @@ export async function recordSale(
       soldByName: actor.name,
       channel: input.channel,
       note: input.note?.trim() || null,
-      createdAt: serverTimestamp(),
+      // A replayed sale is dated when it happened on the shop floor; the sync
+      // time is kept beside it for the audit trail.
+      createdAt: options.replay ? Timestamp.fromMillis(options.at) : serverTimestamp(),
+      ...(options.replay ? { syncedAt: serverTimestamp(), recordedOffline: true } : {}),
     });
 
     if (customerRef && customerSnap?.exists()) {
@@ -527,23 +527,26 @@ export async function recordSale(
       });
     }
 
-    return left;
+    return { left, alreadyApplied: false };
   });
 
-  const units = lines.reduce((sum, l) => sum + l.qty, 0);
-  const summary =
-    lines.length === 1
-      ? `${lines[0]!.qty} × "${lines[0]!.product.name}" مقاس ${lines[0]!.size}`
-      : `${units} قطعة في ${lines.length} أصناف`;
+  if (!result.alreadyApplied) {
+    const units = lines.reduce((sum, l) => sum + l.qty, 0);
+    const summary =
+      lines.length === 1
+        ? `${lines[0]!.qty} × "${lines[0]!.productName}" مقاس ${lines[0]!.size}`
+        : `${units} قطعة في ${lines.length} أصناف`;
 
-  await logActivity(
-    actor,
-    'sold_product',
-    `باع ${summary} بـ ${total} ج` +
-      (input.paymentStatus === 'paid' ? '' : ` (${input.paymentStatus === 'debt' ? 'دين' : 'دفع جزئي'})`),
-  );
+    await logActivity(
+      actor,
+      'sold_product',
+      `باع ${summary} بـ ${total} ج` +
+        (input.paymentStatus === 'paid' ? '' : ` (${input.paymentStatus === 'debt' ? 'دين' : 'دفع جزئي'})`) +
+        (options.replay ? ' — سُجّلت بدون شبكة' : ''),
+    );
+  }
 
-  return { saleId: saleRef.id, remaining };
+  return { saleId: saleRef.id, remaining: result.left, alreadyApplied: result.alreadyApplied };
 }
 
 /** Records a repayment against a debt sale and re-derives its payment status. */
@@ -551,12 +554,16 @@ export async function recordPayment(
   saleId: string,
   amount: number,
   actor: { uid: string; name: string },
+  options: ReplayOptions,
 ): Promise<void> {
   if (amount <= 0) throw new AppError('أدخل مبلغاً أكبر من صفر.');
   const saleRef = doc(db(), COL.sales, saleId);
-  const paymentRef = doc(collection(db(), COL.payments));
+  const paymentRef = doc(db(), COL.payments, options.id);
 
   const info = await runTransaction(db(), async (tx) => {
+    const done = await tx.get(paymentRef);
+    if (done.exists()) return null;
+
     const snap = await tx.get(saleRef);
     if (!snap.exists()) throw new AppError('عملية البيع غير موجودة.');
     const sale = mapSale(snap.id, snap.data());
@@ -575,55 +582,58 @@ export async function recordPayment(
       amount,
       receivedBy: actor.uid,
       receivedByName: actor.name,
-      createdAt: serverTimestamp(),
+      createdAt: options.replay ? Timestamp.fromMillis(options.at) : serverTimestamp(),
     });
     return { customer: sale.customerName ?? 'عميل', remaining: due - amount };
   });
 
-  await logActivity(
-    actor,
-    'recorded_payment',
-    `سجّل تسديد ${amount} ج من ${info.customer}` +
-      (info.remaining > 0 ? ` (متبقٍ ${info.remaining} ج)` : ' — سُدّد كاملاً'),
-  );
+  if (info) {
+    await logActivity(
+      actor,
+      'recorded_payment',
+      `سجّل تسديد ${amount} ج من ${info.customer}` +
+        (info.remaining > 0 ? ` (متبقٍ ${info.remaining} ج)` : ' — سُدّد كاملاً'),
+    );
+  }
 }
 
 /**
- * Partially or fully reverses a sale: stock goes back to the size, the sale keeps
- * existing with a `returnedQty`, and profit/paid amounts are re-derived so the
- * reports stay correct. Sales are never deleted.
+ * Partially or fully reverses one line of a sale: stock goes back to the size, the
+ * sale keeps existing with a `returnedQty`, and profit/paid amounts are re-derived
+ * so the reports stay correct. Sales are never deleted.
+ *
+ * Everything is read inside the transaction, by sale id, so a return queued
+ * offline is validated against the invoice as it stands when it finally runs.
  */
 export async function recordReturn(
-  sale: Sale,
+  saleId: string,
   /** Which line of the invoice is coming back. */
   itemIndex: number,
   qty: number,
   reason: string,
   actor: { uid: string; name: string },
+  options: ReplayOptions,
 ): Promise<void> {
   const returnQty = Math.floor(qty);
   if (returnQty <= 0) throw new AppError('عدد القطع المرتجعة يجب أن يكون 1 على الأقل.');
 
-  const target = sale.items[itemIndex];
-  if (!target) throw new AppError('الصنف غير موجود في هذه الفاتورة.');
-  if (returnQty > itemNetQty(target))
-    throw new AppError(`لا يمكن إرجاع أكثر من ${itemNetQty(target)} قطعة.`);
+  const saleRef = doc(db(), COL.sales, saleId);
+  const returnRef = doc(db(), COL.returns, options.id);
 
-  const saleRef = doc(db(), COL.sales, sale.id);
-  const productRef = doc(db(), COL.products, target.productId);
-  const returnRef = doc(collection(db(), COL.returns));
-  const refundAmount = target.sellPrice * returnQty;
+  const outcome = await runTransaction(db(), async (tx) => {
+    const done = await tx.get(returnRef);
+    if (done.exists()) return null;
 
-  const cashOut = await runTransaction(db(), async (tx) => {
     const saleSnap = await tx.get(saleRef);
     if (!saleSnap.exists()) throw new AppError('عملية البيع غير موجودة.');
-    const productSnap = await tx.get(productRef);
-
     const fresh = mapSale(saleSnap.id, saleSnap.data());
     const line = fresh.items[itemIndex];
     if (!line) throw new AppError('الصنف غير موجود في هذه الفاتورة.');
     if (returnQty > itemNetQty(line))
       throw new AppError(`لا يمكن إرجاع أكثر من ${itemNetQty(line)} قطعة.`);
+
+    const productRef = doc(db(), COL.products, line.productId);
+    const productSnap = await tx.get(productRef);
 
     // Units go back to the exact batch they left, so shipment stock stays honest
     // and a return never silently re-prices inventory.
@@ -674,6 +684,7 @@ export async function recordReturn(
     // The drop in what was paid IS the money that left the drawer. A return on an
     // unpaid sale moves no cash at all — it just cancels part of the debt.
     const cashRefunded = Math.max(0, fresh.amountPaid - nextPaid);
+    const refundAmount = line.sellPrice * returnQty;
 
     tx.update(saleRef, {
       items: nextItems,
@@ -693,16 +704,20 @@ export async function recordReturn(
       reason: reason.trim() || 'بدون سبب محدد',
       createdBy: actor.uid,
       createdByName: actor.name,
-      createdAt: serverTimestamp(),
+      createdAt: options.replay ? Timestamp.fromMillis(options.at) : serverTimestamp(),
     });
 
-    return cashRefunded;
+    return { line, refundAmount, cashRefunded };
   });
 
-  await logActivity(
-    actor,
-    'returned_item',
-    `أرجع ${returnQty} × "${target.productName}" مقاس ${target.size} بقيمة ${refundAmount} ج` +
-      (cashOut > 0 ? ` — رُدّ نقداً ${cashOut} ج` : ' — بدون نقد مرجّع (خُصم من الدين)'),
-  );
+  if (outcome) {
+    await logActivity(
+      actor,
+      'returned_item',
+      `أرجع ${returnQty} × "${outcome.line.productName}" مقاس ${outcome.line.size} بقيمة ${outcome.refundAmount} ج` +
+        (outcome.cashRefunded > 0
+          ? ` — رُدّ نقداً ${outcome.cashRefunded} ج`
+          : ' — بدون نقد مرجّع (خُصم من الدين)'),
+    );
+  }
 }

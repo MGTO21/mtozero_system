@@ -10,6 +10,7 @@ import { errorMessage } from '@/lib/db/collections';
 import { cloudinaryEnabled } from '@/lib/cloudinary';
 import { createProduct, productImage, updateProduct, type ProductInput } from '@/lib/db/products';
 import { formatBytes, makeThumbnail } from '@/lib/image';
+import { submitStockAdjust } from '@/lib/offline/operations';
 import { margin, money, percent } from '@/lib/format';
 import type { Category, Product, SizeInput } from '@/lib/types';
 
@@ -131,11 +132,20 @@ export function ProductForm({ open, onClose, product }: Props) {
   async function save() {
     setBusy(true);
     try {
-      const result = product
-        ? await updateProduct(product.id, form, image, imageRemoved, product, actor)
-        : await createProduct(form, image, actor);
+      let queuedStock = false;
+      let warning: string | null;
+      if (product) {
+        warning = (await updateProduct(product.id, form, image, imageRemoved, actor)).warning;
+        // Quantities travel separately, as differences applied against the
+        // server's live stock — see updateProduct for why.
+        const adjusted = await submitStockAdjust(product, form.sizes, form.costPrice, actor);
+        queuedStock = adjusted?.queued ?? false;
+      } else {
+        warning = (await createProduct(form, image, actor)).warning;
+      }
 
-      if (result.warning) toast.info(result.warning);
+      if (warning) toast.info(warning);
+      else if (queuedStock) toast.success('حُفظ التعديل — الكميات تُطبَّق عند عودة الشبكة');
       else toast.success(product ? 'تم حفظ التعديلات' : 'تمت إضافة المنتج');
       onClose();
     } catch (err) {

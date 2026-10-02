@@ -11,13 +11,13 @@ import { PageHeader, SectionTitle } from '@/components/ui/PageHeader';
 import { errorMessage } from '@/lib/db/collections';
 import { useProducts } from '@/lib/db/products';
 import {
-  applyStockCount,
   sizeAverageCost,
   useStockCounts,
   varianceValue,
   variances,
   type CountDraft,
 } from '@/lib/db/stocktake';
+import { submitCount } from '@/lib/offline/operations';
 import { formatDate, money, num } from '@/lib/format';
 import type { Category } from '@/lib/types';
 
@@ -69,7 +69,7 @@ export default function StockTakePage() {
   }, [inScope, counted]);
 
   const changed = useMemo(() => variances(draft), [draft]);
-  const { shortage, surplus } = useMemo(() => varianceValue(draft), [draft]);
+  const { shortage, surplus } = useMemo(() => varianceValue(changed), [changed]);
   const net = surplus - shortage;
 
   async function submit() {
@@ -81,12 +81,12 @@ export default function StockTakePage() {
       action: async () => {
         setBusy(true);
         try {
-          const result = await applyStockCount(draft, note, actor);
-          if (result.failed.length > 0) {
-            toast.error(`تعذّر تعديل: ${result.failed.join('، ')}`);
-          } else {
-            toast.success(`تم تعديل ${result.adjusted} مقاس`);
-          }
+          const result = await submitCount(draft, note, actor);
+          toast.success(
+            result.queued
+              ? `حُفظ جرد ${changed.length} مقاس على الجهاز — يُطبَّق عند عودة الشبكة`
+              : `تم تعديل ${changed.length} مقاس`,
+          );
           setCounted({});
           setNote('');
         } catch (err) {

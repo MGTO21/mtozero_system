@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { addDays, dateKey, endOfDay, endOfMonth, parseDateKey, startOfDay, startOfMonth } from '@/lib/format';
 
 export type RangePreset = 'today' | 'week' | 'month' | 'prev_month' | 'custom';
@@ -53,28 +53,12 @@ export function useDateRange(initial: Exclude<RangePreset, 'custom'> = 'month') 
 
   const picker = (
     <div className="space-y-2">
-      <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
-        {(Object.keys(PRESET_LABELS) as Exclude<RangePreset, 'custom'>[]).map((key) => (
-          <button
-            key={key}
-            onClick={() => setPreset(key)}
-            className={`shrink-0 rounded-card border px-3 py-1.5 text-[0.8rem] font-bold transition
-              ${preset === key
-                ? 'border-brand-500 bg-brand-500 text-white'
-                : 'border-ink-200 text-ink-500 dark:border-ink-700 dark:text-ink-400'}`}
-          >
-            {PRESET_LABELS[key]}
-          </button>
+      <div className="scroller sm:mx-0 sm:px-0">
+        {([...Object.keys(PRESET_LABELS), 'custom'] as RangePreset[]).map((key) => (
+          <Pill key={key} active={preset === key} onClick={() => setPreset(key)}>
+            {key === 'custom' ? 'فترة مخصصة' : PRESET_LABELS[key]}
+          </Pill>
         ))}
-        <button
-          onClick={() => setPreset('custom')}
-          className={`shrink-0 rounded-card border px-3 py-1.5 text-[0.8rem] font-bold transition
-            ${preset === 'custom'
-              ? 'border-brand-500 bg-brand-500 text-white'
-              : 'border-ink-200 text-ink-500 dark:border-ink-700 dark:text-ink-400'}`}
-        >
-          فترة مخصصة
-        </button>
       </div>
 
       {preset === 'custom' ? (
@@ -105,4 +89,35 @@ export function useDateRange(initial: Exclude<RangePreset, 'custom'> = 'month') 
   );
 
   return { range, picker, preset };
+}
+
+/**
+ * A filter choice. Selected reads as a solid ink stamp, not a coloured fill —
+ * fuchsia is kept for money and actions only.
+ */
+export function Pill({
+  active,
+  onClick,
+  children,
+  count,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: ReactNode;
+  count?: number;
+}) {
+  return (
+    <button
+      type="button"
+      aria-pressed={active}
+      onClick={onClick}
+      className={`press inline-flex h-9 shrink-0 items-center gap-1.5 rounded-card border px-3 text-[0.84rem] font-bold transition-colors
+        ${active ? 'border-fg bg-fg text-page' : 'border-line-strong bg-surface text-fg-2 hover:text-fg'}`}
+    >
+      {children}
+      {count !== undefined ? (
+        <span className={`tnum text-[0.74rem] ${active ? 'text-page/70' : 'text-fg-3'}`}>{count}</span>
+      ) : null}
+    </button>
+  );
 }

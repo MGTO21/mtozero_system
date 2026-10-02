@@ -1,45 +1,31 @@
 'use client';
 
 import {
-  addDoc,
   collection,
   doc,
   orderBy,
   query,
   serverTimestamp,
+  setDoc,
   updateDoc,
   type Timestamp,
 } from 'firebase/firestore';
+import { useMemo } from 'react';
 import { db } from '@/lib/firebase';
 import { cloudinaryEnabled, uploadFullImage } from '@/lib/cloudinary';
 import { makeThumbnail } from '@/lib/image';
 import type { Product, SizeInput, SizeStock } from '@/lib/types';
 import { useLiveQuery } from '@/lib/hooks/useFirestore';
+import { useOutbox } from '@/lib/offline/outbox';
+import { applyPendingToProducts } from '@/lib/offline/overlay';
+import { probablyOnline, settle, withTimeout } from '@/lib/offline/write';
 import { AppError, COL } from './collections';
 import { logActivity } from './activity';
+import { applyManualQty, reconcileSize } from './sale-math';
 
-/**
- * Forces the invariant `qty === sum(lots.qty)`, drops empty lots and keeps them in
- * FIFO order. Every write path must pass its size rows through here — it is the
- * only guard against stock and lots drifting apart.
- */
-export function reconcileSize(size: SizeStock): SizeStock {
-  const lots = (size.lots ?? [])
-    .map((l) => ({
-      shipmentId: l.shipmentId ?? null,
-      qty: Math.max(0, Math.floor(Number(l.qty ?? 0))),
-      costPrice: Math.max(0, Number(l.costPrice ?? 0)),
-      receivedAt: Number(l.receivedAt ?? 0),
-    }))
-    .filter((l) => l.qty > 0)
-    .sort((a, b) => a.receivedAt - b.receivedAt);
-
-  return {
-    size: String(size.size),
-    qty: lots.reduce((sum, l) => sum + l.qty, 0),
-    lots,
-  };
-}
+// The lot arithmetic lives in sale-math.ts so the offline overlay can share it;
+// it is re-exported here because this is where stock code has always looked.
+export { applyManualQty, reconcileSize, sizeAverageCost } from './sale-math';
 
 /**
  * Turns a stored product document's `sizes` into guaranteed lot form.
@@ -72,6 +58,25 @@ export function normalizeStoredSizes(raw: Record<string, unknown>): SizeStock[] 
     });
 }
 
+/**
+ * Receiving, stock-takes and quantity edits append to a product rather than
+ * creating a document of their own, so they cannot use "does the record exist"
+ * to detect a repeat. Instead each product remembers the last few operation ids
+ * applied to it. A replay from the offline queue that finds its id here has
+ * already landed and is skipped — without this, a retry after a lost
+ * acknowledgement would add the same delivery twice.
+ */
+const APPLIED_LIMIT = 40;
+
+export function wasApplied(raw: Record<string, unknown>, opId: string): boolean {
+  return Array.isArray(raw.appliedOps) && (raw.appliedOps as unknown[]).includes(opId);
+}
+
+export function markApplied(raw: Record<string, unknown>, opId: string): string[] {
+  const previous = Array.isArray(raw.appliedOps) ? (raw.appliedOps as string[]) : [];
+  return [...previous.filter((id) => id !== opId), opId].slice(-APPLIED_LIMIT);
+}
+
 export function mapProduct(id: string, raw: Record<string, unknown>): Product {
   const fallbackCost = Number(raw.costPrice ?? 0);
 
@@ -100,8 +105,24 @@ export function mapProduct(id: string, raw: Record<string, unknown>): Product {
  * The catalogue of a single shop is small (hundreds of rows at most), so we keep
  * the whole collection live in memory. Search, size filtering and the low-stock
  * scan then run instantly and keep working with no connection.
+ *
+ * Stock shown here already accounts for work queued on this device and not yet
+ * sent — a size sold offline reads as sold, so the same last piece cannot be
+ * sold twice from one phone while the network is down.
  */
 export function useProducts() {
+  const state = useLiveQuery<Product>(
+    () => query(collection(db(), COL.products), orderBy('name')),
+    [],
+    mapProduct,
+  );
+  const outbox = useOutbox();
+  const data = useMemo(() => applyPendingToProducts(state.data, outbox), [state.data, outbox]);
+  return { ...state, data };
+}
+
+/** The server's view only, for code that must not count queued work twice. */
+export function useServerProducts() {
   return useLiveQuery<Product>(
     () => query(collection(db(), COL.products), orderBy('name')),
     [],
@@ -153,44 +174,6 @@ function validate(input: ProductInput) {
   }
 }
 
-/**
- * Applies a hand-typed quantity to a size while preserving lot history.
- *
- * Increases become a new unattributed lot at the product's current cost;
- * decreases are taken from the newest lots first, so the oldest (and usually
- * cheapest) batch stays traceable for as long as possible.
- */
-export function applyManualQty(
-  current: SizeStock,
-  targetQty: number,
-  costPrice: number,
-  shipmentId: string | null,
-): SizeStock {
-  const target = Math.max(0, Math.floor(targetQty));
-  const lots = [...(current.lots ?? [])].sort((a, b) => a.receivedAt - b.receivedAt);
-  const onHand = lots.reduce((sum, l) => sum + l.qty, 0);
-
-  if (target === onHand) return reconcileSize({ ...current, lots });
-
-  if (target > onHand) {
-    lots.push({
-      shipmentId,
-      qty: target - onHand,
-      costPrice,
-      receivedAt: Date.now(),
-    });
-    return reconcileSize({ ...current, lots });
-  }
-
-  let toRemove = onHand - target;
-  for (let i = lots.length - 1; i >= 0 && toRemove > 0; i--) {
-    const take = Math.min(lots[i]!.qty, toRemove);
-    lots[i] = { ...lots[i]!, qty: lots[i]!.qty - take };
-    toRemove -= take;
-  }
-  return reconcileSize({ ...current, lots });
-}
-
 function normalizeSizes(
   sizes: SizeInput[],
   costPrice: number,
@@ -238,10 +221,15 @@ async function processImage(file: File, productId: string): Promise<ImageOutcome
     warning: null,
   };
 
-  if (!cloudinaryEnabled) return outcome;
+  if (!cloudinaryEnabled || !probablyOnline()) {
+    if (cloudinaryEnabled) outcome.warning = 'حُفظت الصورة المصغّرة — النسخة الكاملة تحتاج اتصال، ارفعها لاحقاً من تعديل المنتج.';
+    return outcome;
+  }
 
   try {
-    const uploaded = await uploadFullImage(file, productId);
+    // A weak connection must not hold the save hostage: the thumbnail is
+    // already enough to sell with.
+    const uploaded = await withTimeout(uploadFullImage(file, productId), 15000);
     outcome.imageUrl = uploaded.url;
     outcome.imagePublicId = uploaded.publicId;
   } catch {
@@ -277,35 +265,45 @@ export async function createProduct(
     updatedAt: serverTimestamp(),
   };
 
-  const created = await addDoc(collection(db(), COL.products), payload);
+  // The id is chosen on the device so the image can be processed first and the
+  // product written once — one write that lands in the local cache instantly,
+  // with or without a connection.
+  const ref = doc(collection(db(), COL.products));
 
   let warning: string | null = null;
   if (image) {
-    const outcome = await processImage(image, created.id);
+    const outcome = await processImage(image, ref.id);
     warning = outcome.warning;
-    await updateDoc(created, {
-      thumbData: outcome.thumbData,
-      imageUrl: outcome.imageUrl,
-      imagePublicId: outcome.imagePublicId,
-    });
+    payload.thumbData = outcome.thumbData;
+    payload.imageUrl = outcome.imageUrl;
+    payload.imagePublicId = outcome.imagePublicId;
   }
 
+  await settle(setDoc(ref, payload));
   await logActivity(actor, 'added_product', `أضاف المنتج "${payload.name}"`);
-  return { id: created.id, warning };
+  return { id: ref.id, warning };
 }
 
+/**
+ * Saves a product's description, prices and picture.
+ *
+ * Quantities are deliberately NOT written here. Writing the whole `sizes` array
+ * from what the form shows was a lost-update race even online — a sale on
+ * another phone between opening the form and saving was silently undone — and
+ * offline it is worse, because the form shows stock already reduced by sales
+ * still waiting in the queue, so the sync would deduct them a second time.
+ * Quantity changes go through `submitStockAdjust` instead, which applies them as
+ * differences inside a transaction against the server's current stock.
+ */
 export async function updateProduct(
   id: string,
   input: ProductInput,
   image: File | null,
   /** True when the user cleared an existing picture without choosing a new one. */
   removeExistingImage: boolean,
-  /** Current stored state — needed to fold quantity edits into existing lots. */
-  previous: Product,
   actor: { uid: string; name: string },
 ): Promise<{ warning: string | null }> {
   validate(input);
-  const previousSizes = previous.sizes;
   const ref = doc(db(), COL.products, id);
   const patch: Record<string, unknown> = {
     name: input.name.trim(),
@@ -313,9 +311,6 @@ export async function updateProduct(
     brand: input.brand?.trim() || null,
     costPrice: input.costPrice,
     sellPrice: input.sellPrice,
-    // Manual quantity edits are folded into the existing lots rather than
-    // replacing them, so shipment attribution survives an ordinary edit.
-    sizes: normalizeSizes(input.sizes, input.costPrice, previousSizes),
     sku: input.sku?.trim() || null,
     supplier: input.supplier?.trim() || null,
     lowStockThreshold: Math.max(0, Math.floor(input.lowStockThreshold)),
@@ -335,7 +330,7 @@ export async function updateProduct(
     patch.imagePublicId = null;
   }
 
-  await updateDoc(ref, patch);
+  await settle(updateDoc(ref, patch));
   await logActivity(actor, 'edited_product', `عدّل المنتج "${input.name.trim()}"`);
   return { warning };
 }
@@ -346,10 +341,12 @@ export async function setArchived(
   archived: boolean,
   actor: { uid: string; name: string },
 ): Promise<void> {
-  await updateDoc(doc(db(), COL.products, product.id), {
-    isArchived: archived,
-    updatedAt: serverTimestamp(),
-  });
+  await settle(
+    updateDoc(doc(db(), COL.products, product.id), {
+      isArchived: archived,
+      updatedAt: serverTimestamp(),
+    }),
+  );
   await logActivity(
     actor,
     archived ? 'archived_product' : 'restored_product',
