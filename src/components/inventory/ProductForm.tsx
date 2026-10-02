@@ -179,7 +179,7 @@ export function ProductForm({ open, onClose, product }: Props) {
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
-            className="relative h-24 w-24 shrink-0 overflow-hidden rounded-card border border-dashed border-line-strong bg-ink-100 text-fg-3 transition hover:border-brand-500 hover:text-brand-500  dark:bg-ink-900 dark:text-ink-600"
+            className="relative h-24 w-24 shrink-0 overflow-hidden rounded-card border border-dashed border-line-strong bg-sunken text-fg-3 transition hover:border-fg hover:text-fg"
           >
             {preview ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -258,7 +258,7 @@ export function ProductForm({ open, onClose, product }: Props) {
                   className={`h-11 rounded-card border text-[0.9rem] font-bold transition
                     ${form.category === c
                       ? 'border-brand-500 bg-brand-500/12 text-brand-500'
-                      : 'border-ink-200 text-fg-2  dark:text-ink-400'}`}
+                      : 'border-line-strong bg-surface text-fg-2'}`}
                 >
                   {c === 'shoes' ? 'أحذية' : 'ملابس'}
                 </button>
@@ -391,7 +391,7 @@ export function ProductForm({ open, onClose, product }: Props) {
                 key={preset.label}
                 type="button"
                 onClick={() => applyPreset(preset.sizes)}
-                className="rounded-card border border-line px-2.5 py-1 text-[0.75rem] font-bold text-fg-2 transition hover:border-brand-500 hover:text-brand-500  dark:text-ink-400"
+                className="rounded-card border border-line px-2.5 py-1 text-[0.75rem] font-bold text-fg-2 transition hover:border-fg hover:text-fg"
               >
                 + {preset.label}
               </button>

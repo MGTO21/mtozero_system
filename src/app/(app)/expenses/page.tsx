@@ -96,7 +96,7 @@ export default function ExpensesPage() {
                 {byCategory.map(([cat, amount]) => (
                   <span
                     key={cat}
-                    className="tnum chip border border-line text-fg-2  dark:text-ink-400"
+                    className="tnum chip border border-line text-fg-2"
                   >
                     {cat} · {money(amount)}
                   </span>
@@ -225,7 +225,7 @@ function ExpenseForm({ open, onClose }: { open: boolean; onClose: () => void }) 
                 className={`rounded-card border px-3 py-1.5 text-[0.8rem] font-bold transition
                   ${category === c
                     ? 'border-brand-500 bg-brand-500/12 text-brand-500'
-                    : 'border-ink-200 text-fg-2  dark:text-ink-400'}`}
+                    : 'border-line-strong bg-surface text-fg-2'}`}
               >
                 {c}
               </button>

@@ -66,7 +66,7 @@ export default function TeamPage() {
                   </div>
                   <span
                     className={`chip shrink-0 ${
-                      u.role === 'owner' ? 'bg-brand-500/15 text-brand-500' : 'bg-ink-200 text-ink-600 dark:bg-ink-800 dark:text-ink-300'
+                      u.role === 'owner' ? 'bg-brand-500/15 text-brand-500' : 'bg-sunken text-fg-2'
                     }`}
                   >
                     {ROLE_LABEL[u.role]}
@@ -90,7 +90,7 @@ export default function TeamPage() {
                   {!isSelf ? (
                     <button
                       onClick={() => void toggle(u, { role: u.role === 'owner' ? 'employee' : 'owner' })}
-                      className="rounded-card border border-line px-2.5 py-1.5 text-[0.76rem] font-bold text-fg-2 transition hover:border-brand-500 hover:text-brand-500  dark:text-ink-400"
+                      className="rounded-card border border-line px-2.5 py-1.5 text-[0.76rem] font-bold text-fg-2 transition hover:border-fg hover:text-fg"
                     >
                       {u.role === 'owner' ? 'تحويل إلى موظف' : 'ترقية إلى مالك'}
                     </button>
@@ -106,7 +106,7 @@ export default function TeamPage() {
         </ul>
       )}
 
-      <p className="mt-4 rounded-card border border-line px-3.5 py-3 text-[0.78rem] leading-relaxed text-fg-2  dark:text-ink-400">
+      <p className="mt-4 rounded-card border border-line px-3.5 py-3 text-[0.78rem] leading-relaxed text-fg-2">
         <span className="font-bold">الموظف</span> يسجّل المبيعات ويرى المخزون والديون، ولا يرى التقارير
         ولا سجل النشاط. تفعيل «يرى الأرباح» يُظهر له هامش الربح داخل المخزون والمبيعات فقط.
       </p>
@@ -137,7 +137,7 @@ function Toggle({
         disabled={disabled}
         onClick={() => onChange(!checked)}
         className={`relative h-6 w-11 rounded-full transition-colors ${
-          checked ? 'bg-brand-500' : 'bg-ink-300 dark:bg-ink-700'
+          checked ? 'bg-brand-500' : 'bg-line-strong'
         }`}
       >
         <span
@@ -254,7 +254,7 @@ function NewUserSheet({ open, onClose }: { open: boolean; onClose: () => void })
                 className={`h-11 rounded-card border text-[0.9rem] font-bold transition
                   ${role === r
                     ? 'border-brand-500 bg-brand-500/12 text-brand-500'
-                    : 'border-ink-200 text-fg-2  dark:text-ink-400'}`}
+                    : 'border-line-strong bg-surface text-fg-2'}`}
               >
                 {ROLE_LABEL[r]}
               </button>

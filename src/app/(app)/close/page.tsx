@@ -143,7 +143,7 @@ export default function DailyClosePage() {
         <button
           onClick={() => setDay(dateKey(new Date()))}
           className={`rounded-card border px-3 py-1.5 text-[0.8rem] font-bold transition
-            ${isToday ? 'border-brand-500 bg-brand-500 text-white' : 'border-ink-200 text-fg-2  dark:text-ink-400'}`}
+            ${isToday ? 'border-fg bg-fg text-page' : 'border-line-strong bg-surface text-fg-2'}`}
         >
           اليوم
         </button>
@@ -151,8 +151,8 @@ export default function DailyClosePage() {
           onClick={() => setDay(dateKey(addDays(new Date(), -1)))}
           className={`rounded-card border px-3 py-1.5 text-[0.8rem] font-bold transition
             ${day === dateKey(addDays(new Date(), -1))
-              ? 'border-brand-500 bg-brand-500 text-white'
-              : 'border-ink-200 text-fg-2  dark:text-ink-400'}`}
+              ? 'border-fg bg-fg text-page'
+              : 'border-line-strong bg-surface text-fg-2'}`}
         >
           أمس
         </button>
@@ -271,7 +271,7 @@ export default function DailyClosePage() {
 
           <section className="surface p-4">
             <SectionTitle>تسليم الوردية</SectionTitle>
-            <pre className="max-h-52 overflow-y-auto whitespace-pre-wrap break-words rounded-card bg-ink-100/70 p-3 font-sans text-[0.82rem] leading-relaxed text-ink-700 dark:bg-ink-900 dark:text-ink-200">
+            <pre className="max-h-52 overflow-y-auto whitespace-pre-wrap break-words rounded-card bg-sunken p-3 font-sans text-[0.82rem] leading-relaxed text-fg">
               {summaryText()}
             </pre>
             <div className="mt-3 grid grid-cols-2 gap-2">

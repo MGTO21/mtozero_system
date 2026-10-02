@@ -41,7 +41,7 @@ export function ProductCard({ product, canSeeProfit, onEdit, onArchive, highligh
             </div>
           )}
           {stock === 0 ? (
-            <span className="absolute inset-x-0 bottom-0 bg-ink-950/80 py-0.5 text-center text-[0.62rem] font-bold text-white">
+            <span className="absolute inset-x-0 bottom-0 bg-fg py-0.5 text-center text-[0.66rem] font-bold text-page">
               نفد المخزون
             </span>
           ) : null}
@@ -99,9 +99,7 @@ export function ProductCard({ product, canSeeProfit, onEdit, onArchive, highligh
 
       <div className="border-t border-line px-3 py-2.5 ">
         {highlightSize ? (
-          <p className="mb-2 text-[0.75rem] font-bold text-brand-500">
-            متوفر بمقاس {highlightSize} ✓
-          </p>
+          <p className="mb-2 text-[0.8rem] font-extrabold text-good">متوفر بمقاس {highlightSize}</p>
         ) : null}
         <SizeGrid sizes={product.sizes} lowStockThreshold={product.lowStockThreshold} />
       </div>
@@ -109,7 +107,7 @@ export function ProductCard({ product, canSeeProfit, onEdit, onArchive, highligh
       {!product.isArchived && stock > 0 ? (
         <Link
           href={`/sell?product=${product.id}`}
-          className="flex items-center justify-center gap-1.5 border-t border-line py-2.5 text-[0.82rem] font-bold text-brand-500 transition-colors hover:bg-brand-500/8 "
+          className="flex items-center justify-center gap-1.5 border-t border-dashed border-line-strong py-3 font-display text-[0.92rem] font-extrabold text-brand-500 transition-colors hover:bg-brand-500/8"
         >
           <IconTag className="h-4 w-4" />
           بيع هذا المنتج

@@ -196,7 +196,7 @@ export default function CampaignsPage() {
                   >
                     <span className="flex items-center justify-between gap-2">
                       <span className="text-[0.88rem] font-bold">{s.label}</span>
-                      <span className="tnum chip bg-ink-200 text-ink-600 dark:bg-ink-800 dark:text-ink-300">
+                      <span className="tnum chip bg-sunken text-fg-2">
                         {num(count)}
                       </span>
                     </span>
@@ -235,7 +235,7 @@ export default function CampaignsPage() {
                     setMessage(t.body);
                     if (!title.trim()) setTitle(t.label);
                   }}
-                  className="rounded-card border border-line px-2.5 py-1 text-[0.76rem] font-bold text-fg-2 transition hover:border-brand-500 hover:text-brand-500  dark:text-ink-400"
+                  className="rounded-card border border-line px-2.5 py-1 text-[0.76rem] font-bold text-fg-2 transition hover:border-fg hover:text-fg"
                 >
                   {t.label}
                 </button>
@@ -293,7 +293,7 @@ export default function CampaignsPage() {
               {sellable.map((p: Product) => (
                 <label
                   key={p.id}
-                  className="flex cursor-pointer items-center gap-2 rounded-card px-2 py-1.5 hover:bg-ink-100 dark:hover:bg-ink-800"
+                  className="flex cursor-pointer items-center gap-2 rounded-card px-2 py-1.5 hover:bg-sunken"
                 >
                   <input
                     type="checkbox"

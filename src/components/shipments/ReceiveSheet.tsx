@@ -213,7 +213,7 @@ export function ReceiveSheet({ shipment, onClose }: { shipment: Shipment | null;
                         className={`tnum rounded-card border px-2 py-0.5 text-[0.76rem] font-bold transition
                           ${line.size.trim() === s
                             ? 'border-brand-500 bg-brand-500/12 text-brand-500'
-                            : 'border-ink-200 text-fg-2  dark:text-ink-400'}`}
+                            : 'border-line-strong bg-surface text-fg-2'}`}
                       >
                         {s}
                       </button>

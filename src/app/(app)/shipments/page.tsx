@@ -258,7 +258,7 @@ function ShipmentRow({
   const soldPct = totalUnits === 0 ? 0 : (sold / totalUnits) * 100;
 
   return (
-    <div className={inGroup ? 'border-b border-line last:border-0 dark:border-ink-800' : ''}>
+    <div className={inGroup ? 'border-b border-line last:border-0' : ''}>
       <div className="flex items-center gap-3 p-3.5">
         {selectable ? (
           <input
@@ -274,7 +274,7 @@ function ShipmentRow({
           <span className="min-w-0 flex-1">
             <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
               <span className="truncate text-[0.98rem] font-bold">{shipment.name}</span>
-              <span className="tnum chip bg-ink-200 text-ink-600 dark:bg-ink-800 dark:text-ink-300">
+              <span className="tnum chip bg-sunken text-fg-2">
                 {shipment.code}
               </span>
             </span>

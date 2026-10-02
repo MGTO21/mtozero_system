@@ -11,13 +11,13 @@ export function SetupNotice() {
         <Brand />
         <h1 className="mt-6 text-2xl">النظام يحتاج إعداد Firebase</h1>
         <p className="mt-2 text-[0.92rem] leading-relaxed text-fg-2">
-          لم يتم العثور على مفاتيح Firebase. أنشئ ملف <code className="rounded bg-ink-100 px-1.5 py-0.5 font-mono text-[0.8rem] dark:bg-ink-800">.env.local</code>{' '}
+          لم يتم العثور على مفاتيح Firebase. أنشئ ملف <code className="rounded bg-sunken px-1.5 py-0.5 font-mono text-[0.8rem]">.env.local</code>{' '}
           في جذر المشروع وضع فيه القيم التالية من إعدادات مشروعك في Firebase Console:
         </p>
 
         <pre
           dir="ltr"
-          className="mt-4 overflow-x-auto rounded-card border border-line bg-ink-100/70 p-4 text-left font-mono text-[0.75rem] leading-relaxed text-ink-700  dark:bg-ink-900 dark:text-ink-200"
+          className="mt-4 overflow-x-auto rounded-card border border-line bg-sunken p-4 text-left font-mono text-[0.75rem] leading-relaxed text-fg"
         >{`NEXT_PUBLIC_FIREBASE_API_KEY=...
 NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=...firebaseapp.com
 NEXT_PUBLIC_FIREBASE_PROJECT_ID=...

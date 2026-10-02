@@ -14,21 +14,21 @@ const TONE: Record<ActivityAction, string> = {
   recorded_payment: 'bg-good/15 text-good',
   returned_item: 'bg-bad/15 text-bad',
   added_product: 'bg-good/15 text-good',
-  edited_product: 'bg-ink-200 text-ink-600 dark:bg-ink-800 dark:text-ink-300',
+  edited_product: 'bg-sunken text-fg-2',
   archived_product: 'bg-warn/15 text-warn',
-  restored_product: 'bg-ink-200 text-ink-600 dark:bg-ink-800 dark:text-ink-300',
+  restored_product: 'bg-sunken text-fg-2',
   added_expense: 'bg-warn/15 text-warn',
   deleted_expense: 'bg-bad/15 text-bad',
   added_user: 'bg-good/15 text-good',
-  edited_user: 'bg-ink-200 text-ink-600 dark:bg-ink-800 dark:text-ink-300',
+  edited_user: 'bg-sunken text-fg-2',
   added_shipment: 'bg-accent-500/15 text-accent-500',
   received_stock: 'bg-accent-500/15 text-accent-500',
-  grouped_shipments: 'bg-ink-200 text-ink-600 dark:bg-ink-800 dark:text-ink-300',
+  grouped_shipments: 'bg-sunken text-fg-2',
   awarded_referral: 'bg-good/15 text-good',
   sent_campaign: 'bg-accent-500/15 text-accent-500',
   stock_count: 'bg-warn/15 text-warn',
   stock_adjusted: 'bg-warn/15 text-warn',
-  edited_settings: 'bg-ink-200 text-ink-600 dark:bg-ink-800 dark:text-ink-300',
+  edited_settings: 'bg-sunken text-fg-2',
   sync_conflict: 'bg-bad/15 text-bad',
   sync_discarded: 'bg-bad/15 text-bad',
 };
@@ -55,8 +55,8 @@ export default function ActivityPage() {
             onClick={() => setUser('all')}
             className={`rounded-card border px-3 py-1.5 text-[0.8rem] font-bold transition
               ${user === 'all'
-                ? 'border-brand-500 bg-brand-500 text-white'
-                : 'border-ink-200 text-fg-2  dark:text-ink-400'}`}
+                ? 'border-fg bg-fg text-page'
+                : 'border-line-strong bg-surface text-fg-2'}`}
           >
             الجميع
           </button>
@@ -66,8 +66,8 @@ export default function ActivityPage() {
               onClick={() => setUser(uid)}
               className={`rounded-card border px-3 py-1.5 text-[0.8rem] font-bold transition
                 ${user === uid
-                  ? 'border-brand-500 bg-brand-500 text-white'
-                  : 'border-ink-200 text-fg-2  dark:text-ink-400'}`}
+                  ? 'border-fg bg-fg text-page'
+                  : 'border-line-strong bg-surface text-fg-2'}`}
             >
               {name}
             </button>

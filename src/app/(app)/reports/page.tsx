@@ -216,7 +216,7 @@ export default function ReportsPage() {
               <div className="-mx-4 overflow-x-auto px-4">
                 <table className="w-full min-w-[30rem] text-right">
                   <thead>
-                    <tr className="border-b border-line text-[0.74rem] font-bold text-fg-3  dark:text-ink-500">
+                    <tr className="border-b border-line text-[0.74rem] font-bold text-fg-3">
                       <th className="pb-2 font-bold">المنتج</th>
                       <th className="pb-2 font-bold">القطع</th>
                       <th className="pb-2 font-bold">المبيعات</th>
@@ -248,7 +248,7 @@ export default function ReportsPage() {
             </SectionTitle>
             {stale.length === 0 ? (
               <p className="py-6 text-center text-[0.85rem] font-semibold text-fg-3">
-                لا توجد بضاعة راكدة — كل المنتجات تتحرك ✓
+                لا توجد بضاعة راكدة — كل المنتجات تتحرك
               </p>
             ) : (
               <ul className="divide-y divide-line ">
@@ -350,7 +350,7 @@ function Compare({
         <span className="text-[0.7rem] font-semibold text-fg-3">{previousLabel}</span>
         <span className="flex-1" />
         {delta === null ? (
-          <span className="chip bg-ink-200 text-fg-2 dark:bg-ink-800 dark:text-ink-400">جديد</span>
+          <span className="chip bg-sunken text-fg-2">جديد</span>
         ) : (
           <span className={`tnum chip ${up ? 'bg-good/15 text-good' : 'bg-bad/15 text-bad'}`}>
             {up ? '▲' : '▼'} {percent(Math.abs(delta), 1)}

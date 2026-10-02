@@ -110,8 +110,8 @@ export default function CustomersPage() {
               onClick={() => setSort(key)}
               className={`rounded-card border px-3 py-1.5 text-[0.8rem] font-bold transition
                 ${sort === key
-                  ? 'border-brand-500 bg-brand-500 text-white'
-                  : 'border-ink-200 text-fg-2  dark:text-ink-400'}`}
+                  ? 'border-fg bg-fg text-page'
+                  : 'border-line-strong bg-surface text-fg-2'}`}
             >
               {label}
             </button>
@@ -204,12 +204,12 @@ function CustomerRow({ customer, reward }: { customer: Customer; reward: number 
           <span className="tnum chip bg-good/15 text-good">رصيد {money(customer.creditBalance)}</span>
         ) : null}
         {customer.referralCount > 0 ? (
-          <span className="tnum chip bg-ink-200 text-ink-600 dark:bg-ink-800 dark:text-ink-300">
+          <span className="tnum chip bg-sunken text-fg-2">
             أحال {num(customer.referralCount)}
           </span>
         ) : null}
         {customer.referredByName ? (
-          <span className="chip bg-ink-200 text-ink-600 dark:bg-ink-800 dark:text-ink-300">
+          <span className="chip bg-sunken text-fg-2">
             جاء عبر {customer.referredByName}
           </span>
         ) : null}
@@ -221,7 +221,7 @@ function CustomerRow({ customer, reward }: { customer: Customer; reward: number 
             const ok = await copyText(inviteText);
             toast[ok ? 'success' : 'error'](ok ? 'تم نسخ رسالة الإحالة' : 'تعذّر النسخ');
           }}
-          className="inline-flex items-center gap-1.5 rounded-card px-2.5 py-1.5 text-[0.76rem] font-bold text-fg-2 transition hover:bg-ink-100 dark:text-ink-400 dark:hover:bg-ink-800"
+          className="inline-flex items-center gap-1.5 rounded-card px-2.5 py-1.5 text-[0.76rem] font-bold text-fg-2 transition hover:bg-sunken"
         >
           <IconCopy className="h-4 w-4" />
           رسالة الإحالة
@@ -309,7 +309,7 @@ function BroadcastSheet({
                 href={`https://wa.me/${whatsappNumber(c.phone)}?text=${encodeURIComponent(message)}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 rounded-card px-2.5 py-2 transition hover:bg-ink-100 dark:hover:bg-ink-800"
+                className="flex items-center gap-2 rounded-card px-2.5 py-2 transition hover:bg-sunken"
               >
                 <IconWhatsApp className="h-4 w-4 shrink-0 text-good" />
                 <span className="min-w-0 flex-1 truncate text-[0.85rem] font-bold">{c.name}</span>

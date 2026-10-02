@@ -6,7 +6,6 @@ import { Brand } from '@/components/layout/Brand';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { SetupNotice } from '@/components/SetupNotice';
 import { Button } from '@/components/ui/Button';
-import { IconStore } from '@/components/ui/Icons';
 import { errorMessage } from '@/lib/db/collections';
 import { isFirebaseConfigured } from '@/lib/firebase';
 
@@ -41,16 +40,11 @@ export default function LoginPage() {
     <div className="app-height flex flex-col justify-center px-5 py-10">
       <div className="mx-auto w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center text-center">
-          <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-500 text-white">
-            <IconStore className="h-7 w-7" />
-          </div>
           <Brand />
-          <p className="mt-2 text-[0.85rem] font-semibold text-fg-3">
-            إدارة المخزون والمبيعات — الأبيض
-          </p>
+          <p className="mt-3 text-[0.9rem] font-semibold text-fg-3">دفتر المحل — المخزون والمبيعات</p>
         </div>
 
-        <form onSubmit={onSubmit} className="surface space-y-4 p-5">
+        <form onSubmit={onSubmit} className="ticket space-y-4 rounded-card border border-line-strong p-6">
           <div>
             <label className="label" htmlFor="email">
               البريد الإلكتروني
@@ -91,7 +85,7 @@ export default function LoginPage() {
             </p>
           ) : null}
 
-          <Button type="submit" size="lg" block loading={busy}>
+          <Button type="submit" variant="ink" size="lg" block loading={busy}>
             دخول
           </Button>
         </form>

@@ -141,8 +141,8 @@ export default function StockTakePage() {
               onClick={() => setScope(key)}
               className={`rounded-card border px-3 py-1.5 text-[0.8rem] font-bold transition
                 ${scope === key
-                  ? 'border-brand-500 bg-brand-500 text-white'
-                  : 'border-ink-200 text-fg-2  dark:text-ink-400'}`}
+                  ? 'border-fg bg-fg text-page'
+                  : 'border-line-strong bg-surface text-fg-2'}`}
             >
               {label}
             </button>

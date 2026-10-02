@@ -235,7 +235,7 @@ function PaymentSheet({ sale, onClose }: { sale: Sale | null; onClose: () => voi
             <button
               key={f}
               onClick={() => setAmount(Math.round(due * f))}
-              className="rounded-card border border-line py-2 text-[0.8rem] font-bold text-fg-2 transition hover:border-brand-500 hover:text-brand-500  dark:text-ink-400"
+              className="rounded-card border border-line py-2 text-[0.8rem] font-bold text-fg-2 transition hover:border-fg hover:text-fg"
             >
               {f === 1 ? 'المبلغ كامل' : `${f * 100}%`}
             </button>

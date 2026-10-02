@@ -13,7 +13,7 @@ export function LowStockPanel({ rows }: { rows: LowStockRow[] }) {
   if (rows.length === 0) {
     return (
       <p className="py-6 text-center text-[0.85rem] font-semibold text-fg-3">
-        كل المقاسات فوق حد التنبيه ✓
+        كل المقاسات فوق حد التنبيه
       </p>
     );
   }
@@ -27,7 +27,7 @@ export function LowStockPanel({ rows }: { rows: LowStockRow[] }) {
         <Link
           key={`${row.product.id}-${row.size}`}
           href={`/inventory?focus=${row.product.id}`}
-          className="flex items-center gap-2.5 rounded-card px-2 py-2 transition-colors hover:bg-ink-100 dark:hover:bg-ink-800"
+          className="flex items-center gap-2.5 rounded-card px-2 py-2 transition-colors hover:bg-sunken"
         >
           <span
             className={`tnum flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-card border font-display text-[0.95rem] font-black leading-none

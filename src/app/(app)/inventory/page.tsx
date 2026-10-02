@@ -7,6 +7,7 @@ import { ValuePanel } from '@/components/inventory/ValuePanel';
 import { useActor, useAuth } from '@/components/providers/AuthProvider';
 import { useToast } from '@/components/providers/ToastProvider';
 import { Button } from '@/components/ui/Button';
+import { Pill } from '@/components/ui/DateRange';
 import { useConfirm } from '@/components/ui/Confirm';
 import { EmptyState, ErrorBlock, SkeletonRows } from '@/components/ui/Feedback';
 import { IconBoxes, IconDownload, IconPlus, IconSearch, IconX } from '@/components/ui/Icons';
@@ -167,6 +168,8 @@ export default function InventoryPage() {
         subtitle={loading ? undefined : `${num(activeCount)} منتج · ${num(totalPieces)} قطعة`}
         action={
           <Button
+            variant="ink"
+            size="sm"
             icon={<IconPlus className="h-4 w-4" />}
             onClick={() => {
               setEditing(null);
@@ -184,8 +187,9 @@ export default function InventoryPage() {
           <SectionTitle
             action={
               <button
+                type="button"
                 onClick={exportValuation}
-                className="inline-flex items-center gap-1.5 text-[0.78rem] font-bold text-brand-500"
+                className="inline-flex items-center gap-1.5 text-[0.8rem] font-bold text-fg-2 underline"
               >
                 <IconDownload className="h-4 w-4" />
                 تصدير الجرد
@@ -210,35 +214,26 @@ export default function InventoryPage() {
           />
         </div>
 
-        <div className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1 sm:mx-0 sm:px-0">
+        <div className="scroller sm:mx-0 sm:px-0">
           {FILTERS.map((f) => (
-            <button
-              key={f.key}
-              onClick={() => setFilter(f.key)}
-              className={`shrink-0 rounded-card border px-3 py-1.5 text-[0.8rem] font-bold transition
-                ${filter === f.key
-                  ? 'border-brand-500 bg-brand-500 text-white'
-                  : 'border-ink-200 text-fg-2  dark:text-ink-400'}`}
-            >
+            <Pill key={f.key} active={filter === f.key} onClick={() => setFilter(f.key)}>
               {f.label}
-            </button>
+            </Pill>
           ))}
         </div>
 
         {allSizes.length > 0 ? (
           <div className="surface-sunken px-3 py-2.5">
-            <p className="mb-2 text-[0.75rem] font-bold text-fg-2">
-              العميل سأل عن مقاس معيّن؟ اضغط عليه لترى المتوفر فوراً
-            </p>
+            <p className="mb-2 text-[0.8rem] font-bold text-fg-2">العميل سأل عن مقاس؟ اضغط عليه وشوف المتوفر طوالي</p>
             <div className="flex flex-wrap gap-1.5">
               {allSizes.map((s) => (
                 <button
                   key={s}
+                  type="button"
+                  aria-pressed={sizeFilter === s}
                   onClick={() => setSizeFilter((cur) => (cur === s ? null : s))}
-                  className={`tnum min-w-[2.75rem] rounded-card border px-2 py-1.5 font-display text-[0.95rem] font-extrabold transition
-                    ${sizeFilter === s
-                      ? 'border-brand-500 bg-brand-500 text-white'
-                      : 'border-ink-200 bg-white text-ink-700  dark:bg-ink-850 dark:text-ink-100'}`}
+                  className={`press tnum h-10 min-w-[2.75rem] rounded-card border-[1.5px] px-2 font-display text-[1rem] font-black transition-colors
+                    ${sizeFilter === s ? 'border-fg bg-fg text-page' : 'border-line-strong bg-surface text-fg'}`}
                 >
                   {s}
                 </button>
@@ -258,7 +253,7 @@ export default function InventoryPage() {
       </div>
 
       {sizeFilter ? (
-        <p className="mb-3 text-[0.85rem] font-bold text-brand-500">
+        <p className="mb-3 text-[0.9rem] font-extrabold text-fg">
           {visible.length > 0
             ? `${num(visible.length)} منتج متوفر بمقاس ${sizeFilter}`
             : `لا يوجد أي منتج متوفر بمقاس ${sizeFilter} حالياً`}

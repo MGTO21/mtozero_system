@@ -40,7 +40,7 @@ export function RestockPanel({ products, sales }: { products: Product[]; sales: 
   if (rows.length === 0) {
     return (
       <p className="py-6 text-center text-[0.85rem] font-semibold text-fg-3">
-        لا يوجد مقاس تحت حد التنبيه ✓
+        لا يوجد مقاس تحت حد التنبيه
       </p>
     );
   }
@@ -125,7 +125,7 @@ function Row({ row, urgent }: { row: ReturnType<typeof restockPriority>[number];
         </span>
       </span>
       {row.sold > 0 ? (
-        <span className={`tnum shrink-0 chip ${urgent ? 'bg-bad/15 text-bad' : 'bg-ink-200 text-ink-600 dark:bg-ink-800 dark:text-ink-300'}`}>
+        <span className={`tnum shrink-0 chip ${urgent ? 'bg-bad/15 text-bad' : 'bg-sunken text-fg-2'}`}>
           اطلب {num(row.suggested)}
         </span>
       ) : null}

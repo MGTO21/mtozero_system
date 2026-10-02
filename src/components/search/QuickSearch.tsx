@@ -119,7 +119,7 @@ export function QuickSearch({ open, onClose }: { open: boolean; onClose: () => v
         role="dialog"
         aria-modal="true"
         aria-label="بحث سريع"
-        className="relative flex max-h-[70vh] w-full max-w-xl flex-col overflow-hidden rounded-card border border-line bg-white shadow-lift animate-sheet-up  dark:bg-ink-850"
+        className="relative flex max-h-[70vh] w-full max-w-xl flex-col overflow-hidden rounded-card border border-line bg-page shadow-lift animate-fade-in"
       >
         <div className="flex items-center gap-2.5 border-b border-line px-4 ">
           <IconSearch className="h-[1.15rem] w-[1.15rem] shrink-0 text-fg-3" />
@@ -193,7 +193,7 @@ export function QuickSearch({ open, onClose }: { open: boolean; onClose: () => v
           )}
         </div>
 
-        <div className="flex items-center gap-3 border-t border-line px-4 py-2 text-[0.7rem] font-semibold text-fg-3  dark:text-ink-500">
+        <div className="flex items-center gap-3 border-t border-line px-4 py-2 text-[0.7rem] font-semibold text-fg-3">
           <span className="inline-flex items-center gap-1">
             <IconTag className="h-3.5 w-3.5" />
             المنتج يفتح على شاشة البيع

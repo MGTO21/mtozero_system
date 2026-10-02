@@ -33,7 +33,7 @@ export function SalesChart({ points }: { points: DailyPoint[] }) {
               aria-label={`${weekdayShort(p.date)}: ${money(p.revenue)}`}
             >
               {isActive ? (
-                <span className="tnum absolute -top-1 right-1/2 z-10 translate-x-1/2 whitespace-nowrap rounded-md bg-ink-900 px-2 py-1 text-[0.7rem] font-bold text-white dark:bg-ink-100 dark:text-ink-900">
+                <span className="tnum absolute -top-1 right-1/2 z-10 translate-x-1/2 whitespace-nowrap rounded-card bg-fg px-2 py-1 text-[0.72rem] font-bold text-page">
                   {money(p.revenue)}
                 </span>
               ) : null}
@@ -41,12 +41,12 @@ export function SalesChart({ points }: { points: DailyPoint[] }) {
               {/* The track is a definite-height flex item, so the bar's % height resolves. */}
               <span className="flex min-h-0 w-full flex-1 items-end">
                 <span
-                  className={`w-full rounded-t transition-all ${
+                  className={`w-full transition-all ${
                     p.revenue === 0
-                      ? 'bg-sunken'
+                      ? 'border-t-2 border-dashed border-line-strong'
                       : isToday
                         ? 'bg-brand-500'
-                        : 'bg-brand-500/45 group-hover:bg-brand-500/70'
+                        : 'bg-fg/80 group-hover:bg-fg'
                   }`}
                   style={{ height: `${Math.max(p.revenue === 0 ? 3 : 8, ratio * 100)}%` }}
                 />
