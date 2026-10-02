@@ -36,6 +36,15 @@ export function ReceiveSheet({ shipment, onClose }: { shipment: Shipment | null;
   const totalUnits = lines.reduce((sum, l) => sum + l.qty, 0);
   const totalCost = lines.reduce((sum, l) => sum + l.qty * l.costPrice, 0);
 
+  /** Sizes the product already carries, offered as taps so no size is mistyped. */
+  const knownSizes = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const p of active) map.set(p.id, p.sizes.map((s) => s.size));
+    return map;
+  }, [active]);
+
+  const incomplete = lines.some((l) => !l.size.trim());
+
   if (!shipment) return null;
 
   function addLine(productId: string, productName: string, costPrice: number) {
@@ -80,7 +89,12 @@ export function ReceiveSheet({ shipment, onClose }: { shipment: Shipment | null;
               {num(totalUnits)} قطعة · تكلفة {money(totalCost)}
             </p>
           </div>
-          <Button size="lg" loading={busy} disabled={lines.length === 0} onClick={() => void submit()}>
+          <Button
+            size="lg"
+            loading={busy}
+            disabled={lines.length === 0 || incomplete}
+            onClick={() => void submit()}
+          >
             إدخال للمخزون
           </Button>
         </div>
@@ -147,9 +161,13 @@ export function ReceiveSheet({ shipment, onClose }: { shipment: Shipment | null;
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   <label className="block">
-                    <span className="label">المقاس</span>
+                    <span className="label">
+                      المقاس {line.size.trim() ? '' : <span className="text-bad">*</span>}
+                    </span>
                     <input
-                      className="field text-center font-display font-extrabold"
+                      className={`field text-center font-display font-extrabold ${
+                        line.size.trim() ? '' : 'border-bad/60'
+                      }`}
                       value={line.size}
                       onChange={(e) => patchLine(i, { size: e.target.value })}
                       placeholder="42"
@@ -178,10 +196,39 @@ export function ReceiveSheet({ shipment, onClose }: { shipment: Shipment | null;
                     />
                   </label>
                 </div>
+
+                {/* Tapping an existing size is what keeps "42" from becoming a second
+                    size row next to "42 " — a typo there splits the stock in two. */}
+                {(knownSizes.get(line.productId)?.length ?? 0) > 0 ? (
+                  <div className="mt-2 flex flex-wrap items-center gap-1">
+                    <span className="text-[0.7rem] font-bold text-ink-400 dark:text-ink-500">
+                      مقاساته:
+                    </span>
+                    {knownSizes.get(line.productId)!.map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => patchLine(i, { size: s })}
+                        className={`tnum rounded-card border px-2 py-0.5 text-[0.76rem] font-bold transition
+                          ${line.size.trim() === s
+                            ? 'border-brand-500 bg-brand-500/12 text-brand-500'
+                            : 'border-ink-200 text-ink-500 dark:border-ink-700 dark:text-ink-400'}`}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                ) : null}
               </li>
             ))}
           </ul>
         )}
+
+        {incomplete ? (
+          <p className="text-[0.8rem] font-bold text-bad">
+            في سطر بدون مقاس — أدخل المقاس قبل الحفظ، وإلا الكمية ما تتسجّل.
+          </p>
+        ) : null}
 
         <p className="text-[0.75rem] leading-relaxed text-ink-400 dark:text-ink-500">
           تكلفة القطعة هنا تخصّ هذه الشحنة وحدها. عند البيع يُخصم من أقدم دفعة أولاً، فيظهر الربح

@@ -22,11 +22,12 @@ import type {
   Product,
   Sale,
   SaleItem,
+  SaleReturn,
   SizeStock,
 } from '@/lib/types';
 import { AppError, COL } from './collections';
 import { logActivity } from './activity';
-import { reconcileSize } from './products';
+import { normalizeStoredSizes, reconcileSize } from './products';
 
 function mapLots(raw: unknown, fallbackQty: number, fallbackCost: number): ConsumedLot[] {
   const lots = Array.isArray(raw) ? (raw as ConsumedLot[]) : [];
@@ -298,6 +299,46 @@ export function usePaymentsBetween(from: Date | null, to: Date | null) {
   );
 }
 
+export function mapReturn(id: string, raw: Record<string, unknown>): SaleReturn {
+  return {
+    id,
+    saleId: String(raw.saleId ?? ''),
+    productId: String(raw.productId ?? ''),
+    productName: String(raw.productName ?? ''),
+    size: String(raw.size ?? ''),
+    qty: Number(raw.qty ?? 0),
+    refundAmount: Number(raw.refundAmount ?? 0),
+    // Returns written before cash was tracked report nothing rather than guessing:
+    // assuming the full value had been paid would invent money out of the drawer.
+    cashRefunded: Number(raw.cashRefunded ?? 0),
+    reason: String(raw.reason ?? ''),
+    createdBy: String(raw.createdBy ?? ''),
+    createdByName: String(raw.createdByName ?? 'مستخدم'),
+    createdAt: (raw.createdAt as Timestamp) ?? null,
+  };
+}
+
+/**
+ * Returns recorded in a window. The daily close needs these because a refund is
+ * cash leaving the drawer today against goods that may have been sold weeks ago —
+ * invisible in both the day's sales and its debt repayments.
+ */
+export function useReturnsBetween(from: Date | null, to: Date | null) {
+  return useLiveQuery<SaleReturn>(
+    () => {
+      if (!from || !to) return null;
+      return query(
+        collection(db(), COL.returns),
+        where('createdAt', '>=', Timestamp.fromDate(from)),
+        where('createdAt', '<=', Timestamp.fromDate(to)),
+        orderBy('createdAt', 'desc'),
+      );
+    },
+    [from?.getTime() ?? 0, to?.getTime() ?? 0],
+    mapReturn,
+  );
+}
+
 /** Single sale, live — used by the invoice/return sheets. */
 export function useSale(saleId: string | null) {
   const [sale, setSale] = useState<Sale | null>(null);
@@ -341,24 +382,6 @@ export interface SaleInput {
 
 /** Stock left of a size after the sale, keyed `productId|size`. */
 export type RemainingStock = Record<string, number>;
-
-/** Rebuilds a stored size row into lot form, upgrading pre-lot documents. */
-function normalizeSizes(data: Record<string, unknown>): SizeStock[] {
-  const rawSizes: SizeStock[] = Array.isArray(data.sizes) ? (data.sizes as SizeStock[]) : [];
-  const fallbackCost = Number(data.costPrice ?? 0);
-  const createdMillis = (data.createdAt as Timestamp)?.toMillis?.() ?? 0;
-
-  return rawSizes.map((s) => {
-    const onHand = Math.max(0, Number(s.qty ?? 0));
-    const lots =
-      Array.isArray(s.lots) && s.lots.length > 0
-        ? s.lots
-        : onHand > 0
-          ? [{ shipmentId: null, qty: onHand, costPrice: fallbackCost, receivedAt: createdMillis }]
-          : [];
-    return reconcileSize({ size: String(s.size), qty: onHand, lots });
-  });
-}
 
 /**
  * Records a whole invoice and decrements stock for every line in ONE transaction.
@@ -436,7 +459,7 @@ export async function recordSale(
 
       const data = snap.data();
       const productName = String(data.name ?? productLines[0]!.product.name);
-      let sizes = normalizeSizes(data);
+      let sizes = normalizeStoredSizes(data);
 
       for (const line of productLines) {
         const index = sizes.findIndex((s) => s.size === line.size);
@@ -591,7 +614,7 @@ export async function recordReturn(
   const returnRef = doc(collection(db(), COL.returns));
   const refundAmount = target.sellPrice * returnQty;
 
-  await runTransaction(db(), async (tx) => {
+  const cashOut = await runTransaction(db(), async (tx) => {
     const saleSnap = await tx.get(saleRef);
     if (!saleSnap.exists()) throw new AppError('عملية البيع غير موجودة.');
     const productSnap = await tx.get(productRef);
@@ -607,12 +630,10 @@ export async function recordReturn(
     const returning = takeNewest(line.lots, line.returnedQty, returnQty);
 
     if (productSnap.exists()) {
-      const rawSizes: SizeStock[] = Array.isArray(productSnap.data().sizes)
-        ? (productSnap.data().sizes as SizeStock[])
-        : [];
-      const sizes = rawSizes.map((s) =>
-        reconcileSize({ size: String(s.size), qty: Number(s.qty ?? 0), lots: s.lots ?? [] }),
-      );
+      // Normalized, not reconciled raw: a pre-lot size row has no `lots`, and
+      // rebuilding its qty from an empty list would wipe stock on sizes this
+      // return never touched.
+      const sizes = normalizeStoredSizes(productSnap.data());
 
       const index = sizes.findIndex((s) => s.size === line.size);
       const restored = returning.map((l) => ({
@@ -650,6 +671,9 @@ export async function recordReturn(
     const nextTotal = saleTotal(nextSale);
     // Cash handed back reduces what the customer has effectively paid.
     const nextPaid = Math.max(0, Math.min(fresh.amountPaid, nextTotal));
+    // The drop in what was paid IS the money that left the drawer. A return on an
+    // unpaid sale moves no cash at all — it just cancels part of the debt.
+    const cashRefunded = Math.max(0, fresh.amountPaid - nextPaid);
 
     tx.update(saleRef, {
       items: nextItems,
@@ -665,16 +689,20 @@ export async function recordReturn(
       size: line.size,
       qty: returnQty,
       refundAmount,
+      cashRefunded,
       reason: reason.trim() || 'بدون سبب محدد',
       createdBy: actor.uid,
       createdByName: actor.name,
       createdAt: serverTimestamp(),
     });
+
+    return cashRefunded;
   });
 
   await logActivity(
     actor,
     'returned_item',
-    `أرجع ${returnQty} × "${target.productName}" مقاس ${target.size} بقيمة ${refundAmount} ج`,
+    `أرجع ${returnQty} × "${target.productName}" مقاس ${target.size} بقيمة ${refundAmount} ج` +
+      (cashOut > 0 ? ` — رُدّ نقداً ${cashOut} ج` : ' — بدون نقد مرجّع (خُصم من الدين)'),
   );
 }

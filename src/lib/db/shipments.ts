@@ -14,10 +14,10 @@ import {
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useLiveQuery } from '@/lib/hooks/useFirestore';
-import type { Shipment, ShipmentGroup, SizeStock, StockLot } from '@/lib/types';
+import type { Shipment, ShipmentGroup, StockLot } from '@/lib/types';
 import { AppError, COL } from './collections';
 import { logActivity } from './activity';
-import { reconcileSize } from './products';
+import { normalizeStoredSizes, reconcileSize } from './products';
 
 export function mapShipment(id: string, raw: Record<string, unknown>): Shipment {
   return {
@@ -60,11 +60,21 @@ export function useShipmentGroups() {
   );
 }
 
-/** SH-2026-07 style code, unique enough for a single shop. */
+/**
+ * SH-2026-07 style code, unique enough for a single shop.
+ *
+ * Takes the highest number already used in that year rather than counting the rows:
+ * a count repeats a code as soon as the list it is given is incomplete — and it is,
+ * since the shipments query orders by `arrivedAt` and so omits any document missing
+ * that field.
+ */
 function nextCode(existing: Shipment[], arrivedAt: Date): string {
   const year = arrivedAt.getFullYear();
-  const used = existing.filter((s) => s.code.startsWith(`SH-${year}-`)).length;
-  return `SH-${year}-${String(used + 1).padStart(2, '0')}`;
+  const prefix = `SH-${year}-`;
+  const highest = existing
+    .filter((s) => s.code.startsWith(prefix))
+    .reduce((max, s) => Math.max(max, Number(s.code.slice(prefix.length)) || 0), 0);
+  return `${prefix}${String(highest + 1).padStart(2, '0')}`;
 }
 
 export async function createShipment(
@@ -95,11 +105,23 @@ export async function createShipment(
 
 export async function updateShipment(
   shipment: Shipment,
-  patch: Partial<Pick<Shipment, 'name' | 'supplier' | 'extraCost' | 'note'>>,
+  patch: { name: string; supplier?: string; extraCost: number; note?: string },
   actor: { uid: string; name: string },
 ): Promise<void> {
-  await updateDoc(doc(db(), COL.shipments, shipment.id), patch);
-  await logActivity(actor, 'added_shipment', `عدّل بيانات الشحنة "${shipment.name}"`);
+  // Same guards as creating: an edit must not be able to leave a shipment nameless
+  // or with negative freight, which it could before.
+  if (!patch.name.trim()) throw new AppError('اسم الشحنة مطلوب.');
+  if (patch.extraCost < 0) throw new AppError('تكاليف الشحن لا يمكن أن تكون سالبة.');
+
+  await updateDoc(doc(db(), COL.shipments, shipment.id), {
+    name: patch.name.trim(),
+    // Blank becomes null, matching what createShipment writes, so the two paths
+    // cannot leave the same field as '' in one document and null in another.
+    supplier: patch.supplier?.trim() || null,
+    extraCost: patch.extraCost,
+    note: patch.note?.trim() || null,
+  });
+  await logActivity(actor, 'added_shipment', `عدّل بيانات الشحنة "${patch.name.trim()}"`);
 }
 
 /**
@@ -155,12 +177,36 @@ export async function receiveStock(
   lines: ReceiveLine[],
   actor: { uid: string; name: string },
 ): Promise<{ received: number; failed: string[] }> {
+  // A line with no size would be dropped silently and the delivery would look
+  // smaller than what arrived, so it is an error rather than a filter.
+  const missingSize = lines.filter((l) => l.qty > 0 && !l.size.trim());
+  if (missingSize.length > 0)
+    throw new AppError(
+      `أدخل المقاس لـ "${missingSize[0]!.productName}" — السطر بدون مقاس لا يُحفظ.`,
+    );
+
   const valid = lines.filter((l) => l.qty > 0 && l.size.trim());
   if (valid.length === 0) throw new AppError('أضف صنفاً واحداً بكمية أكبر من صفر.');
 
   const receivedAt = shipment.arrivedAt?.toMillis() ?? Date.now();
-  const byProduct = new Map<string, ReceiveLine[]>();
+
+  // The same product and size entered twice becomes one lot when the cost matches,
+  // so the shipment reads as one batch instead of a pile of fragments.
+  const merged = new Map<string, ReceiveLine>();
   for (const line of valid) {
+    const size = line.size.trim();
+    const key = `${line.productId}|${size}|${line.costPrice}`;
+    const existing = merged.get(key);
+    merged.set(
+      key,
+      existing
+        ? { ...existing, qty: existing.qty + Math.floor(line.qty) }
+        : { ...line, size, qty: Math.floor(line.qty) },
+    );
+  }
+
+  const byProduct = new Map<string, ReceiveLine[]>();
+  for (const line of merged.values()) {
     byProduct.set(line.productId, [...(byProduct.get(line.productId) ?? []), line]);
   }
 
@@ -174,43 +220,45 @@ export async function receiveStock(
         const snap = await tx.get(ref);
         if (!snap.exists()) throw new AppError('المنتج غير موجود.');
 
-        const sizes: SizeStock[] = Array.isArray(snap.data().sizes)
-          ? (snap.data().sizes as SizeStock[])
-          : [];
-        const next = [...sizes.map((s) => ({ ...s, lots: [...(s.lots ?? [])] }))];
+        // Normalized rather than raw: a size stored before lot tracking has no
+        // `lots`, and reconciling it from an empty list would zero its stock —
+        // including the sizes this delivery does not touch, since the whole
+        // `sizes` array is rewritten below.
+        const next = normalizeStoredSizes(snap.data());
 
         for (const line of productLines) {
-          const size = line.size.trim();
-          const index = next.findIndex((s) => String(s.size) === size);
+          const index = next.findIndex((s) => s.size === line.size);
           const lot: StockLot = {
             shipmentId: shipment.id,
-            qty: Math.floor(line.qty),
+            qty: line.qty,
             costPrice: line.costPrice,
             receivedAt,
           };
           if (index === -1) {
-            next.push(reconcileSize({ size, qty: 0, lots: [lot] }));
+            next.push(reconcileSize({ size: line.size, qty: 0, lots: [lot] }));
           } else {
-            next[index] = reconcileSize({
-              ...next[index]!,
-              lots: [...(next[index]!.lots ?? []), lot],
-            });
+            next[index] = reconcileSize({ ...next[index]!, lots: [...next[index]!.lots, lot] });
           }
-          received += lot.qty;
         }
 
         tx.update(ref, { sizes: next, updatedAt: serverTimestamp() });
       });
+
+      // Counted outside the transaction body: Firestore retries that body on
+      // contention, which would otherwise count the same pieces twice.
+      received += productLines.reduce((sum, l) => sum + l.qty, 0);
     } catch {
       failed.push(productLines[0]?.productName ?? productId);
     }
   }
 
-  await logActivity(
-    actor,
-    'received_stock',
-    `استلم ${received} قطعة من الشحنة "${shipment.name}" (${shipment.code})`,
-  );
+  if (received > 0) {
+    await logActivity(
+      actor,
+      'received_stock',
+      `استلم ${received} قطعة من الشحنة "${shipment.name}" (${shipment.code})`,
+    );
+  }
 
   return { received, failed };
 }

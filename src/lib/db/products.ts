@@ -41,10 +41,39 @@ export function reconcileSize(size: SizeStock): SizeStock {
   };
 }
 
-export function mapProduct(id: string, raw: Record<string, unknown>): Product {
+/**
+ * Turns a stored product document's `sizes` into guaranteed lot form.
+ *
+ * Products created before lot tracking carry a bare `qty` with no `lots`. Passing
+ * such a row straight to `reconcileSize` rebuilds `qty` from an empty lot list and
+ * so silently deletes the stock. Every path that reads `sizes` out of Firestore and
+ * writes them back — selling, returning, receiving a shipment, a stock-take — must
+ * come through here first, including for the sizes it is not touching, because the
+ * whole array is rewritten on every update.
+ */
+export function normalizeStoredSizes(raw: Record<string, unknown>): SizeStock[] {
   const sizes = Array.isArray(raw.sizes) ? (raw.sizes as SizeStock[]) : [];
-  const fallbackCost = Number(raw.costPrice ?? 0);
+  const fallbackCost = Math.max(0, Number(raw.costPrice ?? 0));
   const createdMillis = (raw.createdAt as Timestamp)?.toMillis?.() ?? 0;
+
+  return sizes
+    .filter((s) => s && typeof s.size === 'string')
+    .map((s) => {
+      const qty = Math.max(0, Math.floor(Number(s.qty ?? 0)));
+      // No lots recorded: treat the whole on-hand count as one unattributed batch
+      // so the stock survives the round trip and stays sellable.
+      const lots =
+        Array.isArray(s.lots) && s.lots.length > 0
+          ? s.lots
+          : qty > 0
+            ? [{ shipmentId: null, qty, costPrice: fallbackCost, receivedAt: createdMillis }]
+            : [];
+      return reconcileSize({ size: String(s.size), qty, lots });
+    });
+}
+
+export function mapProduct(id: string, raw: Record<string, unknown>): Product {
+  const fallbackCost = Number(raw.costPrice ?? 0);
 
   return {
     id,
@@ -53,20 +82,7 @@ export function mapProduct(id: string, raw: Record<string, unknown>): Product {
     brand: (raw.brand as string) || undefined,
     costPrice: fallbackCost,
     sellPrice: Number(raw.sellPrice ?? 0),
-    sizes: sizes
-      .filter((s) => s && typeof s.size === 'string')
-      .map((s) => {
-        const qty = Math.max(0, Number(s.qty ?? 0));
-        // Products created before lot tracking have no `lots`; treat their whole
-        // stock as one unattributed batch so nothing is lost on read.
-        const lots =
-          Array.isArray(s.lots) && s.lots.length > 0
-            ? s.lots
-            : qty > 0
-              ? [{ shipmentId: null, qty, costPrice: fallbackCost, receivedAt: createdMillis }]
-              : [];
-        return reconcileSize({ size: String(s.size), qty, lots });
-      }),
+    sizes: normalizeStoredSizes(raw),
     thumbData: (raw.thumbData as string) || undefined,
     imageUrl: (raw.imageUrl as string) || undefined,
     imagePublicId: (raw.imagePublicId as string) || undefined,

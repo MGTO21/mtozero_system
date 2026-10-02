@@ -84,13 +84,20 @@ function QuickSale() {
   }, [params, productId, sellable]);
 
   // Defaults follow the product; the seller only touches them to give a discount.
+  //
+  // Keyed on the product ID, never on the product object: `useProducts` is a live
+  // listener, so every snapshot — including the metadata-only ones and any sale made
+  // on another device — hands back a freshly mapped object. Depending on that object
+  // re-ran this effect mid-sale and silently cleared the chosen size, the quantity
+  // and any discount, which is what made building a multi-item invoice fail at random.
   useEffect(() => {
     if (!product) return;
     setPrice(product.sellPrice);
     const options = availableSizes(product);
     setSize(options.length === 1 ? options[0]!.size : null);
     setQty(1);
-  }, [product]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [productId]);
 
   /** Stock of the selected size, less whatever the cart already claims of it. */
   const stockForSize = useMemo(() => {
@@ -101,6 +108,13 @@ function QuickSale() {
       .reduce((sum, l) => sum + l.qty, 0);
     return Math.max(0, onHand - claimed);
   }, [product, size, cart]);
+
+  // Stock can drop under us while the line is being configured — another device
+  // selling the same size. Clamp the quantity instead of letting the whole invoice
+  // be rejected at confirmation time.
+  useEffect(() => {
+    if (size && qty > stockForSize) setQty(Math.max(1, stockForSize));
+  }, [size, qty, stockForSize]);
 
   /** The line currently being configured, if it is complete and in stock. */
   const pendingLine = useMemo<CartLine | null>(

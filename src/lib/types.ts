@@ -335,7 +335,15 @@ export interface SaleReturn {
   productName: string;
   size: string;
   qty: number;
+  /** Value of the returned pieces at the price they were sold for. */
   refundAmount: number;
+  /**
+   * Cash actually handed back, which is only the part the customer had already
+   * paid — returning goods still owed for cancels debt instead of moving money.
+   * The daily close subtracts this; `refundAmount` would overstate the drawer.
+   * Zero on returns recorded before this was tracked.
+   */
+  cashRefunded: number;
   reason: string;
   createdBy: string;
   createdByName: string;

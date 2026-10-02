@@ -9,7 +9,14 @@ import { IconCopy, IconDownload, IconWhatsApp } from '@/components/ui/Icons';
 import { PageHeader, SectionTitle } from '@/components/ui/PageHeader';
 import { summarize, sumExpenses } from '@/lib/analytics';
 import { useExpensesBetween } from '@/lib/db/expenses';
-import { netQty, saleDue, saleTotal, usePaymentsBetween, useSalesBetween } from '@/lib/db/sales';
+import {
+  netQty,
+  saleDue,
+  saleTotal,
+  usePaymentsBetween,
+  useReturnsBetween,
+  useSalesBetween,
+} from '@/lib/db/sales';
 import {
   addDays,
   dateKey,
@@ -44,17 +51,23 @@ export default function DailyClosePage() {
 
   const sales = useSalesBetween(from, to);
   const payments = usePaymentsBetween(from, to);
+  const returns = useReturnsBetween(from, to);
   const expenses = useExpensesBetween(from, to);
 
   const totals = useMemo(() => summarize(sales.data), [sales.data]);
   const repaid = payments.data.reduce((sum, p) => sum + p.amount, 0);
   const expenseTotal = sumExpenses(expenses.data);
 
+  // Only the paid-for part of a return leaves the drawer; the rest cancelled debt.
+  const refunded = returns.data.reduce((sum, r) => sum + r.cashRefunded, 0);
+  // Goods that came back today, valued at what they were sold for — not cash.
+  const returnedValue = returns.data.reduce((sum, r) => sum + r.refundAmount, 0);
+
   // Cash that physically changed hands today, whenever the goods were sold.
   const cashFromSales = sales.data.reduce((sum, s) => sum + Math.min(s.amountPaid, saleTotal(s)), 0);
   const cashIn = cashFromSales + repaid;
   const newDebt = sales.data.reduce((sum, s) => sum + saleDue(s), 0);
-  const drawer = cashIn - expenseTotal;
+  const drawer = cashIn - refunded - expenseTotal;
 
   const byChannel = useMemo(() => {
     const map = new Map<Channel, { count: number; revenue: number }>();
@@ -81,7 +94,7 @@ export default function DailyClosePage() {
   }, [sales.data]);
 
   const isToday = day === dateKey(new Date());
-  const loading = sales.loading || payments.loading || expenses.loading;
+  const loading = sales.loading || payments.loading || returns.loading || expenses.loading;
 
   /** Plain-text summary, sized to paste into WhatsApp without wrapping badly. */
   function summaryText(): string {
@@ -92,11 +105,19 @@ export default function DailyClosePage() {
       `النقد المستلم: ${money(cashIn)}`,
       `  • من مبيعات اليوم: ${money(cashFromSales)}`,
       `  • تسديد ديون سابقة: ${money(repaid)}`,
+    ];
+    if (returns.data.length > 0) {
+      lines.push(
+        `مرتجعات: ${num(returns.data.length)} قطعة بقيمة ${money(returnedValue)}`,
+        `  • نقد مرجّع للعميل: ${money(refunded)}`,
+      );
+    }
+    lines.push(
       `ديون جديدة: ${money(newDebt)}`,
       `المصروفات: ${money(expenseTotal)}`,
       '',
       `صافي الصندوق: ${money(drawer)}`,
-    ];
+    );
     if (canSeeProfit) lines.push(`الربح الإجمالي: ${money(totals.grossProfit)}`);
     return lines.join('\n');
   }
@@ -163,6 +184,18 @@ export default function DailyClosePage() {
               <Row label="مبيعات اليوم" value={money(totals.revenue)} hint={`${num(totals.transactions)} عملية · ${num(totals.units)} قطعة`} />
               <Row label="+ نقد من مبيعات اليوم" value={money(cashFromSales)} tone="good" />
               <Row label="+ تسديد ديون سابقة" value={money(repaid)} tone="good" hint={payments.data.length ? `${num(payments.data.length)} تسديد` : 'لا يوجد'} />
+              {returns.data.length > 0 ? (
+                <Row
+                  label="− نقد مرجّع (مرتجعات)"
+                  value={money(refunded)}
+                  tone="bad"
+                  hint={
+                    refunded < returnedValue
+                      ? `${num(returns.data.length)} مرتجع بقيمة ${money(returnedValue)} — الباقي خُصم من الدين`
+                      : `${num(returns.data.length)} مرتجع`
+                  }
+                />
+              ) : null}
               <Row label="− مصروفات" value={money(expenseTotal)} tone="bad" hint={expenses.data.length ? `${num(expenses.data.length)} مصروف` : 'لا يوجد'} />
               <Row label="= صافي الصندوق" value={money(drawer)} big />
             </dl>

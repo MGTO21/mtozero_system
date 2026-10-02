@@ -16,7 +16,7 @@ import { useLiveQuery } from '@/lib/hooks/useFirestore';
 import type { Product, SizeStock, StockCount, StockCountLine } from '@/lib/types';
 import { AppError, COL } from './collections';
 import { logActivity } from './activity';
-import { applyManualQty, reconcileSize } from './products';
+import { applyManualQty, normalizeStoredSizes } from './products';
 
 export function mapStockCount(id: string, raw: Record<string, unknown>): StockCount {
   return {
@@ -107,13 +107,10 @@ export async function applyStockCount(
 
         const data = snap.data();
         const fallbackCost = Number(data.costPrice ?? 0);
-        const sizes: SizeStock[] = Array.isArray(data.sizes)
-          ? (data.sizes as SizeStock[]).map((s) =>
-              reconcileSize({ size: String(s.size), qty: Number(s.qty ?? 0), lots: s.lots ?? [] }),
-            )
-          : [];
-
-        let next = [...sizes];
+        // Normalized, not reconciled raw: the uncounted sizes of this product are
+        // rewritten along with the counted ones, and a pre-lot size row has no
+        // `lots` to rebuild its quantity from.
+        let next = normalizeStoredSizes(data);
         for (const row of rows) {
           const index = next.findIndex((s) => s.size === row.size);
           if (index === -1) {
