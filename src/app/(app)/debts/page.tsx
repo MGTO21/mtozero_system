@@ -68,7 +68,7 @@ export default function DebtsPage() {
       ) : (
         <>
           <div className="surface mb-3 flex items-center justify-between px-4 py-3.5">
-            <span className="text-[0.82rem] font-bold text-ink-500 dark:text-ink-400">إجمالي المستحق لك</span>
+            <span className="text-[0.82rem] font-bold text-fg-2">إجمالي المستحق لك</span>
             <span className="tnum font-display text-num-lg font-black text-warn">{money(totalDue)}</span>
           </div>
 
@@ -118,25 +118,25 @@ function DebtorCard({
         </span>
         <span className="min-w-0 flex-1">
           <span className="block truncate text-[0.98rem] font-bold">{debtor.customerName}</span>
-          <span className="tnum block text-[0.76rem] font-semibold text-ink-400 dark:text-ink-500">
+          <span className="tnum block text-[0.76rem] font-semibold text-fg-3">
             {debtor.customerPhone ? `${debtor.customerPhone} · ` : ''}
             {num(debtor.sales.length)} عملية
           </span>
         </span>
         <span className="tnum shrink-0 font-display text-num font-black text-warn">{money(debtor.due)}</span>
         <IconChevronDown
-          className={`h-4 w-4 shrink-0 text-ink-400 transition-transform ${open ? 'rotate-180' : ''}`}
+          className={`h-4 w-4 shrink-0 text-fg-3 transition-transform ${open ? 'rotate-180' : ''}`}
         />
       </button>
 
       {open ? (
-        <div className="border-t border-ink-200 dark:border-ink-800">
-          <ul className="divide-y divide-ink-200 dark:divide-ink-800">
+        <div className="border-t border-line">
+          <ul className="divide-y divide-line ">
             {debtor.sales.map((s) => (
               <li key={s.id} className="flex items-center gap-3 px-3.5 py-2.5">
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[0.88rem] font-bold">{saleLabel(s)}</p>
-                  <p className="tnum text-[0.74rem] font-semibold text-ink-400 dark:text-ink-500">
+                  <p className="tnum text-[0.74rem] font-semibold text-fg-3">
                     {formatDate(s.createdAt)} · الإجمالي {money(saleTotal(s))} · دفع {money(s.amountPaid)}
                   </p>
                 </div>
@@ -153,7 +153,7 @@ function DebtorCard({
               href={`https://wa.me/${wa}?text=${encodeURIComponent(debtReminderText(debtor.customerName, debtor.due))}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center justify-center gap-2 border-t border-ink-200 py-2.5 text-[0.82rem] font-bold text-good dark:border-ink-800"
+              className="flex items-center justify-center gap-2 border-t border-line py-2.5 text-[0.82rem] font-bold text-good "
             >
               <IconWhatsApp className="h-4 w-4" />
               تذكير عبر واتساب
@@ -210,7 +210,7 @@ function PaymentSheet({ sale, onClose }: { sale: Sale | null; onClose: () => voi
     >
       <div className="space-y-4">
         <div className="surface-sunken flex items-center justify-between px-3.5 py-3">
-          <span className="text-[0.82rem] font-bold text-ink-500 dark:text-ink-400">المبلغ المتبقي</span>
+          <span className="text-[0.82rem] font-bold text-fg-2">المبلغ المتبقي</span>
           <span className="tnum font-display text-num font-black text-warn">{money(due)}</span>
         </div>
 
@@ -235,7 +235,7 @@ function PaymentSheet({ sale, onClose }: { sale: Sale | null; onClose: () => voi
             <button
               key={f}
               onClick={() => setAmount(Math.round(due * f))}
-              className="rounded-card border border-ink-200 py-2 text-[0.8rem] font-bold text-ink-500 transition hover:border-brand-500 hover:text-brand-500 dark:border-ink-700 dark:text-ink-400"
+              className="rounded-card border border-line py-2 text-[0.8rem] font-bold text-fg-2 transition hover:border-brand-500 hover:text-brand-500  dark:text-ink-400"
             >
               {f === 1 ? 'المبلغ كامل' : `${f * 100}%`}
             </button>

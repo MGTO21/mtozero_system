@@ -119,10 +119,10 @@ export function QuickSearch({ open, onClose }: { open: boolean; onClose: () => v
         role="dialog"
         aria-modal="true"
         aria-label="بحث سريع"
-        className="relative flex max-h-[70vh] w-full max-w-xl flex-col overflow-hidden rounded-card border border-ink-200 bg-white shadow-lift animate-sheet-up dark:border-ink-750 dark:bg-ink-850"
+        className="relative flex max-h-[70vh] w-full max-w-xl flex-col overflow-hidden rounded-card border border-line bg-white shadow-lift animate-sheet-up  dark:bg-ink-850"
       >
-        <div className="flex items-center gap-2.5 border-b border-ink-200 px-4 dark:border-ink-800">
-          <IconSearch className="h-[1.15rem] w-[1.15rem] shrink-0 text-ink-400" />
+        <div className="flex items-center gap-2.5 border-b border-line px-4 ">
+          <IconSearch className="h-[1.15rem] w-[1.15rem] shrink-0 text-fg-3" />
           <input
             ref={inputRef}
             value={term}
@@ -139,7 +139,7 @@ export function QuickSearch({ open, onClose }: { open: boolean; onClose: () => v
             placeholder="اسم منتج، أو رقم مقاس، أو اسم عميل…"
             className="h-14 flex-1 bg-transparent text-[1rem] outline-none placeholder:text-ink-400"
           />
-          <kbd className="hidden shrink-0 rounded border border-ink-200 px-1.5 py-0.5 text-[0.68rem] font-bold text-ink-400 dark:border-ink-700 sm:block">
+          <kbd className="hidden shrink-0 rounded border border-line px-1.5 py-0.5 text-[0.68rem] font-bold text-fg-3  sm:block">
             ESC
           </kbd>
         </div>
@@ -147,15 +147,15 @@ export function QuickSearch({ open, onClose }: { open: boolean; onClose: () => v
         <div className="min-h-0 flex-1 overflow-y-auto p-2">
           {!query ? (
             <div className="px-3 py-8 text-center">
-              <p className="text-[0.85rem] font-semibold text-ink-500 dark:text-ink-400">
+              <p className="text-[0.85rem] font-semibold text-fg-2">
                 اكتب <span className="font-black text-brand-500">42</span> لترى كل المتوفر بهذا المقاس
               </p>
-              <p className="mt-1.5 text-[0.78rem] text-ink-400 dark:text-ink-500">
+              <p className="mt-1.5 text-[0.78rem] text-fg-3">
                 أو اسم منتج، أو اسم عميل أو رقم هاتفه
               </p>
             </div>
           ) : results.length === 0 ? (
-            <div className="px-3 py-8 text-center text-[0.85rem] font-semibold text-ink-400 dark:text-ink-500">
+            <div className="px-3 py-8 text-center text-[0.85rem] font-semibold text-fg-3">
               {asSize ? `لا يوجد أي منتج متوفر بمقاس ${asSize}` : 'لا توجد نتائج'}
             </div>
           ) : (
@@ -193,7 +193,7 @@ export function QuickSearch({ open, onClose }: { open: boolean; onClose: () => v
           )}
         </div>
 
-        <div className="flex items-center gap-3 border-t border-ink-200 px-4 py-2 text-[0.7rem] font-semibold text-ink-400 dark:border-ink-800 dark:text-ink-500">
+        <div className="flex items-center gap-3 border-t border-line px-4 py-2 text-[0.7rem] font-semibold text-fg-3  dark:text-ink-500">
           <span className="inline-flex items-center gap-1">
             <IconTag className="h-3.5 w-3.5" />
             المنتج يفتح على شاشة البيع
@@ -209,19 +209,19 @@ function ProductRow({ product, matchedSize }: { product: Product; matchedSize: s
   const thumb = productImage(product);
   return (
     <>
-      <span className="h-10 w-10 shrink-0 overflow-hidden rounded-card bg-ink-100 dark:bg-ink-900">
+      <span className="h-10 w-10 shrink-0 overflow-hidden rounded-card bg-sunken">
         {thumb ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={thumb} alt="" className="h-full w-full object-cover" />
         ) : (
-          <span className="flex h-full w-full items-center justify-center text-ink-300 dark:text-ink-700">
+          <span className="flex h-full w-full items-center justify-center text-line-strong">
             <IconImage className="h-4 w-4" />
           </span>
         )}
       </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[0.9rem] font-bold">{product.name}</span>
-        <span className="tnum block text-[0.74rem] font-semibold text-ink-400 dark:text-ink-500">
+        <span className="tnum block text-[0.74rem] font-semibold text-fg-3">
           {matchedSize ? (
             <span className="text-good">
               مقاس {matchedSize} متوفر ·{' '}
@@ -237,7 +237,7 @@ function ProductRow({ product, matchedSize }: { product: Product; matchedSize: s
       <span className="tnum shrink-0 font-display text-[0.95rem] font-black text-brand-500">
         {money(product.sellPrice)}
       </span>
-      <IconBoxes className="h-4 w-4 shrink-0 text-ink-300 dark:text-ink-600" />
+      <IconBoxes className="h-4 w-4 shrink-0 text-line-strong" />
     </>
   );
 }
@@ -250,14 +250,14 @@ function CustomerRow({ customer }: { customer: Customer }) {
       </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[0.9rem] font-bold">{customer.name}</span>
-        <span dir="ltr" className="tnum block truncate text-right text-[0.74rem] font-semibold text-ink-400 dark:text-ink-500">
+        <span dir="ltr" className="tnum block truncate text-right text-[0.74rem] font-semibold text-fg-3">
           {whatsappNumber(customer.phone) ?? customer.phone}
         </span>
       </span>
       {customer.creditBalance > 0 ? (
         <span className="tnum shrink-0 chip bg-good/15 text-good">رصيد {money(customer.creditBalance)}</span>
       ) : null}
-      <IconUserCircle className="h-4 w-4 shrink-0 text-ink-300 dark:text-ink-600" />
+      <IconUserCircle className="h-4 w-4 shrink-0 text-line-strong" />
     </>
   );
 }

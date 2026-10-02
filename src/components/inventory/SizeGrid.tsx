@@ -24,34 +24,33 @@ function stateOf(qty: number, threshold: number): State {
 
 /**
  * The core inventory display: one tile per size, quantity always visible.
- * Sold-out sizes stay in place (dashed + dimmed) so the owner can see at a glance
- * *which* size is missing, not just that something is.
+ *
+ * Three states, told apart by shape and not only colour: in stock is a solid
+ * tile, low stock carries a warning corner, sold out is an empty dashed outline
+ * that keeps its place — the owner sees *which* size is missing, not just that
+ * something is.
  */
 export function SizeGrid({ sizes, lowStockThreshold, onSelect, selected, availableOnly, size = 'sm' }: Props) {
   const rows = availableOnly ? sizes.filter((s) => s.qty > 0) : sizes;
   if (rows.length === 0) {
-    return <p className="text-[0.8rem] font-semibold text-ink-400 dark:text-ink-500">لا توجد مقاسات</p>;
+    return <p className="text-[0.84rem] font-semibold text-fg-3">لا توجد مقاسات</p>;
   }
 
-  const box = size === 'lg' ? 'min-w-[4.25rem] px-2 py-2.5' : 'min-w-[3rem] px-1.5 py-1.5';
-  const sizeText = size === 'lg' ? 'text-2xl' : 'text-base';
-  const qtyText = size === 'lg' ? 'text-[0.72rem]' : 'text-[0.62rem]';
+  const big = size === 'lg';
+  const box = big ? 'min-w-[4.5rem] h-[4.25rem] px-2' : 'min-w-[2.9rem] h-[2.9rem] px-1.5';
 
   return (
-    <div className="flex flex-wrap gap-1.5">
+    <div className={`flex flex-wrap ${big ? 'gap-2' : 'gap-1.5'}`}>
       {rows.map((s) => {
         const state = stateOf(s.qty, lowStockThreshold);
         const isSelected = selected === s.size;
         const interactive = Boolean(onSelect) && s.qty > 0;
 
-        const tone =
-          isSelected
-            ? 'border-brand-500 bg-brand-500 text-white'
-            : state === 'out'
-              ? 'border-dashed border-ink-300 text-ink-400 dark:border-ink-700 dark:text-ink-600'
-              : state === 'low'
-                ? 'border-warn/55 bg-warn/10 text-warn'
-                : 'border-ink-200 bg-ink-100/70 text-ink-800 dark:border-ink-700 dark:bg-ink-800/70 dark:text-ink-50';
+        const tone = isSelected
+          ? 'border-fg bg-fg text-page'
+          : state === 'out'
+            ? 'border-dashed border-line-strong bg-transparent text-fg-3'
+            : 'border-line-strong bg-surface text-fg';
 
         const Tag = interactive ? 'button' : 'div';
 
@@ -61,11 +60,23 @@ export function SizeGrid({ sizes, lowStockThreshold, onSelect, selected, availab
             {...(interactive
               ? { type: 'button' as const, onClick: () => onSelect?.(s.size), 'aria-pressed': isSelected }
               : {})}
-            className={`flex flex-col items-center justify-center rounded-card border tabular-nums transition-colors
-              ${box} ${tone} ${interactive ? 'active:scale-95' : ''} ${state === 'out' ? 'opacity-70' : ''}`}
+            className={`relative flex flex-col items-center justify-center overflow-hidden rounded-card border-[1.5px] transition-colors
+              ${box} ${tone} ${interactive ? 'press' : ''}`}
           >
-            <span className={`tnum font-display font-extrabold leading-none ${sizeText}`}>{s.size}</span>
-            <span className={`tnum mt-0.5 font-bold leading-none ${qtyText} ${isSelected ? 'text-white/85' : 'opacity-75'}`}>
+            {/* Low stock: a folded warning corner, readable in greyscale. */}
+            {state === 'low' && !isSelected ? (
+              <span
+                aria-hidden="true"
+                className="absolute left-0 top-0 h-0 w-0 border-r-[12px] border-t-[12px] border-r-transparent border-t-warn"
+              />
+            ) : null}
+            <span className={`tnum font-display font-black leading-none ${big ? 'text-[1.6rem]' : 'text-[1.05rem]'}`}>
+              {s.size}
+            </span>
+            <span
+              className={`tnum mt-1 font-bold leading-none ${big ? 'text-[0.74rem]' : 'text-[0.62rem]'}
+                ${isSelected ? 'text-page/75' : state === 'low' ? 'text-warn' : 'text-fg-3'}`}
+            >
               {s.qty > 0 ? `${s.qty} قطعة` : 'نافذ'}
             </span>
           </Tag>

@@ -115,7 +115,7 @@ export function CustomerBlock({ value, onChange, maxCredit, nameRequired }: Prop
             عميل سجّل عندنا قبل؟
           </label>
           <div className="relative">
-            <IconSearch className="pointer-events-none absolute right-3 top-1/2 h-[1.1rem] w-[1.1rem] -translate-y-1/2 text-ink-400" />
+            <IconSearch className="pointer-events-none absolute right-3 top-1/2 h-[1.1rem] w-[1.1rem] -translate-y-1/2 text-fg-3" />
             <input
               id="cust-lookup"
               className="field pr-10"
@@ -132,12 +132,12 @@ export function CustomerBlock({ value, onChange, maxCredit, nameRequired }: Prop
                   <button
                     type="button"
                     onClick={() => pick(c)}
-                    className="flex w-full items-center gap-2.5 rounded-card border border-ink-200 px-3 py-2 text-right transition hover:border-brand-500 dark:border-ink-700"
+                    className="flex w-full items-center gap-2.5 rounded-card border border-line px-3 py-2 text-right transition hover:border-brand-500 "
                   >
                     <IconUserCircle className="h-5 w-5 shrink-0 text-accent-500" />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[0.88rem] font-bold">{c.name}</span>
-                      <span className="tnum block text-[0.74rem] font-semibold text-ink-400 dark:text-ink-500" dir="ltr">
+                      <span className="tnum block text-[0.74rem] font-semibold text-fg-3" dir="ltr">
                         {c.phone}
                       </span>
                     </span>
@@ -146,7 +146,7 @@ export function CustomerBlock({ value, onChange, maxCredit, nameRequired }: Prop
                         رصيد {money(c.creditBalance)}
                       </span>
                     ) : null}
-                    <span className="tnum shrink-0 text-[0.74rem] font-bold text-ink-400 dark:text-ink-500">
+                    <span className="tnum shrink-0 text-[0.74rem] font-bold text-fg-3">
                       {c.totalOrders} عملية
                     </span>
                   </button>
@@ -156,7 +156,7 @@ export function CustomerBlock({ value, onChange, maxCredit, nameRequired }: Prop
           ) : null}
 
           {lookup.trim() && suggestions.length === 0 ? (
-            <p className="mt-1.5 text-[0.75rem] font-semibold text-ink-400 dark:text-ink-500">
+            <p className="mt-1.5 text-[0.75rem] font-semibold text-fg-3">
               ما في عميل بهذا الاسم — اكتب بياناتو تحت وهو يُحفظ تلقائياً.
             </p>
           ) : null}
@@ -189,7 +189,7 @@ export function CustomerBlock({ value, onChange, maxCredit, nameRequired }: Prop
             onChange={(e) => onChange({ ...value, phone: e.target.value })}
             placeholder="09xxxxxxxx"
           />
-          <p className="mt-1 text-[0.72rem] text-ink-400 dark:text-ink-500">
+          <p className="mt-1 text-[0.72rem] text-fg-3">
             {looking
               ? 'جاري البحث عن العميل…'
               : 'الرقم يحفظ العميل تلقائياً في قائمة العملاء لإرسال العروض لاحقاً.'}
@@ -203,7 +203,7 @@ export function CustomerBlock({ value, onChange, maxCredit, nameRequired }: Prop
             <IconCheck className="h-4 w-4" />
             عميل مسجّل
           </span>
-          <span className="tnum text-[0.78rem] font-semibold text-ink-500 dark:text-ink-400">
+          <span className="tnum text-[0.78rem] font-semibold text-fg-2">
             {value.matched.totalOrders} عملية · أنفق {money(value.matched.totalSpent)}
           </span>
           <span className="flex-1" />
@@ -211,7 +211,7 @@ export function CustomerBlock({ value, onChange, maxCredit, nameRequired }: Prop
           <button
             type="button"
             onClick={clearPicked}
-            className="inline-flex items-center gap-1 rounded-card px-2 py-1 text-[0.76rem] font-bold text-ink-400 transition-colors hover:bg-bad/10 hover:text-bad"
+            className="inline-flex items-center gap-1 rounded-card px-2 py-1 text-[0.76rem] font-bold text-fg-3 transition-colors hover:bg-bad/10 hover:text-bad"
           >
             <IconX className="h-3.5 w-3.5" />
             تغيير العميل
@@ -230,7 +230,7 @@ export function CustomerBlock({ value, onChange, maxCredit, nameRequired }: Prop
             onChange={(e) => onChange({ ...value, referredByCode: e.target.value.toUpperCase() })}
             placeholder="اختياري — مثال AHMD1234"
           />
-          <p className="mt-1 text-[0.72rem] text-ink-400 dark:text-ink-500">
+          <p className="mt-1 text-[0.72rem] text-fg-3">
             عند إدخال كود صحيح يحصل صاحبه على رصيد خصم بعد إتمام هذه العملية.
           </p>
         </div>
@@ -257,7 +257,7 @@ export function CustomerBlock({ value, onChange, maxCredit, nameRequired }: Prop
             </button>
           </div>
           {credit > maxCredit ? (
-            <p className="tnum mt-1.5 text-[0.72rem] font-semibold text-ink-500 dark:text-ink-400">
+            <p className="tnum mt-1.5 text-[0.72rem] font-semibold text-fg-2">
               قيمة الفاتورة أقل من الرصيد — سيُخصم {money(applicable)} ويبقى الباقي للمرة القادمة.
             </p>
           ) : null}

@@ -128,12 +128,12 @@ export default function ShipmentsPage() {
             return (
               <div key={key} className="surface overflow-hidden">
                 {group ? (
-                  <div className="border-b border-ink-200 bg-accent-500/8 px-3.5 py-2.5 dark:border-ink-800">
+                  <div className="border-b border-line bg-accent-500/8 px-3.5 py-2.5 ">
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
                       <span className="text-[0.95rem] font-bold text-accent-500">
                         مجموعة: {group.name}
                       </span>
-                      <span className="tnum text-[0.76rem] font-semibold text-ink-500 dark:text-ink-400">
+                      <span className="tnum text-[0.76rem] font-semibold text-fg-2">
                         {num(members.length)} شحنات مدموجة
                       </span>
                       <span className="flex-1" />
@@ -182,12 +182,12 @@ export default function ShipmentsPage() {
 
           {unassigned && unassigned.remainingUnits + unassigned.soldUnits > 0 ? (
             <div className="surface px-3.5 py-3">
-              <p className="text-[0.9rem] font-bold text-ink-500 dark:text-ink-400">بضاعة بدون شحنة محددة</p>
-              <p className="tnum mt-1 text-[0.78rem] font-semibold text-ink-400 dark:text-ink-500">
+              <p className="text-[0.9rem] font-bold text-fg-2">بضاعة بدون شحنة محددة</p>
+              <p className="tnum mt-1 text-[0.78rem] font-semibold text-fg-3">
                 {num(unassigned.remainingUnits)} قطعة متبقية · بيع منها {num(unassigned.soldUnits)} بقيمة{' '}
                 {money(unassigned.soldRevenue)}
               </p>
-              <p className="mt-1.5 text-[0.72rem] text-ink-400 dark:text-ink-500">
+              <p className="mt-1.5 text-[0.72rem] text-fg-3">
                 هذه كميات أُضيفت يدوياً أو قبل تفعيل تتبع الشحنات. أدخل الجديد عبر «استلام بضاعة» لتُنسب لشحنتها.
               </p>
             </div>
@@ -258,7 +258,7 @@ function ShipmentRow({
   const soldPct = totalUnits === 0 ? 0 : (sold / totalUnits) * 100;
 
   return (
-    <div className={inGroup ? 'border-b border-ink-200 last:border-0 dark:border-ink-800' : ''}>
+    <div className={inGroup ? 'border-b border-line last:border-0 dark:border-ink-800' : ''}>
       <div className="flex items-center gap-3 p-3.5">
         {selectable ? (
           <input
@@ -278,7 +278,7 @@ function ShipmentRow({
                 {shipment.code}
               </span>
             </span>
-            <span className="tnum mt-0.5 block text-[0.75rem] font-semibold text-ink-400 dark:text-ink-500">
+            <span className="tnum mt-0.5 block text-[0.75rem] font-semibold text-fg-3">
               {formatDate(shipment.arrivedAt)}
               {shipment.supplier ? ` · ${shipment.supplier}` : ''}
             </span>
@@ -287,12 +287,12 @@ function ShipmentRow({
             <span className="tnum block font-display text-num font-black text-brand-500">
               {money(stats?.soldRevenue ?? 0)}
             </span>
-            <span className="tnum block text-[0.72rem] font-bold text-ink-400 dark:text-ink-500">
+            <span className="tnum block text-[0.72rem] font-bold text-fg-3">
               بيع {num(sold)} · باقي {num(remaining)}
             </span>
           </span>
           <IconChevronDown
-            className={`h-4 w-4 shrink-0 text-ink-400 transition-transform ${open ? 'rotate-180' : ''}`}
+            className={`h-4 w-4 shrink-0 text-fg-3 transition-transform ${open ? 'rotate-180' : ''}`}
           />
         </button>
       </div>
@@ -300,14 +300,14 @@ function ShipmentRow({
       {/* Sold-through bar: the fastest read of "is this shipment moving?" */}
       {totalUnits > 0 ? (
         <div className="px-3.5 pb-3">
-          <div className="h-1.5 overflow-hidden rounded-full bg-ink-200 dark:bg-ink-800">
+          <div className="h-1.5 overflow-hidden rounded-full bg-sunken">
             <div className="h-full rounded-full bg-brand-500" style={{ width: `${soldPct}%` }} />
           </div>
         </div>
       ) : null}
 
       {open ? (
-        <div className="border-t border-ink-200 px-3.5 py-3 dark:border-ink-800">
+        <div className="border-t border-line px-3.5 py-3 ">
           <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <Metric label="قيمة المبيعات" value={money(stats?.soldRevenue ?? 0)} tone="brand" />
             <Metric label="ربح الشحنة" value={money(stats?.profit ?? 0)} tone="good" />
@@ -316,7 +316,7 @@ function ShipmentRow({
           </dl>
 
           {shipment.note ? (
-            <p className="mt-3 text-[0.8rem] text-ink-500 dark:text-ink-400">{shipment.note}</p>
+            <p className="mt-3 text-[0.8rem] text-fg-2">{shipment.note}</p>
           ) : null}
 
           <div className="mt-3 flex flex-wrap gap-2">
@@ -341,7 +341,7 @@ function ShipmentRow({
 function Metric({ label, value, tone }: { label: string; value: string; tone?: 'brand' | 'good' }) {
   return (
     <div>
-      <dt className="text-[0.72rem] font-bold text-ink-400 dark:text-ink-500">{label}</dt>
+      <dt className="text-[0.72rem] font-bold text-fg-3">{label}</dt>
       <dd
         className={`tnum mt-0.5 font-display text-[1.1rem] font-black ${
           tone === 'brand' ? 'text-brand-500' : tone === 'good' ? 'text-good' : ''

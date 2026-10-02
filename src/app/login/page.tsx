@@ -45,7 +45,7 @@ export default function LoginPage() {
             <IconStore className="h-7 w-7" />
           </div>
           <Brand />
-          <p className="mt-2 text-[0.85rem] font-semibold text-ink-400 dark:text-ink-500">
+          <p className="mt-2 text-[0.85rem] font-semibold text-fg-3">
             إدارة المخزون والمبيعات — الأبيض
           </p>
         </div>
@@ -96,7 +96,7 @@ export default function LoginPage() {
           </Button>
         </form>
 
-        <p className="mt-5 text-center text-[0.78rem] leading-relaxed text-ink-400 dark:text-ink-500">
+        <p className="mt-5 text-center text-[0.78rem] leading-relaxed text-fg-3">
           ليس لديك حساب؟ الحسابات يُنشئها المالك من صفحة «الفريق» داخل النظام.
         </p>
       </div>

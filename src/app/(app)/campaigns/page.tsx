@@ -169,7 +169,7 @@ export default function CampaignsPage() {
       {/* The honest constraint, stated once and up front rather than discovered. */}
       <div className="surface mb-3 border-accent-500/40 p-3.5">
         <p className="text-[0.85rem] font-bold text-accent-500">كيف يعمل الإرسال الجماعي مجاناً</p>
-        <p className="mt-1.5 text-[0.82rem] leading-relaxed text-ink-600 dark:text-ink-300">
+        <p className="mt-1.5 text-[0.82rem] leading-relaxed text-fg-2">
           واتساب لا يسمح لأي موقع بالإرسال نيابة عنك. أمامك طريقان مجانيان تماماً:
           <span className="font-bold"> القائمة البريدية</span> في تطبيق WhatsApp Business (رسالة واحدة
           تصل للجميع، لكن فقط لمن حفظ رقمك)، أو <span className="font-bold">طابور الإرسال</span> بالأسفل
@@ -192,7 +192,7 @@ export default function CampaignsPage() {
                     className={`rounded-card border px-3 py-2.5 text-right transition
                       ${segment === s.key
                         ? 'border-brand-500 bg-brand-500/10'
-                        : 'border-ink-200 hover:border-ink-300 dark:border-ink-700'}`}
+                        : 'border-ink-200 hover:border-line-strong'}`}
                   >
                     <span className="flex items-center justify-between gap-2">
                       <span className="text-[0.88rem] font-bold">{s.label}</span>
@@ -200,7 +200,7 @@ export default function CampaignsPage() {
                         {num(count)}
                       </span>
                     </span>
-                    <span className="mt-0.5 block text-[0.72rem] text-ink-400 dark:text-ink-500">{s.hint}</span>
+                    <span className="mt-0.5 block text-[0.72rem] text-fg-3">{s.hint}</span>
                   </button>
                 );
               })}
@@ -235,7 +235,7 @@ export default function CampaignsPage() {
                     setMessage(t.body);
                     if (!title.trim()) setTitle(t.label);
                   }}
-                  className="rounded-card border border-ink-200 px-2.5 py-1 text-[0.76rem] font-bold text-ink-500 transition hover:border-brand-500 hover:text-brand-500 dark:border-ink-700 dark:text-ink-400"
+                  className="rounded-card border border-line px-2.5 py-1 text-[0.76rem] font-bold text-fg-2 transition hover:border-brand-500 hover:text-brand-500  dark:text-ink-400"
                 >
                   {t.label}
                 </button>
@@ -263,7 +263,7 @@ export default function CampaignsPage() {
               value={message}
               onChange={(e) => setMessage(e.target.value)}
             />
-            <p className="mt-1.5 text-[0.72rem] leading-relaxed text-ink-400 dark:text-ink-500">
+            <p className="mt-1.5 text-[0.72rem] leading-relaxed text-fg-3">
               المتغيرات: <code className="font-mono">{'{الاسم}'}</code> ·{' '}
               <code className="font-mono">{'{المتجر}'}</code> ·{' '}
               <code className="font-mono">{'{الهاتف}'}</code> ·{' '}
@@ -271,10 +271,10 @@ export default function CampaignsPage() {
             </p>
 
             <div className="surface-sunken mt-3 p-3">
-              <p className="mb-1.5 text-[0.72rem] font-bold text-ink-500 dark:text-ink-400">
+              <p className="mb-1.5 text-[0.72rem] font-bold text-fg-2">
                 معاينة كما ستصل العميل
               </p>
-              <pre className="whitespace-pre-wrap break-words font-sans text-[0.84rem] leading-relaxed text-ink-700 dark:text-ink-200">
+              <pre className="whitespace-pre-wrap break-words font-sans text-[0.84rem] leading-relaxed text-fg">
                 {preview}
               </pre>
             </div>
@@ -285,7 +285,7 @@ export default function CampaignsPage() {
           {/* offer image */}
           <section className="surface p-4">
             <SectionTitle>3 · صورة العرض (اختياري)</SectionTitle>
-            <p className="mb-2.5 text-[0.78rem] leading-relaxed text-ink-500 dark:text-ink-400">
+            <p className="mb-2.5 text-[0.78rem] leading-relaxed text-fg-2">
               الملابس تُباع بالنظر. اختر المنتجات وسأولّد صورة بلوغو المتجر والأسعار ترفقها مع الرسالة.
             </p>
 
@@ -324,7 +324,7 @@ export default function CampaignsPage() {
           {/* broadcast path */}
           <section className="surface p-4">
             <SectionTitle>الطريق (أ) · القائمة البريدية</SectionTitle>
-            <p className="mb-3 text-[0.78rem] leading-relaxed text-ink-500 dark:text-ink-400">
+            <p className="mb-3 text-[0.78rem] leading-relaxed text-fg-2">
               رسالة واحدة تصل لكل القائمة دفعة واحدة، مجاناً. <span className="font-bold text-warn">لكنها
               تصل فقط لمن حفظ رقمك</span> — لذلك صدّر جهات الاتصال أولاً وانشرها على عملائك.
             </p>
@@ -374,7 +374,7 @@ export default function CampaignsPage() {
           {/* queue path */}
           <section className="surface-key p-4">
             <SectionTitle>الطريق (ب) · طابور الإرسال</SectionTitle>
-            <p className="mb-3 text-[0.78rem] leading-relaxed text-ink-500 dark:text-ink-400">
+            <p className="mb-3 text-[0.78rem] leading-relaxed text-fg-2">
               يصل <span className="font-bold">للجميع بلا شروط</span>. النظام يفتح محادثة كل عميل
               والرسالة جاهزة باسمه، ويتذكر أين وصلت.
             </p>
@@ -394,12 +394,12 @@ export default function CampaignsPage() {
           {campaigns.data.length > 0 ? (
             <section className="surface p-4">
               <SectionTitle>الحملات السابقة</SectionTitle>
-              <ul className="divide-y divide-ink-200 dark:divide-ink-800">
+              <ul className="divide-y divide-line ">
                 {campaigns.data.slice(0, 6).map((c) => (
                   <li key={c.id} className="flex items-center gap-2 py-2">
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-[0.86rem] font-bold">{c.title}</span>
-                      <span className="tnum block text-[0.72rem] text-ink-400 dark:text-ink-500">
+                      <span className="tnum block text-[0.72rem] text-fg-3">
                         {formatDate(c.createdAt)} · {c.segment}
                       </span>
                     </span>

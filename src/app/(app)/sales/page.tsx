@@ -122,7 +122,7 @@ export default function SalesPage() {
               className={`rounded-card border px-3 py-1.5 text-[0.8rem] font-bold transition
                 ${status === key
                   ? 'border-brand-500 bg-brand-500 text-white'
-                  : 'border-ink-200 text-ink-500 dark:border-ink-700 dark:text-ink-400'}`}
+                  : 'border-ink-200 text-fg-2  dark:text-ink-400'}`}
             >
               {label}
             </button>
@@ -131,7 +131,7 @@ export default function SalesPage() {
       </div>
 
       {!loading && visible.length > 0 ? (
-        <div className="surface mb-3 grid grid-cols-2 divide-x divide-x-reverse divide-ink-200 sm:grid-cols-4 dark:divide-ink-800">
+        <div className="surface mb-3 grid grid-cols-2 divide-x divide-x-reverse divide-line sm:grid-cols-4 ">
           <Cell label="الإيرادات" value={money(totals.revenue)} accent />
           <Cell label="القطع" value={num(totals.units)} />
           {canSeeProfit ? <Cell label="الربح الإجمالي" value={money(totals.grossProfit)} /> : null}
@@ -183,7 +183,7 @@ export default function SalesPage() {
                       </span>
                     </div>
 
-                    <p className="tnum mt-1 text-[0.76rem] font-semibold text-ink-400 dark:text-ink-500">
+                    <p className="tnum mt-1 text-[0.76rem] font-semibold text-fg-3">
                       {formatDate(s.createdAt)} · {formatTime(s.createdAt)} · {CHANNEL_LABEL[s.channel]} ·{' '}
                       {s.soldByName}
                       {s.customerName ? ` · ${s.customerName}` : ''}
@@ -206,7 +206,7 @@ export default function SalesPage() {
 
                 {/* Line breakdown. A single-item ticket needs no expansion, so it
                     is shown inline; anything larger gets its own list. */}
-                <ul className="mt-2 space-y-1 border-t border-ink-200 pt-2 dark:border-ink-800">
+                <ul className="mt-2 space-y-1 border-t border-line pt-2 ">
                   {s.items.map((item, index) => {
                     const itemKept = itemNetQty(item);
                     return (
@@ -214,11 +214,11 @@ export default function SalesPage() {
                         key={`${item.productId}-${item.size}-${index}`}
                         className={`flex items-center gap-2 text-[0.82rem] ${itemKept === 0 ? 'opacity-50' : ''}`}
                       >
-                        <span className="tnum shrink-0 rounded border border-ink-200 px-1.5 py-0.5 text-[0.72rem] font-bold text-ink-500 dark:border-ink-700 dark:text-ink-400">
+                        <span className="tnum shrink-0 rounded border border-line px-1.5 py-0.5 text-[0.72rem] font-bold text-fg-2  dark:text-ink-400">
                           {item.size}
                         </span>
                         <span className="min-w-0 flex-1 truncate font-semibold">{item.productName}</span>
-                        <span className="tnum shrink-0 text-ink-400 dark:text-ink-500">
+                        <span className="tnum shrink-0 text-fg-3">
                           {num(itemKept)} × {money(item.sellPrice)}
                         </span>
                         <span className="tnum shrink-0 font-bold">{money(itemGross(item))}</span>
@@ -227,7 +227,7 @@ export default function SalesPage() {
                             onClick={() => setReturning({ sale: s, itemIndex: index })}
                             aria-label={`إرجاع ${item.productName}`}
                             title="إرجاع هذا الصنف"
-                            className="shrink-0 rounded p-1 text-ink-400 transition-colors hover:bg-bad/10 hover:text-bad"
+                            className="shrink-0 rounded p-1 text-fg-3 transition-colors hover:bg-bad/10 hover:text-bad"
                           >
                             <IconReturn className="h-3.5 w-3.5" />
                           </button>
@@ -239,7 +239,7 @@ export default function SalesPage() {
                   })}
                 </ul>
 
-                <div className="mt-2 flex items-center gap-1 border-t border-ink-200 pt-2 dark:border-ink-800">
+                <div className="mt-2 flex items-center gap-1 border-t border-line pt-2 ">
                   <IconButton
                     label="نسخ الفاتورة"
                     onClick={async () => {
@@ -255,12 +255,12 @@ export default function SalesPage() {
                     rel="noopener noreferrer"
                     aria-label="إرسال عبر واتساب"
                     title="إرسال عبر واتساب"
-                    className="inline-flex h-9 w-9 items-center justify-center rounded-card text-ink-500 transition-colors hover:bg-ink-100 hover:text-good dark:text-ink-400 dark:hover:bg-ink-800"
+                    className="inline-flex h-9 w-9 items-center justify-center rounded-card text-fg-2 transition-colors hover:bg-ink-100 hover:text-good dark:text-ink-400 dark:hover:bg-ink-800"
                   >
                     <IconWhatsApp className="h-[1.05rem] w-[1.05rem]" />
                   </a>
                   <span className="flex-1" />
-                  <span className="tnum text-[0.72rem] font-semibold text-ink-400 dark:text-ink-500">
+                  <span className="tnum text-[0.72rem] font-semibold text-fg-3">
                     {num(live.length)} صنف
                   </span>
                 </div>
@@ -278,7 +278,7 @@ export default function SalesPage() {
 function Cell({ label, value, accent, warn }: { label: string; value: string; accent?: boolean; warn?: boolean }) {
   return (
     <div className="px-3 py-3">
-      <p className="text-[0.72rem] font-bold text-ink-400 dark:text-ink-500">{label}</p>
+      <p className="text-[0.72rem] font-bold text-fg-3">{label}</p>
       <p
         className={`tnum mt-0.5 font-display text-num font-black ${
           accent ? 'text-brand-500' : warn ? 'text-warn' : ''

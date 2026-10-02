@@ -162,7 +162,7 @@ export default function ReportsPage() {
           {/* Profit waterfall — the one calculation the owner cares about. */}
           <section className="surface p-4">
             <SectionTitle>حساب الربح</SectionTitle>
-            <dl className="divide-y divide-ink-200 dark:divide-ink-800">
+            <dl className="divide-y divide-line ">
               <Line label="إجمالي المبيعات" value={money(totals.revenue)} />
               <Line label="− تكلفة البضاعة المباعة" value={money(totals.cost)} tone="muted" />
               <Line label="= الربح الإجمالي" value={money(totals.grossProfit)} tone="good" />
@@ -170,7 +170,7 @@ export default function ReportsPage() {
               <Line label="= صافي الربح" value={money(net)} tone={net >= 0 ? 'good' : 'bad'} big />
             </dl>
 
-            <div className="mt-3 grid grid-cols-2 gap-3 border-t border-ink-200 pt-3 sm:grid-cols-4 dark:border-ink-800">
+            <div className="mt-3 grid grid-cols-2 gap-3 border-t border-line pt-3 sm:grid-cols-4 ">
               <Mini label="القطع المباعة" value={num(totals.units)} />
               <Mini label="عدد العمليات" value={num(totals.transactions)} />
               <Mini label="المحصّل نقداً" value={money(totals.collected)} />
@@ -178,7 +178,7 @@ export default function ReportsPage() {
             </div>
 
             {totals.revenue > 0 ? (
-              <p className="tnum mt-3 text-[0.8rem] font-bold text-ink-500 dark:text-ink-400">
+              <p className="tnum mt-3 text-[0.8rem] font-bold text-fg-2">
                 هامش صافي الربح: {percent((net / totals.revenue) * 100, 1)} من المبيعات
               </p>
             ) : null}
@@ -209,21 +209,21 @@ export default function ReportsPage() {
           <section className="surface p-4">
             <SectionTitle>الأكثر مبيعاً في الفترة</SectionTitle>
             {best.length === 0 ? (
-              <p className="py-6 text-center text-[0.85rem] font-semibold text-ink-400 dark:text-ink-500">
+              <p className="py-6 text-center text-[0.85rem] font-semibold text-fg-3">
                 لا توجد مبيعات في هذه الفترة
               </p>
             ) : (
               <div className="-mx-4 overflow-x-auto px-4">
                 <table className="w-full min-w-[30rem] text-right">
                   <thead>
-                    <tr className="border-b border-ink-200 text-[0.74rem] font-bold text-ink-400 dark:border-ink-800 dark:text-ink-500">
+                    <tr className="border-b border-line text-[0.74rem] font-bold text-fg-3  dark:text-ink-500">
                       <th className="pb-2 font-bold">المنتج</th>
                       <th className="pb-2 font-bold">القطع</th>
                       <th className="pb-2 font-bold">المبيعات</th>
                       <th className="pb-2 font-bold">الربح</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-ink-200 dark:divide-ink-800">
+                  <tbody className="divide-y divide-line ">
                     {best.map((p) => (
                       <tr key={p.productId} className="text-[0.86rem]">
                         <td className="max-w-[12rem] truncate py-2 font-bold">{p.productName}</td>
@@ -242,21 +242,21 @@ export default function ReportsPage() {
           <section className="surface p-4">
             <SectionTitle>
               <span className="inline-flex items-center gap-2">
-                <IconHourglass className="h-[1.1rem] w-[1.1rem] text-ink-400" />
+                <IconHourglass className="h-[1.1rem] w-[1.1rem] text-fg-3" />
                 بضاعة راكدة (أكثر من 30 يوماً)
               </span>
             </SectionTitle>
             {stale.length === 0 ? (
-              <p className="py-6 text-center text-[0.85rem] font-semibold text-ink-400 dark:text-ink-500">
+              <p className="py-6 text-center text-[0.85rem] font-semibold text-fg-3">
                 لا توجد بضاعة راكدة — كل المنتجات تتحرك ✓
               </p>
             ) : (
-              <ul className="divide-y divide-ink-200 dark:divide-ink-800">
+              <ul className="divide-y divide-line ">
                 {stale.map((row) => (
                   <li key={row.product.id} className="flex items-center gap-3 py-2.5">
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-[0.9rem] font-bold">{row.product.name}</p>
-                      <p className="tnum text-[0.74rem] font-semibold text-ink-400 dark:text-ink-500">
+                      <p className="tnum text-[0.74rem] font-semibold text-fg-3">
                         {row.lastSold ? `آخر بيع ${formatDate(row.lastSold)}` : 'لم يُبع منه شيء بعد'} ·{' '}
                         {num(totalStock(row.product))} قطعة راكدة
                       </p>
@@ -282,7 +282,7 @@ export default function ReportsPage() {
                 نسخة احتياطية (JSON)
               </Button>
             </div>
-            <p className="mt-2.5 text-[0.75rem] leading-relaxed text-ink-400 dark:text-ink-500">
+            <p className="mt-2.5 text-[0.75rem] leading-relaxed text-fg-3">
               ملفات CSV تفتح مباشرة في Excel بترميز عربي سليم. احتفظ بنسخة احتياطية كل فترة على جهازك
               أو على Google Drive.
             </p>
@@ -308,7 +308,7 @@ function Line({
     tone === 'good' ? 'text-good' : tone === 'bad' ? 'text-bad' : tone === 'muted' ? 'text-ink-400' : '';
   return (
     <div className="flex items-center justify-between py-2.5">
-      <dt className={`text-[0.88rem] font-bold ${big ? '' : 'text-ink-500 dark:text-ink-400'}`}>{label}</dt>
+      <dt className={`text-[0.88rem] font-bold ${big ? '' : 'text-fg-2'}`}>{label}</dt>
       <dd className={`tnum font-display font-black ${big ? 'text-num-lg' : 'text-num'} ${color}`}>{value}</dd>
     </div>
   );
@@ -317,7 +317,7 @@ function Line({
 function Mini({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[0.72rem] font-bold text-ink-400 dark:text-ink-500">{label}</p>
+      <p className="text-[0.72rem] font-bold text-fg-3">{label}</p>
       <p className="tnum mt-0.5 font-display text-[1.15rem] font-black">{value}</p>
     </div>
   );
@@ -341,16 +341,16 @@ function Compare({
 
   return (
     <div className="surface-sunken px-3.5 py-3">
-      <p className="text-[0.78rem] font-bold text-ink-400 dark:text-ink-500">{title}</p>
+      <p className="text-[0.78rem] font-bold text-fg-3">{title}</p>
       <p className="tnum mt-1 font-display text-num-lg font-black">{money(current)}</p>
-      <p className="text-[0.72rem] font-semibold text-ink-400 dark:text-ink-500">{currentLabel}</p>
+      <p className="text-[0.72rem] font-semibold text-fg-3">{currentLabel}</p>
 
-      <div className="mt-2 flex items-center gap-2 border-t border-ink-200 pt-2 dark:border-ink-800">
-        <span className="tnum text-[0.8rem] font-bold text-ink-500 dark:text-ink-400">{money(previous)}</span>
-        <span className="text-[0.7rem] font-semibold text-ink-400 dark:text-ink-500">{previousLabel}</span>
+      <div className="mt-2 flex items-center gap-2 border-t border-line pt-2 ">
+        <span className="tnum text-[0.8rem] font-bold text-fg-2">{money(previous)}</span>
+        <span className="text-[0.7rem] font-semibold text-fg-3">{previousLabel}</span>
         <span className="flex-1" />
         {delta === null ? (
-          <span className="chip bg-ink-200 text-ink-500 dark:bg-ink-800 dark:text-ink-400">جديد</span>
+          <span className="chip bg-ink-200 text-fg-2 dark:bg-ink-800 dark:text-ink-400">جديد</span>
         ) : (
           <span className={`tnum chip ${up ? 'bg-good/15 text-good' : 'bg-bad/15 text-bad'}`}>
             {up ? '▲' : '▼'} {percent(Math.abs(delta), 1)}

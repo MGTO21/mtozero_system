@@ -64,7 +64,7 @@ export function SendQueue({ campaignId, recipients, message, settings, sentIds, 
           <IconCheck className="h-7 w-7" />
         </div>
         <h3 className="text-lg">انتهت الحملة</h3>
-        <p className="mt-1.5 text-[0.88rem] text-ink-500 dark:text-ink-400">
+        <p className="mt-1.5 text-[0.88rem] text-fg-2">
           أُرسلت لـ {num(done)} عميل. محفوظة في سجل الحملات.
         </p>
         <Button className="mt-5" onClick={onDone}>
@@ -76,14 +76,14 @@ export function SendQueue({ campaignId, recipients, message, settings, sentIds, 
 
   return (
     <div className="surface-key overflow-hidden">
-      <div className="border-b border-ink-200 px-4 py-3 dark:border-ink-800">
+      <div className="border-b border-line px-4 py-3 ">
         <div className="flex items-center justify-between text-[0.82rem] font-bold">
           <span>التقدّم</span>
-          <span className="tnum text-ink-500 dark:text-ink-400">
+          <span className="tnum text-fg-2">
             {num(done)} من {num(recipients.length)}
           </span>
         </div>
-        <div className="mt-2 h-2 overflow-hidden rounded-full bg-ink-200 dark:bg-ink-800">
+        <div className="mt-2 h-2 overflow-hidden rounded-full bg-sunken">
           <div
             className="h-full rounded-full bg-good transition-all"
             style={{ width: `${progress}%` }}
@@ -96,17 +96,17 @@ export function SendQueue({ campaignId, recipients, message, settings, sentIds, 
       </div>
 
       <div className="p-4">
-        <p className="text-[0.78rem] font-bold text-ink-400 dark:text-ink-500">العميل التالي</p>
+        <p className="text-[0.78rem] font-bold text-fg-3">العميل التالي</p>
         <h3 className="mt-1 text-xl">{current.name}</h3>
-        <p dir="ltr" className="tnum mt-0.5 text-right text-[0.85rem] font-bold text-ink-500 dark:text-ink-400">
+        <p dir="ltr" className="tnum mt-0.5 text-right text-[0.85rem] font-bold text-fg-2">
           {current.phone}
         </p>
-        <p className="tnum mt-1 text-[0.78rem] font-semibold text-ink-400 dark:text-ink-500">
+        <p className="tnum mt-1 text-[0.78rem] font-semibold text-fg-3">
           {num(current.totalOrders)} عملية · أنفق {money(current.totalSpent)}
         </p>
 
         <div className="surface-sunken mt-3 max-h-40 overflow-y-auto p-3">
-          <pre className="whitespace-pre-wrap break-words font-sans text-[0.84rem] leading-relaxed text-ink-700 dark:text-ink-200">
+          <pre className="whitespace-pre-wrap break-words font-sans text-[0.84rem] leading-relaxed text-fg">
             {personalise(message, current, settings)}
           </pre>
         </div>
@@ -132,7 +132,7 @@ export function SendQueue({ campaignId, recipients, message, settings, sentIds, 
           </Button>
         </div>
 
-        <p className="mt-2.5 text-center text-[0.75rem] leading-relaxed text-ink-400 dark:text-ink-500">
+        <p className="mt-2.5 text-center text-[0.75rem] leading-relaxed text-fg-3">
           يفتح محادثة العميل والرسالة جاهزة بداخلها — تضغط إرسال في واتساب، ثم ترجع هنا للتالي.
         </p>
       </div>

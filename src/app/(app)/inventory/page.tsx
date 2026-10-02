@@ -200,7 +200,7 @@ export default function InventoryPage() {
 
       <div className="mb-3 space-y-2.5">
         <div className="relative">
-          <IconSearch className="pointer-events-none absolute right-3 top-1/2 h-[1.1rem] w-[1.1rem] -translate-y-1/2 text-ink-400" />
+          <IconSearch className="pointer-events-none absolute right-3 top-1/2 h-[1.1rem] w-[1.1rem] -translate-y-1/2 text-fg-3" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -218,7 +218,7 @@ export default function InventoryPage() {
               className={`shrink-0 rounded-card border px-3 py-1.5 text-[0.8rem] font-bold transition
                 ${filter === f.key
                   ? 'border-brand-500 bg-brand-500 text-white'
-                  : 'border-ink-200 text-ink-500 dark:border-ink-700 dark:text-ink-400'}`}
+                  : 'border-ink-200 text-fg-2  dark:text-ink-400'}`}
             >
               {f.label}
             </button>
@@ -227,7 +227,7 @@ export default function InventoryPage() {
 
         {allSizes.length > 0 ? (
           <div className="surface-sunken px-3 py-2.5">
-            <p className="mb-2 text-[0.75rem] font-bold text-ink-500 dark:text-ink-400">
+            <p className="mb-2 text-[0.75rem] font-bold text-fg-2">
               العميل سأل عن مقاس معيّن؟ اضغط عليه لترى المتوفر فوراً
             </p>
             <div className="flex flex-wrap gap-1.5">
@@ -238,7 +238,7 @@ export default function InventoryPage() {
                   className={`tnum min-w-[2.75rem] rounded-card border px-2 py-1.5 font-display text-[0.95rem] font-extrabold transition
                     ${sizeFilter === s
                       ? 'border-brand-500 bg-brand-500 text-white'
-                      : 'border-ink-200 bg-white text-ink-700 dark:border-ink-700 dark:bg-ink-850 dark:text-ink-100'}`}
+                      : 'border-ink-200 bg-white text-ink-700  dark:bg-ink-850 dark:text-ink-100'}`}
                 >
                   {s}
                 </button>

@@ -62,7 +62,7 @@ export default function SettingsPage() {
             <button
               type="button"
               onClick={() => fileRef.current?.click()}
-              className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-card border border-dashed border-ink-300 bg-ink-100 text-ink-400 transition hover:border-brand-500 hover:text-brand-500 dark:border-ink-700 dark:bg-ink-900"
+              className="flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-card border border-dashed border-line-strong bg-ink-100 text-fg-3 transition hover:border-brand-500 hover:text-brand-500  dark:bg-ink-900"
             >
               {form.logoData ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -77,7 +77,7 @@ export default function SettingsPage() {
 
             <div className="min-w-0 flex-1">
               <p className="text-[0.85rem] font-bold">لوغو الفاتورة</p>
-              <p className="mt-0.5 text-[0.75rem] leading-relaxed text-ink-500 dark:text-ink-400">
+              <p className="mt-0.5 text-[0.75rem] leading-relaxed text-fg-2">
                 {logoBytes !== null
                   ? `مضغوط إلى ${formatBytes(logoBytes)} — يُرسم على كل فاتورة.`
                   : 'ارفع لوغو المتجر ليظهر أعلى الفواتير. بدونه تُستخدم العلامة الافتراضية.'}
@@ -184,7 +184,7 @@ export default function SettingsPage() {
             value={form.referralReward || ''}
             onChange={(e) => patch({ referralReward: Number(e.target.value) || 0 })}
           />
-          <p className="mt-2 text-[0.78rem] leading-relaxed text-ink-500 dark:text-ink-400">
+          <p className="mt-2 text-[0.78rem] leading-relaxed text-fg-2">
             يُضاف {money(form.referralReward)} لرصيد العميل عند أول عملية شراء يقوم بها من أحاله بكوده.
             الرصيد يُخصم من فواتيره القادمة، ويُحتسب ضمن تكلفة العملية في التقارير — فالربح المعروض
             يبقى صحيحاً.

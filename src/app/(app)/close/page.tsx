@@ -143,7 +143,7 @@ export default function DailyClosePage() {
         <button
           onClick={() => setDay(dateKey(new Date()))}
           className={`rounded-card border px-3 py-1.5 text-[0.8rem] font-bold transition
-            ${isToday ? 'border-brand-500 bg-brand-500 text-white' : 'border-ink-200 text-ink-500 dark:border-ink-700 dark:text-ink-400'}`}
+            ${isToday ? 'border-brand-500 bg-brand-500 text-white' : 'border-ink-200 text-fg-2  dark:text-ink-400'}`}
         >
           اليوم
         </button>
@@ -152,7 +152,7 @@ export default function DailyClosePage() {
           className={`rounded-card border px-3 py-1.5 text-[0.8rem] font-bold transition
             ${day === dateKey(addDays(new Date(), -1))
               ? 'border-brand-500 bg-brand-500 text-white'
-              : 'border-ink-200 text-ink-500 dark:border-ink-700 dark:text-ink-400'}`}
+              : 'border-ink-200 text-fg-2  dark:text-ink-400'}`}
         >
           أمس
         </button>
@@ -164,8 +164,8 @@ export default function DailyClosePage() {
         <div className="space-y-3">
           {/* The drawer figure is what gets counted against physical cash. */}
           <section className="surface overflow-hidden">
-            <div className="border-b border-ink-200 px-4 py-4 dark:border-ink-800">
-              <p className="text-[0.8rem] font-bold text-ink-400 dark:text-ink-500">
+            <div className="border-b border-line px-4 py-4 ">
+              <p className="text-[0.8rem] font-bold text-fg-3">
                 المفروض في الصندوق آخر اليوم
               </p>
               <p
@@ -175,12 +175,12 @@ export default function DailyClosePage() {
               >
                 {money(drawer)}
               </p>
-              <p className="mt-1 text-[0.78rem] font-semibold text-ink-500 dark:text-ink-400">
+              <p className="mt-1 text-[0.78rem] font-semibold text-fg-2">
                 النقد المستلم ناقص المصروفات — قارنه بما في يدك فعلاً
               </p>
             </div>
 
-            <dl className="divide-y divide-ink-200 dark:divide-ink-800">
+            <dl className="divide-y divide-line ">
               <Row label="مبيعات اليوم" value={money(totals.revenue)} hint={`${num(totals.transactions)} عملية · ${num(totals.units)} قطعة`} />
               <Row label="+ نقد من مبيعات اليوم" value={money(cashFromSales)} tone="good" />
               <Row label="+ تسديد ديون سابقة" value={money(repaid)} tone="good" hint={payments.data.length ? `${num(payments.data.length)} تسديد` : 'لا يوجد'} />
@@ -203,22 +203,22 @@ export default function DailyClosePage() {
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="surface px-4 py-3.5">
-              <p className="text-[0.78rem] font-bold text-ink-400 dark:text-ink-500">ديون جديدة اليوم</p>
+              <p className="text-[0.78rem] font-bold text-fg-3">ديون جديدة اليوم</p>
               <p className={`tnum mt-1 font-display text-num-lg font-black ${newDebt > 0 ? 'text-warn' : ''}`}>
                 {money(newDebt)}
               </p>
-              <p className="mt-1 text-[0.72rem] font-semibold text-ink-400 dark:text-ink-500">
+              <p className="mt-1 text-[0.72rem] font-semibold text-fg-3">
                 بضاعة خرجت ولم يُدفع ثمنها بعد
               </p>
             </div>
 
             {canSeeProfit ? (
               <div className="surface px-4 py-3.5">
-                <p className="text-[0.78rem] font-bold text-ink-400 dark:text-ink-500">ربح اليوم الإجمالي</p>
+                <p className="text-[0.78rem] font-bold text-fg-3">ربح اليوم الإجمالي</p>
                 <p className="tnum mt-1 font-display text-num-lg font-black text-good">
                   {money(totals.grossProfit)}
                 </p>
-                <p className="mt-1 text-[0.72rem] font-semibold text-ink-400 dark:text-ink-500">
+                <p className="mt-1 text-[0.72rem] font-semibold text-fg-3">
                   قبل خصم المصروفات — صافي اليوم {money(totals.grossProfit - expenseTotal)}
                 </p>
               </div>
@@ -235,14 +235,14 @@ export default function DailyClosePage() {
                     <li key={channel}>
                       <div className="flex items-baseline justify-between gap-2">
                         <span className="text-[0.86rem] font-bold">{CHANNEL_LABEL[channel]}</span>
-                        <span className="tnum text-[0.82rem] font-bold text-ink-500 dark:text-ink-400">
+                        <span className="tnum text-[0.82rem] font-bold text-fg-2">
                           {num(stat.count)} عملية
                         </span>
                         <span className="tnum text-[0.9rem] font-black text-brand-500">
                           {money(stat.revenue)}
                         </span>
                       </div>
-                      <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-ink-200 dark:bg-ink-800">
+                      <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-sunken">
                         <div className="h-full rounded-full bg-brand-500" style={{ width: `${share}%` }} />
                       </div>
                     </li>
@@ -255,11 +255,11 @@ export default function DailyClosePage() {
           {bySeller.length > 1 ? (
             <section className="surface p-4">
               <SectionTitle>من باع اليوم</SectionTitle>
-              <ul className="divide-y divide-ink-200 dark:divide-ink-800">
+              <ul className="divide-y divide-line ">
                 {bySeller.map(([name, stat]) => (
                   <li key={name} className="flex items-center justify-between py-2">
                     <span className="text-[0.88rem] font-bold">{name}</span>
-                    <span className="tnum text-[0.8rem] font-semibold text-ink-500 dark:text-ink-400">
+                    <span className="tnum text-[0.8rem] font-semibold text-fg-2">
                       {num(stat.count)} عملية
                     </span>
                     <span className="tnum text-[0.88rem] font-black text-brand-500">{money(stat.revenue)}</span>
@@ -319,8 +319,8 @@ function Row({
   return (
     <div className="flex items-center justify-between gap-3 px-4 py-2.5">
       <div className="min-w-0">
-        <dt className={`text-[0.88rem] font-bold ${big ? '' : 'text-ink-500 dark:text-ink-400'}`}>{label}</dt>
-        {hint ? <p className="text-[0.72rem] font-semibold text-ink-400 dark:text-ink-500">{hint}</p> : null}
+        <dt className={`text-[0.88rem] font-bold ${big ? '' : 'text-fg-2'}`}>{label}</dt>
+        {hint ? <p className="text-[0.72rem] font-semibold text-fg-3">{hint}</p> : null}
       </div>
       <dd className={`tnum shrink-0 font-display font-black ${big ? 'text-num-lg' : 'text-num'} ${color}`}>
         {value}

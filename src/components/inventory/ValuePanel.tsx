@@ -21,7 +21,7 @@ export function ValuePanel({ products, compact = false }: { products: Product[];
 
   if (total.units === 0) {
     return (
-      <p className="py-6 text-center text-[0.85rem] font-semibold text-ink-400 dark:text-ink-500">
+      <p className="py-6 text-center text-[0.85rem] font-semibold text-fg-3">
         لا يوجد مخزون لتقييمه
       </p>
     );
@@ -31,26 +31,26 @@ export function ValuePanel({ products, compact = false }: { products: Product[];
     <div>
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="surface-sunken px-3.5 py-3">
-          <p className="text-[0.76rem] font-bold text-ink-400 dark:text-ink-500">رأس المال في البضاعة</p>
+          <p className="text-[0.76rem] font-bold text-fg-3">رأس المال في البضاعة</p>
           <p className="tnum mt-1 font-display text-num-lg font-black">{money(total.costValue)}</p>
-          <p className="text-[0.72rem] font-semibold text-ink-400 dark:text-ink-500">
+          <p className="text-[0.72rem] font-semibold text-fg-3">
             ما دفعته فعلاً للموردين
           </p>
         </div>
 
         <div className="surface-sunken px-3.5 py-3">
-          <p className="text-[0.76rem] font-bold text-ink-400 dark:text-ink-500">قيمتها بسعر البيع</p>
+          <p className="text-[0.76rem] font-bold text-fg-3">قيمتها بسعر البيع</p>
           <p className="tnum mt-1 font-display text-num-lg font-black text-brand-500">
             {money(total.retailValue)}
           </p>
-          <p className="text-[0.72rem] font-semibold text-ink-400 dark:text-ink-500">
+          <p className="text-[0.72rem] font-semibold text-fg-3">
             لو بِيعت كلها بالسعر المعلن
           </p>
         </div>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-t border-ink-200 pt-3 dark:border-ink-800">
-        <span className="text-[0.82rem] font-bold text-ink-500 dark:text-ink-400">الربح المتوقع</span>
+      <div className="mt-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-t border-line pt-3 ">
+        <span className="text-[0.82rem] font-bold text-fg-2">الربح المتوقع</span>
         <span className="flex items-baseline gap-2">
           <span className="tnum font-display text-num font-black text-good">
             {money(total.expectedProfit)}
@@ -59,20 +59,20 @@ export function ValuePanel({ products, compact = false }: { products: Product[];
         </span>
       </div>
 
-      <p className="tnum mt-2 text-[0.78rem] font-semibold text-ink-400 dark:text-ink-500">
+      <p className="tnum mt-2 text-[0.78rem] font-semibold text-fg-3">
         {num(total.units)} قطعة · {num(total.products)} منتج
       </p>
 
       {!compact ? (
         <>
-          <div className="mt-3 space-y-1.5 border-t border-ink-200 pt-3 dark:border-ink-800">
+          <div className="mt-3 space-y-1.5 border-t border-line pt-3 ">
             {(['shoes', 'clothing'] as const).map((category) => {
               const value = byCategory[category];
               if (value.units === 0) return null;
               return (
                 <div key={category} className="flex items-center gap-2 text-[0.82rem]">
                   <span className="min-w-0 flex-1 font-bold">{CATEGORY_LABEL[category]}</span>
-                  <span className="tnum text-ink-400 dark:text-ink-500">{num(value.units)} قطعة</span>
+                  <span className="tnum text-fg-3">{num(value.units)} قطعة</span>
                   <span className="tnum w-24 text-left font-bold">{money(value.costValue)}</span>
                   <span className="tnum w-24 text-left font-black text-brand-500">
                     {money(value.retailValue)}
@@ -91,7 +91,7 @@ export function ValuePanel({ products, compact = false }: { products: Product[];
               <p className="tnum mt-1 font-display text-num font-black text-warn">
                 {money(frozen.costValue)}
               </p>
-              <p className="mt-0.5 text-[0.75rem] leading-relaxed text-ink-500 dark:text-ink-400">
+              <p className="mt-0.5 text-[0.75rem] leading-relaxed text-fg-2">
                 {num(frozen.units)} قطعة في {num(frozen.products)} منتج لم تتحرك منذ 60 يوماً —
                 نقود مدفوعة وواقفة في الكراتين. فكّر في عرض يحرّرها.
               </p>

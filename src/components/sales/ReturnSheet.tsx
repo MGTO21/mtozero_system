@@ -76,7 +76,7 @@ export function ReturnSheet({ target, onClose }: { target: ReturnTarget | null; 
       }
     >
       {max === 0 ? (
-        <p className="text-center text-[0.9rem] font-bold text-ink-500 dark:text-ink-400">
+        <p className="text-center text-[0.9rem] font-bold text-fg-2">
           تم إرجاع كل القطع في هذه العملية بالفعل.
         </p>
       ) : (
@@ -88,7 +88,7 @@ export function ReturnSheet({ target, onClose }: { target: ReturnTarget | null; 
                 type="button"
                 aria-label="إنقاص"
                 onClick={() => setQty((q) => Math.max(1, q - 1))}
-                className="h-12 w-12 shrink-0 rounded-card border border-ink-200 text-xl font-bold dark:border-ink-700"
+                className="h-12 w-12 shrink-0 rounded-card border border-line text-xl font-bold "
               >
                 −
               </button>
@@ -105,7 +105,7 @@ export function ReturnSheet({ target, onClose }: { target: ReturnTarget | null; 
                 type="button"
                 aria-label="زيادة"
                 onClick={() => setQty((q) => Math.min(max, q + 1))}
-                className="h-12 w-12 shrink-0 rounded-card border border-ink-200 text-xl font-bold dark:border-ink-700"
+                className="h-12 w-12 shrink-0 rounded-card border border-line text-xl font-bold "
               >
                 +
               </button>
@@ -113,7 +113,7 @@ export function ReturnSheet({ target, onClose }: { target: ReturnTarget | null; 
           </div>
 
           <div className="surface-sunken flex items-center justify-between px-3.5 py-2.5">
-            <span className="text-[0.82rem] font-bold text-ink-500 dark:text-ink-400">قيمة المرتجع</span>
+            <span className="text-[0.82rem] font-bold text-fg-2">قيمة المرتجع</span>
             <span className="tnum font-display text-num font-black text-bad">{money(item.sellPrice * qty)}</span>
           </div>
 
@@ -130,7 +130,7 @@ export function ReturnSheet({ target, onClose }: { target: ReturnTarget | null; 
             />
           </div>
 
-          <p className="text-[0.78rem] leading-relaxed text-ink-400 dark:text-ink-500">
+          <p className="text-[0.78rem] leading-relaxed text-fg-3">
             ستعود {qty} قطعة لمقاس {item.size} في المخزون، وسيُعدَّل الربح والمبلغ المستحق تلقائياً.
             بقية أصناف الفاتورة لا تتأثر، والعملية تبقى مسجّلة ولا تُحذف.
           </p>

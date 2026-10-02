@@ -58,9 +58,9 @@ export default function TeamPage() {
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[0.98rem] font-bold">
                       {u.name}
-                      {isSelf ? <span className="mr-2 text-[0.72rem] text-ink-400">(أنت)</span> : null}
+                      {isSelf ? <span className="mr-2 text-[0.72rem] text-fg-3">(أنت)</span> : null}
                     </p>
-                    <p dir="ltr" className="truncate text-right text-[0.76rem] font-semibold text-ink-400 dark:text-ink-500">
+                    <p dir="ltr" className="truncate text-right text-[0.76rem] font-semibold text-fg-3">
                       {u.email}
                     </p>
                   </div>
@@ -73,7 +73,7 @@ export default function TeamPage() {
                   </span>
                 </div>
 
-                <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-ink-200 pt-3 dark:border-ink-800">
+                <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-line pt-3 ">
                   {u.role === 'employee' ? (
                     <Toggle
                       label="يرى الأرباح"
@@ -90,13 +90,13 @@ export default function TeamPage() {
                   {!isSelf ? (
                     <button
                       onClick={() => void toggle(u, { role: u.role === 'owner' ? 'employee' : 'owner' })}
-                      className="rounded-card border border-ink-200 px-2.5 py-1.5 text-[0.76rem] font-bold text-ink-500 transition hover:border-brand-500 hover:text-brand-500 dark:border-ink-700 dark:text-ink-400"
+                      className="rounded-card border border-line px-2.5 py-1.5 text-[0.76rem] font-bold text-fg-2 transition hover:border-brand-500 hover:text-brand-500  dark:text-ink-400"
                     >
                       {u.role === 'owner' ? 'تحويل إلى موظف' : 'ترقية إلى مالك'}
                     </button>
                   ) : null}
                   <span className="flex-1" />
-                  <span className="tnum text-[0.72rem] font-semibold text-ink-400 dark:text-ink-500">
+                  <span className="tnum text-[0.72rem] font-semibold text-fg-3">
                     منذ {formatDate(u.createdAt)}
                   </span>
                 </div>
@@ -106,7 +106,7 @@ export default function TeamPage() {
         </ul>
       )}
 
-      <p className="mt-4 rounded-card border border-ink-200 px-3.5 py-3 text-[0.78rem] leading-relaxed text-ink-500 dark:border-ink-800 dark:text-ink-400">
+      <p className="mt-4 rounded-card border border-line px-3.5 py-3 text-[0.78rem] leading-relaxed text-fg-2  dark:text-ink-400">
         <span className="font-bold">الموظف</span> يسجّل المبيعات ويرى المخزون والديون، ولا يرى التقارير
         ولا سجل النشاط. تفعيل «يرى الأرباح» يُظهر له هامش الربح داخل المخزون والمبيعات فقط.
       </p>
@@ -224,7 +224,7 @@ function NewUserSheet({ open, onClose }: { open: boolean; onClose: () => void })
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-          <p className="mt-1 text-[0.72rem] text-ink-400 dark:text-ink-500">
+          <p className="mt-1 text-[0.72rem] text-fg-3">
             سلّمها للموظف ليدخل بها — يمكنه تغييرها لاحقاً من صفحة نسيت كلمة المرور.
           </p>
         </div>
@@ -254,7 +254,7 @@ function NewUserSheet({ open, onClose }: { open: boolean; onClose: () => void })
                 className={`h-11 rounded-card border text-[0.9rem] font-bold transition
                   ${role === r
                     ? 'border-brand-500 bg-brand-500/12 text-brand-500'
-                    : 'border-ink-200 text-ink-500 dark:border-ink-700 dark:text-ink-400'}`}
+                    : 'border-ink-200 text-fg-2  dark:text-ink-400'}`}
               >
                 {ROLE_LABEL[r]}
               </button>

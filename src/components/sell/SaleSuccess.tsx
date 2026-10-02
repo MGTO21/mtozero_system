@@ -83,10 +83,10 @@ export function SaleSuccess({ sale, remaining, onClose, onSellAnother }: Props) 
                 key={`${item.productId}-${item.size}-${index}`}
                 className="tnum flex items-center justify-between gap-2 text-[0.8rem] font-bold"
               >
-                <span className="min-w-0 truncate text-ink-500 dark:text-ink-400">
+                <span className="min-w-0 truncate text-fg-2">
                   {item.productName} — مقاس {item.size}
                 </span>
-                <span className={left > 0 ? 'shrink-0 text-ink-500 dark:text-ink-400' : 'shrink-0 text-bad'}>
+                <span className={left > 0 ? 'shrink-0 text-fg-2' : 'shrink-0 text-bad'}>
                   {left > 0 ? `باقي ${num(left)}` : 'نفد'}
                 </span>
               </li>
@@ -96,8 +96,8 @@ export function SaleSuccess({ sale, remaining, onClose, onSellAnother }: Props) 
       </div>
 
       <div className="surface-sunken mt-5 p-3">
-        <p className="mb-2 text-[0.75rem] font-bold text-ink-500 dark:text-ink-400">رسالة الفاتورة للعميل</p>
-        <pre className="max-h-44 overflow-y-auto whitespace-pre-wrap break-words font-sans text-[0.82rem] leading-relaxed text-ink-700 dark:text-ink-200">
+        <p className="mb-2 text-[0.75rem] font-bold text-fg-2">رسالة الفاتورة للعميل</p>
+        <pre className="max-h-44 overflow-y-auto whitespace-pre-wrap break-words font-sans text-[0.82rem] leading-relaxed text-fg">
           {message}
         </pre>
       </div>
@@ -115,7 +115,7 @@ export function SaleSuccess({ sale, remaining, onClose, onSellAnother }: Props) 
           href={`/invoice/${sale.id}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="col-span-2 inline-flex h-11 items-center justify-center gap-2 rounded-card border border-ink-200 font-bold transition hover:border-ink-300 dark:border-ink-700 dark:hover:border-ink-600"
+          className="col-span-2 inline-flex h-11 items-center justify-center gap-2 rounded-card border border-line font-bold transition hover:border-line-strong dark:hover:border-ink-600"
         >
           <IconDownload className="h-4 w-4" />
           نسخة للطباعة / حفظ PDF

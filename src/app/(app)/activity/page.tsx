@@ -56,7 +56,7 @@ export default function ActivityPage() {
             className={`rounded-card border px-3 py-1.5 text-[0.8rem] font-bold transition
               ${user === 'all'
                 ? 'border-brand-500 bg-brand-500 text-white'
-                : 'border-ink-200 text-ink-500 dark:border-ink-700 dark:text-ink-400'}`}
+                : 'border-ink-200 text-fg-2  dark:text-ink-400'}`}
           >
             الجميع
           </button>
@@ -67,7 +67,7 @@ export default function ActivityPage() {
               className={`rounded-card border px-3 py-1.5 text-[0.8rem] font-bold transition
                 ${user === uid
                   ? 'border-brand-500 bg-brand-500 text-white'
-                  : 'border-ink-200 text-ink-500 dark:border-ink-700 dark:text-ink-400'}`}
+                  : 'border-ink-200 text-fg-2  dark:text-ink-400'}`}
             >
               {name}
             </button>
@@ -88,7 +88,7 @@ export default function ActivityPage() {
           />
         </div>
       ) : (
-        <ul className="surface divide-y divide-ink-200 dark:divide-ink-800">
+        <ul className="surface divide-y divide-line ">
           {visible.map((e) => (
             <li key={e.id} className="flex items-start gap-3 p-3.5">
               <span className={`chip shrink-0 ${TONE[e.action] ?? TONE.edited_product}`}>
@@ -96,11 +96,11 @@ export default function ActivityPage() {
               </span>
               <div className="min-w-0 flex-1">
                 <p className="text-[0.9rem] font-semibold leading-snug">{e.details}</p>
-                <p className="mt-0.5 text-[0.74rem] font-bold text-ink-400 dark:text-ink-500">
+                <p className="mt-0.5 text-[0.74rem] font-bold text-fg-3">
                   {e.userName} · {relativeTime(e.timestamp)}
                 </p>
               </div>
-              <span className="tnum shrink-0 text-[0.72rem] font-semibold text-ink-400 dark:text-ink-500">
+              <span className="tnum shrink-0 text-[0.72rem] font-semibold text-fg-3">
                 {formatDate(e.timestamp)}
                 <br />
                 {formatTime(e.timestamp)}

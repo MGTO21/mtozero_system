@@ -88,7 +88,7 @@ export default function CustomersPage() {
 
       <div className="mb-3 space-y-2.5">
         <div className="relative">
-          <IconSearch className="pointer-events-none absolute right-3 top-1/2 h-[1.1rem] w-[1.1rem] -translate-y-1/2 text-ink-400" />
+          <IconSearch className="pointer-events-none absolute right-3 top-1/2 h-[1.1rem] w-[1.1rem] -translate-y-1/2 text-fg-3" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -111,7 +111,7 @@ export default function CustomersPage() {
               className={`rounded-card border px-3 py-1.5 text-[0.8rem] font-bold transition
                 ${sort === key
                   ? 'border-brand-500 bg-brand-500 text-white'
-                  : 'border-ink-200 text-ink-500 dark:border-ink-700 dark:text-ink-400'}`}
+                  : 'border-ink-200 text-fg-2  dark:text-ink-400'}`}
             >
               {label}
             </button>
@@ -148,10 +148,10 @@ export default function CustomersPage() {
       {referrals.data.length > 0 ? (
         <section className="surface mt-4 p-4">
           <h2 className="mb-2.5 flex items-center gap-2 text-[1.05rem]">
-            <IconShare className="h-[1.1rem] w-[1.1rem] text-ink-400" />
+            <IconShare className="h-[1.1rem] w-[1.1rem] text-fg-3" />
             آخر الإحالات
           </h2>
-          <ul className="divide-y divide-ink-200 dark:divide-ink-800">
+          <ul className="divide-y divide-line ">
             {referrals.data.slice(0, 8).map((r) => (
               <li key={r.id} className="flex items-center gap-3 py-2.5">
                 <span className="min-w-0 flex-1 text-[0.86rem] font-semibold">
@@ -159,7 +159,7 @@ export default function CustomersPage() {
                   <span className="font-bold">{r.referredName}</span>
                 </span>
                 <span className="tnum shrink-0 text-[0.8rem] font-black text-good">+{money(r.reward)}</span>
-                <span className="tnum shrink-0 text-[0.72rem] font-semibold text-ink-400 dark:text-ink-500">
+                <span className="tnum shrink-0 text-[0.72rem] font-semibold text-fg-3">
                   {formatDate(r.createdAt)}
                 </span>
               </li>
@@ -186,19 +186,19 @@ function CustomerRow({ customer, reward }: { customer: Customer; reward: number 
         </span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-[0.98rem] font-bold">{customer.name}</p>
-          <p dir="ltr" className="tnum truncate text-right text-[0.76rem] font-semibold text-ink-400 dark:text-ink-500">
+          <p dir="ltr" className="tnum truncate text-right text-[0.76rem] font-semibold text-fg-3">
             {customer.phone}
           </p>
         </div>
         <div className="shrink-0 text-left">
           <p className="tnum font-display text-num font-black text-brand-500">{money(customer.totalSpent)}</p>
-          <p className="tnum text-[0.72rem] font-bold text-ink-400 dark:text-ink-500">
+          <p className="tnum text-[0.72rem] font-bold text-fg-3">
             {num(customer.totalOrders)} عملية
           </p>
         </div>
       </div>
 
-      <div className="mt-2.5 flex flex-wrap items-center gap-1.5 border-t border-ink-200 pt-2.5 dark:border-ink-800">
+      <div className="mt-2.5 flex flex-wrap items-center gap-1.5 border-t border-line pt-2.5 ">
         <span className="tnum chip bg-accent-500/15 text-accent-500">كود {customer.referralCode}</span>
         {customer.creditBalance > 0 ? (
           <span className="tnum chip bg-good/15 text-good">رصيد {money(customer.creditBalance)}</span>
@@ -221,7 +221,7 @@ function CustomerRow({ customer, reward }: { customer: Customer; reward: number 
             const ok = await copyText(inviteText);
             toast[ok ? 'success' : 'error'](ok ? 'تم نسخ رسالة الإحالة' : 'تعذّر النسخ');
           }}
-          className="inline-flex items-center gap-1.5 rounded-card px-2.5 py-1.5 text-[0.76rem] font-bold text-ink-500 transition hover:bg-ink-100 dark:text-ink-400 dark:hover:bg-ink-800"
+          className="inline-flex items-center gap-1.5 rounded-card px-2.5 py-1.5 text-[0.76rem] font-bold text-fg-2 transition hover:bg-ink-100 dark:text-ink-400 dark:hover:bg-ink-800"
         >
           <IconCopy className="h-4 w-4" />
           رسالة الإحالة
@@ -313,7 +313,7 @@ function BroadcastSheet({
               >
                 <IconWhatsApp className="h-4 w-4 shrink-0 text-good" />
                 <span className="min-w-0 flex-1 truncate text-[0.85rem] font-bold">{c.name}</span>
-                <span dir="ltr" className="tnum shrink-0 text-[0.74rem] font-semibold text-ink-400">
+                <span dir="ltr" className="tnum shrink-0 text-[0.74rem] font-semibold text-fg-3">
                   {c.phone}
                 </span>
               </a>

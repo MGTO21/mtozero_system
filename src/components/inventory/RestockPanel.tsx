@@ -39,7 +39,7 @@ export function RestockPanel({ products, sales }: { products: Product[]; sales: 
 
   if (rows.length === 0) {
     return (
-      <p className="py-6 text-center text-[0.85rem] font-semibold text-ink-400 dark:text-ink-500">
+      <p className="py-6 text-center text-[0.85rem] font-semibold text-fg-3">
         لا يوجد مقاس تحت حد التنبيه ✓
       </p>
     );
@@ -62,7 +62,7 @@ export function RestockPanel({ products, sales }: { products: Product[]; sales: 
 
       {watch.length > 0 ? (
         <>
-          <p className="mb-2 text-[0.76rem] font-bold text-ink-400 dark:text-ink-500">
+          <p className="mb-2 text-[0.76rem] font-bold text-fg-3">
             تحت المراقبة ({num(watch.length)})
           </p>
           <ul className="space-y-1.5">
@@ -73,7 +73,7 @@ export function RestockPanel({ products, sales }: { products: Product[]; sales: 
         </>
       ) : null}
 
-      <div className="mt-4 grid grid-cols-2 gap-2 border-t border-ink-200 pt-3 dark:border-ink-800">
+      <div className="mt-4 grid grid-cols-2 gap-2 border-t border-line pt-3 ">
         <Button
           size="sm"
           variant="secondary"
@@ -118,7 +118,7 @@ function Row({ row, urgent }: { row: ReturnType<typeof restockPriority>[number];
       </span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[0.86rem] font-bold">{row.product.name}</span>
-        <span className="tnum block text-[0.72rem] font-semibold text-ink-400 dark:text-ink-500">
+        <span className="tnum block text-[0.72rem] font-semibold text-fg-3">
           {row.qty === 0 ? 'نفد' : `باقي ${num(row.qty)}`}
           {row.sold > 0 ? ` · بيع ${num(row.sold)} في 30 يوم` : ' · لم يُبع'}
           {Number.isFinite(row.daysOfCover) && row.qty > 0 ? ` · يكفي ${num(row.daysOfCover)} يوم` : ''}
@@ -129,7 +129,7 @@ function Row({ row, urgent }: { row: ReturnType<typeof restockPriority>[number];
           اطلب {num(row.suggested)}
         </span>
       ) : null}
-      <span className="tnum hidden shrink-0 text-[0.78rem] font-bold text-ink-400 dark:text-ink-500 sm:block">
+      <span className="tnum hidden shrink-0 text-[0.78rem] font-bold text-fg-3 sm:block">
         {money(row.product.sellPrice)}
       </span>
     </li>

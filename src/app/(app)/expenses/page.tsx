@@ -86,7 +86,7 @@ export default function ExpensesPage() {
         <>
           <div className="surface mb-3 px-4 py-3.5">
             <div className="flex items-center justify-between">
-              <span className="text-[0.82rem] font-bold text-ink-500 dark:text-ink-400">
+              <span className="text-[0.82rem] font-bold text-fg-2">
                 إجمالي المصروفات ({num(expenses.length)})
               </span>
               <span className="tnum font-display text-num-lg font-black text-bad">{money(total)}</span>
@@ -96,7 +96,7 @@ export default function ExpensesPage() {
                 {byCategory.map(([cat, amount]) => (
                   <span
                     key={cat}
-                    className="tnum chip border border-ink-200 text-ink-500 dark:border-ink-700 dark:text-ink-400"
+                    className="tnum chip border border-line text-fg-2  dark:text-ink-400"
                   >
                     {cat} · {money(amount)}
                   </span>
@@ -124,7 +124,7 @@ export default function ExpensesPage() {
               <li key={e.id} className="surface flex items-center gap-3 p-3.5">
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-[0.95rem] font-bold">{e.title}</p>
-                  <p className="tnum text-[0.75rem] font-semibold text-ink-400 dark:text-ink-500">
+                  <p className="tnum text-[0.75rem] font-semibold text-fg-3">
                     {formatDate(e.date)} · {e.category} · {e.addedByName}
                   </p>
                 </div>
@@ -225,7 +225,7 @@ function ExpenseForm({ open, onClose }: { open: boolean; onClose: () => void }) 
                 className={`rounded-card border px-3 py-1.5 text-[0.8rem] font-bold transition
                   ${category === c
                     ? 'border-brand-500 bg-brand-500/12 text-brand-500'
-                    : 'border-ink-200 text-ink-500 dark:border-ink-700 dark:text-ink-400'}`}
+                    : 'border-ink-200 text-fg-2  dark:text-ink-400'}`}
               >
                 {c}
               </button>

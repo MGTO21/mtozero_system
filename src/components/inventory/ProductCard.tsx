@@ -29,14 +29,14 @@ export function ProductCard({ product, canSeeProfit, onEdit, onArchive, highligh
       }`}
     >
       <div className="flex gap-3 p-3">
-        <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-card bg-ink-100 dark:bg-ink-900">
+        <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-card bg-sunken">
           {thumb ? (
             // The thumbnail is an inline data URI, so there is nothing to fetch and
             // nothing for the Next image optimizer to do.
             // eslint-disable-next-line @next/next/no-img-element
             <img src={thumb} alt={product.name} loading="lazy" className="h-full w-full object-cover" />
           ) : (
-            <div className="flex h-full w-full items-center justify-center text-ink-300 dark:text-ink-700">
+            <div className="flex h-full w-full items-center justify-center text-line-strong">
               <IconImage className="h-7 w-7" />
             </div>
           )}
@@ -62,7 +62,7 @@ export function ProductCard({ product, canSeeProfit, onEdit, onArchive, highligh
             </IconButton>
           </div>
 
-          <p className="mt-0.5 truncate text-[0.75rem] font-semibold text-ink-400 dark:text-ink-500">
+          <p className="mt-0.5 truncate text-[0.75rem] font-semibold text-fg-3">
             {CATEGORY_LABEL[product.category]}
             {product.brand ? ` · ${product.brand}` : ''}
             {product.sku ? ` · ${product.sku}` : ''}
@@ -72,7 +72,7 @@ export function ProductCard({ product, canSeeProfit, onEdit, onArchive, highligh
             <span className="tnum font-display text-num font-black text-brand-500">{money(product.sellPrice)}</span>
             {canSeeProfit ? (
               <>
-                <span className="tnum text-[0.75rem] font-bold text-ink-400 dark:text-ink-500">
+                <span className="tnum text-[0.75rem] font-bold text-fg-3">
                   تكلفة {money(product.costPrice)}
                 </span>
                 <span
@@ -91,13 +91,13 @@ export function ProductCard({ product, canSeeProfit, onEdit, onArchive, highligh
             ) : null}
           </div>
 
-          <p className="tnum mt-1 text-[0.75rem] font-bold text-ink-500 dark:text-ink-400">
+          <p className="tnum mt-1 text-[0.75rem] font-bold text-fg-2">
             إجمالي المخزون: {num(stock)} قطعة
           </p>
         </div>
       </div>
 
-      <div className="border-t border-ink-200 px-3 py-2.5 dark:border-ink-800">
+      <div className="border-t border-line px-3 py-2.5 ">
         {highlightSize ? (
           <p className="mb-2 text-[0.75rem] font-bold text-brand-500">
             متوفر بمقاس {highlightSize} ✓
@@ -109,7 +109,7 @@ export function ProductCard({ product, canSeeProfit, onEdit, onArchive, highligh
       {!product.isArchived && stock > 0 ? (
         <Link
           href={`/sell?product=${product.id}`}
-          className="flex items-center justify-center gap-1.5 border-t border-ink-200 py-2.5 text-[0.82rem] font-bold text-brand-500 transition-colors hover:bg-brand-500/8 dark:border-ink-800"
+          className="flex items-center justify-center gap-1.5 border-t border-line py-2.5 text-[0.82rem] font-bold text-brand-500 transition-colors hover:bg-brand-500/8 "
         >
           <IconTag className="h-4 w-4" />
           بيع هذا المنتج

@@ -179,7 +179,7 @@ export function ProductForm({ open, onClose, product }: Props) {
           <button
             type="button"
             onClick={() => fileRef.current?.click()}
-            className="relative h-24 w-24 shrink-0 overflow-hidden rounded-card border border-dashed border-ink-300 bg-ink-100 text-ink-400 transition hover:border-brand-500 hover:text-brand-500 dark:border-ink-700 dark:bg-ink-900 dark:text-ink-600"
+            className="relative h-24 w-24 shrink-0 overflow-hidden rounded-card border border-dashed border-line-strong bg-ink-100 text-fg-3 transition hover:border-brand-500 hover:text-brand-500  dark:bg-ink-900 dark:text-ink-600"
           >
             {preview ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -193,7 +193,7 @@ export function ProductForm({ open, onClose, product }: Props) {
           </button>
           <div className="min-w-0 flex-1">
             <p className="text-[0.85rem] font-bold">صورة المنتج</p>
-            <p className="mt-0.5 text-[0.75rem] leading-relaxed text-ink-500 dark:text-ink-400">
+            <p className="mt-0.5 text-[0.75rem] leading-relaxed text-fg-2">
               {thumbBytes !== null ? (
                 <>
                   تم ضغطها إلى <span className="tnum font-bold">{formatBytes(thumbBytes)}</span> وتُحفظ مع
@@ -258,7 +258,7 @@ export function ProductForm({ open, onClose, product }: Props) {
                   className={`h-11 rounded-card border text-[0.9rem] font-bold transition
                     ${form.category === c
                       ? 'border-brand-500 bg-brand-500/12 text-brand-500'
-                      : 'border-ink-200 text-ink-500 dark:border-ink-700 dark:text-ink-400'}`}
+                      : 'border-ink-200 text-fg-2  dark:text-ink-400'}`}
                 >
                   {c === 'shoes' ? 'أحذية' : 'ملابس'}
                 </button>
@@ -313,12 +313,12 @@ export function ProductForm({ open, onClose, product }: Props) {
 
           {form.sellPrice > 0 ? (
             <div className="surface-sunken flex items-center justify-between px-3.5 py-2.5 sm:col-span-2">
-              <span className="text-[0.8rem] font-bold text-ink-500 dark:text-ink-400">ربح القطعة الواحدة</span>
+              <span className="text-[0.8rem] font-bold text-fg-2">ربح القطعة الواحدة</span>
               <span className="flex items-baseline gap-2">
                 <span className={`tnum font-display text-num font-black ${unitProfit >= 0 ? 'text-good' : 'text-bad'}`}>
                   {money(unitProfit)}
                 </span>
-                <span className="tnum text-[0.78rem] font-bold text-ink-400 dark:text-ink-500">
+                <span className="tnum text-[0.78rem] font-bold text-fg-3">
                   ({percent(marginPct)})
                 </span>
               </span>
@@ -365,7 +365,7 @@ export function ProductForm({ open, onClose, product }: Props) {
               value={form.lowStockThreshold}
               onChange={(e) => patch({ lowStockThreshold: Number(e.target.value) || 0 })}
             />
-            <p className="mt-1 text-[0.72rem] text-ink-400 dark:text-ink-500">
+            <p className="mt-1 text-[0.72rem] text-fg-3">
               ينبّهك النظام عندما تصل كمية أي مقاس لهذا الرقم أو أقل.
             </p>
           </div>
@@ -391,7 +391,7 @@ export function ProductForm({ open, onClose, product }: Props) {
                 key={preset.label}
                 type="button"
                 onClick={() => applyPreset(preset.sizes)}
-                className="rounded-card border border-ink-200 px-2.5 py-1 text-[0.75rem] font-bold text-ink-500 transition hover:border-brand-500 hover:text-brand-500 dark:border-ink-700 dark:text-ink-400"
+                className="rounded-card border border-line px-2.5 py-1 text-[0.75rem] font-bold text-fg-2 transition hover:border-brand-500 hover:text-brand-500  dark:text-ink-400"
               >
                 + {preset.label}
               </button>
@@ -413,7 +413,7 @@ export function ProductForm({ open, onClose, product }: Props) {
                     type="button"
                     aria-label="إنقاص"
                     onClick={() => setSize(i, { qty: Math.max(0, row.qty - 1) })}
-                    className="h-11 w-11 shrink-0 rounded-card border border-ink-200 text-lg font-bold dark:border-ink-700"
+                    className="h-11 w-11 shrink-0 rounded-card border border-line text-lg font-bold "
                   >
                     −
                   </button>
@@ -430,7 +430,7 @@ export function ProductForm({ open, onClose, product }: Props) {
                     type="button"
                     aria-label="زيادة"
                     onClick={() => setSize(i, { qty: row.qty + 1 })}
-                    className="h-11 w-11 shrink-0 rounded-card border border-ink-200 text-lg font-bold dark:border-ink-700"
+                    className="h-11 w-11 shrink-0 rounded-card border border-line text-lg font-bold "
                   >
                     +
                   </button>

@@ -86,7 +86,7 @@ export function ReceiveSheet({ shipment, onClose }: { shipment: Shipment | null;
       footer={
         <div className="flex items-center gap-3">
           <div className="min-w-0 flex-1">
-            <p className="tnum text-[0.78rem] font-bold text-ink-500 dark:text-ink-400">
+            <p className="tnum text-[0.78rem] font-bold text-fg-2">
               {num(totalUnits)} قطعة · تكلفة {money(totalCost)}
             </p>
           </div>
@@ -107,7 +107,7 @@ export function ReceiveSheet({ shipment, onClose }: { shipment: Shipment | null;
             ابحث عن المنتج لإضافته
           </label>
           <div className="relative">
-            <IconSearch className="pointer-events-none absolute right-3 top-1/2 h-[1.1rem] w-[1.1rem] -translate-y-1/2 text-ink-400" />
+            <IconSearch className="pointer-events-none absolute right-3 top-1/2 h-[1.1rem] w-[1.1rem] -translate-y-1/2 text-fg-3" />
             <input
               id="recv-search"
               className="field pr-10"
@@ -123,11 +123,11 @@ export function ReceiveSheet({ shipment, onClose }: { shipment: Shipment | null;
                 <li key={p.id}>
                   <button
                     onClick={() => addLine(p.id, p.name, p.costPrice)}
-                    className="flex w-full items-center gap-2 rounded-card border border-ink-200 px-3 py-2 text-right transition hover:border-brand-500 dark:border-ink-700"
+                    className="flex w-full items-center gap-2 rounded-card border border-line px-3 py-2 text-right transition hover:border-brand-500 "
                   >
                     <IconPlus className="h-4 w-4 shrink-0 text-brand-500" />
                     <span className="min-w-0 flex-1 truncate text-[0.88rem] font-bold">{p.name}</span>
-                    <span className="tnum shrink-0 text-[0.76rem] font-bold text-ink-400">
+                    <span className="tnum shrink-0 text-[0.76rem] font-bold text-fg-3">
                       تكلفة {money(p.costPrice)}
                     </span>
                   </button>
@@ -137,14 +137,14 @@ export function ReceiveSheet({ shipment, onClose }: { shipment: Shipment | null;
           ) : null}
 
           {search.trim() && matches.length === 0 ? (
-            <p className="mt-2 text-[0.8rem] font-semibold text-ink-400 dark:text-ink-500">
+            <p className="mt-2 text-[0.8rem] font-semibold text-fg-3">
               لا يوجد منتج بهذا الاسم — أضِفه من صفحة المخزون أولاً.
             </p>
           ) : null}
         </div>
 
         {lines.length === 0 ? (
-          <p className="py-6 text-center text-[0.85rem] font-semibold text-ink-400 dark:text-ink-500">
+          <p className="py-6 text-center text-[0.85rem] font-semibold text-fg-3">
             لم تُضف أصنافاً بعد. ابحث عن المنتج وأضِف المقاس والكمية والتكلفة.
           </p>
         ) : (
@@ -202,7 +202,7 @@ export function ReceiveSheet({ shipment, onClose }: { shipment: Shipment | null;
                     size row next to "42 " — a typo there splits the stock in two. */}
                 {(knownSizes.get(line.productId)?.length ?? 0) > 0 ? (
                   <div className="mt-2 flex flex-wrap items-center gap-1">
-                    <span className="text-[0.7rem] font-bold text-ink-400 dark:text-ink-500">
+                    <span className="text-[0.7rem] font-bold text-fg-3">
                       مقاساته:
                     </span>
                     {knownSizes.get(line.productId)!.map((s) => (
@@ -213,7 +213,7 @@ export function ReceiveSheet({ shipment, onClose }: { shipment: Shipment | null;
                         className={`tnum rounded-card border px-2 py-0.5 text-[0.76rem] font-bold transition
                           ${line.size.trim() === s
                             ? 'border-brand-500 bg-brand-500/12 text-brand-500'
-                            : 'border-ink-200 text-ink-500 dark:border-ink-700 dark:text-ink-400'}`}
+                            : 'border-ink-200 text-fg-2  dark:text-ink-400'}`}
                       >
                         {s}
                       </button>
@@ -231,7 +231,7 @@ export function ReceiveSheet({ shipment, onClose }: { shipment: Shipment | null;
           </p>
         ) : null}
 
-        <p className="text-[0.75rem] leading-relaxed text-ink-400 dark:text-ink-500">
+        <p className="text-[0.75rem] leading-relaxed text-fg-3">
           تكلفة القطعة هنا تخصّ هذه الشحنة وحدها. عند البيع يُخصم من أقدم دفعة أولاً، فيظهر الربح
           الحقيقي لكل شحنة على حدة.
         </p>

@@ -109,7 +109,7 @@ export default function StockTakePage() {
       />
 
       <div className="surface mb-3 border-accent-500/40 p-3.5">
-        <p className="text-[0.82rem] leading-relaxed text-ink-600 dark:text-ink-300">
+        <p className="text-[0.82rem] leading-relaxed text-fg-2">
           المخزون في أي نظام ينحرف عن الواقع مع الوقت — بيعة لم تُسجَّل، قطعة تالفة، خطأ في العدّ عند
           الاستلام. <span className="font-bold">قيمة مخزونك صادقة بقدر آخر جرد.</span> اعدد المقاس
           واكتب الرقم الحقيقي؛ ما لا تلمسه يبقى كما هو.
@@ -118,7 +118,7 @@ export default function StockTakePage() {
 
       <div className="mb-3 space-y-2.5">
         <div className="relative">
-          <IconSearch className="pointer-events-none absolute right-3 top-1/2 h-[1.1rem] w-[1.1rem] -translate-y-1/2 text-ink-400" />
+          <IconSearch className="pointer-events-none absolute right-3 top-1/2 h-[1.1rem] w-[1.1rem] -translate-y-1/2 text-fg-3" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -142,7 +142,7 @@ export default function StockTakePage() {
               className={`rounded-card border px-3 py-1.5 text-[0.8rem] font-bold transition
                 ${scope === key
                   ? 'border-brand-500 bg-brand-500 text-white'
-                  : 'border-ink-200 text-ink-500 dark:border-ink-700 dark:text-ink-400'}`}
+                  : 'border-ink-200 text-fg-2  dark:text-ink-400'}`}
             >
               {label}
             </button>
@@ -169,7 +169,7 @@ export default function StockTakePage() {
                       key={key}
                       className={`flex items-center gap-2 rounded-card border px-2.5 py-2 transition
                         ${diff === 0
-                          ? 'border-ink-200 dark:border-ink-700'
+                          ? 'border-line-strong'
                           : diff < 0
                             ? 'border-bad/50 bg-bad/8'
                             : 'border-good/50 bg-good/8'}`}
@@ -177,7 +177,7 @@ export default function StockTakePage() {
                       <span className="tnum w-10 shrink-0 text-center font-display text-[1.05rem] font-black">
                         {size.size}
                       </span>
-                      <span className="tnum shrink-0 text-[0.72rem] font-bold text-ink-400 dark:text-ink-500">
+                      <span className="tnum shrink-0 text-[0.72rem] font-bold text-fg-3">
                         النظام {num(size.qty)}
                       </span>
                       <input
@@ -217,12 +217,12 @@ export default function StockTakePage() {
       {history.data.length > 0 ? (
         <section className="surface mt-3 p-4">
           <SectionTitle>عمليات الجرد السابقة</SectionTitle>
-          <ul className="divide-y divide-ink-200 dark:divide-ink-800">
+          <ul className="divide-y divide-line ">
             {history.data.map((count) => (
               <li key={count.id} className="flex items-center gap-2 py-2 text-[0.82rem]">
                 <span className="min-w-0 flex-1">
                   <span className="block font-bold">{count.note || 'جرد بدون ملاحظة'}</span>
-                  <span className="tnum block text-[0.72rem] text-ink-400 dark:text-ink-500">
+                  <span className="tnum block text-[0.72rem] text-fg-3">
                     {formatDate(count.createdAt)} · {count.countedByName} · {num(count.lines.length)} مقاس
                   </span>
                 </span>
@@ -244,14 +244,14 @@ export default function StockTakePage() {
           <div className="surface-key p-3">
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
               <div className="min-w-0 flex-1">
-                <p className="tnum text-[0.75rem] font-bold text-ink-400 dark:text-ink-500">
+                <p className="tnum text-[0.75rem] font-bold text-fg-3">
                   {num(changed.length)} مقاس مختلف عن النظام
                 </p>
                 <p className={`tnum font-display text-num font-black ${net < 0 ? 'text-bad' : 'text-good'}`}>
                   {net < 0 ? `نقص ${money(Math.abs(net))}` : `زيادة ${money(net)}`}
                 </p>
                 {shortage > 0 && surplus > 0 ? (
-                  <p className="tnum text-[0.72rem] font-semibold text-ink-400 dark:text-ink-500">
+                  <p className="tnum text-[0.72rem] font-semibold text-fg-3">
                     نقص {money(shortage)} · زيادة {money(surplus)}
                   </p>
                 ) : null}
@@ -285,7 +285,7 @@ export default function StockTakePage() {
       ) : null}
 
       {!isOwner ? (
-        <p className="mt-3 text-center text-[0.75rem] text-ink-400 dark:text-ink-500">
+        <p className="mt-3 text-center text-[0.75rem] text-fg-3">
           الجرد مسجّل باسمك في سجل النشاط.
         </p>
       ) : null}

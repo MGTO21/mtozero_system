@@ -8,16 +8,11 @@ import { useActor } from '@/components/providers/AuthProvider';
 import { useToast } from '@/components/providers/ToastProvider';
 import { CustomerBlock, type CustomerSelection } from '@/components/sell/CustomerBlock';
 import { SaleSuccess } from '@/components/sell/SaleSuccess';
-import { Button } from '@/components/ui/Button';
+import { Button, Stepper } from '@/components/ui/Button';
+import { Pill } from '@/components/ui/DateRange';
 import { EmptyState, LoadingBlock } from '@/components/ui/Feedback';
-import {
-  IconBoxes,
-  IconChevronLeft,
-  IconImage,
-  IconPlus,
-  IconSearch,
-  IconTag,
-} from '@/components/ui/Icons';
+import { IconBoxes, IconChevronLeft, IconPlus, IconSearch } from '@/components/ui/Icons';
+import { useOnlineStatus } from '@/lib/hooks/useFirestore';
 import { errorMessage } from '@/lib/db/collections';
 import { availableSizes, productImage, totalStock, useProducts } from '@/lib/db/products';
 import { useSale, type CartLine, type RemainingStock } from '@/lib/db/sales';
@@ -25,7 +20,7 @@ import { submitSale } from '@/lib/offline/operations';
 import { CartList } from '@/components/sell/CartList';
 import { useSettings } from '@/lib/db/settings';
 import { money, num } from '@/lib/format';
-import { CHANNEL_LABEL, type Channel, type PaymentStatus, type Product } from '@/lib/types';
+import { CATEGORY_LABEL, CHANNEL_LABEL, type Channel, type PaymentStatus, type Product } from '@/lib/types';
 
 export default function SellPage() {
   return (
@@ -219,351 +214,305 @@ function QuickSale() {
     }
   }
 
+  const [category, setCategory] = useState<'all' | Product['category']>('all');
+  const online = useOnlineStatus();
+  const shown = useMemo(
+    () => (category === 'all' ? filtered : filtered.filter((p) => p.category === category)),
+    [filtered, category],
+  );
+
   if (loading) return <LoadingBlock label="جاري تحميل المنتجات…" />;
 
-  /* ---------- step 1: pick the product ---------- */
-  // Rendered in place of the size/quantity step, so the cart and the payment
-  // section stay on screen while another product is being chosen.
-  const productPicker = (
-      <>
-        <div className="mb-4">
-          <h1 className="text-xl sm:text-2xl">{cart.length > 0 ? 'أضف صنفاً للفاتورة' : 'تسجيل بيع'}</h1>
-          <p className="mt-0.5 text-[0.82rem] font-semibold text-ink-500 dark:text-ink-400">
-            اختر المنتج ← المقاس ← تأكيد
-          </p>
-        </div>
+  const options = product ? availableSizes(product) : [];
+  const canConfirm = lines.length > 0 && !busy && (payment === 'paid' || Boolean(customer.name.trim()));
+  const units = lines.reduce((sum, l) => sum + l.qty, 0);
 
-        <div className="relative mb-3">
-          <IconSearch className="pointer-events-none absolute right-3 top-1/2 h-[1.1rem] w-[1.1rem] -translate-y-1/2 text-ink-400" />
-          <input
-            autoFocus
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="field pr-10 text-[1rem]"
-            placeholder="ابحث عن المنتج…"
-            type="search"
+  return (
+    <div className="mx-auto max-w-3xl">
+      {!product ? (
+        /* ---------- step 1: pick the product ---------- */
+        <section>
+          <div className="mb-3 flex items-end justify-between gap-3">
+            <div>
+              <h1 className="text-[1.6rem] leading-tight">{cart.length > 0 ? 'صنف آخر للفاتورة' : 'تسجيل بيع'}</h1>
+              <p className="mt-0.5 text-[0.86rem] font-semibold text-fg-3">المنتج ← المقاس ← تأكيد</p>
+            </div>
+            {cart.length > 0 ? (
+              <span className="stamp border-fg text-fg">
+                <span className="tnum">{num(cart.length)}</span> في الفاتورة
+              </span>
+            ) : null}
+          </div>
+
+          <div className="sticky top-14 z-20 -mx-4 bg-page/95 px-4 pb-2 pt-1 backdrop-blur-sm sm:mx-0 sm:px-0">
+            <div className="relative">
+              <IconSearch className="pointer-events-none absolute right-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-fg-3" />
+              <input
+                autoFocus
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="field h-[3.25rem] pr-11 text-[1.05rem]"
+                placeholder="اسم المنتج أو الماركة أو الكود…"
+                type="search"
+                enterKeyHint="search"
+              />
+            </div>
+            <div className="scroller mt-2 sm:mx-0 sm:px-0">
+              <Pill active={category === 'all'} onClick={() => setCategory('all')} count={filtered.length}>
+                الكل
+              </Pill>
+              {(['shoes', 'clothing'] as const).map((c) => (
+                <Pill
+                  key={c}
+                  active={category === c}
+                  onClick={() => setCategory(c)}
+                  count={filtered.filter((p) => p.category === c).length}
+                >
+                  {CATEGORY_LABEL[c]}
+                </Pill>
+              ))}
+            </div>
+          </div>
+
+          {sellable.length === 0 ? (
+            <div className="surface mt-2">
+              <EmptyState
+                icon={<IconBoxes />}
+                title="لا يوجد مخزون للبيع"
+                hint="أضف منتجات بكميات متوفرة أولاً، وبعدها تقدر تسجل البيع من هنا."
+                action={
+                  <Link href="/inventory">
+                    <Button variant="ink">الذهاب للمخزون</Button>
+                  </Link>
+                }
+              />
+            </div>
+          ) : shown.length === 0 ? (
+            <div className="surface mt-2">
+              <EmptyState title="لا توجد نتائج" hint="جرّب اسماً آخر أو جزءاً منه." />
+            </div>
+          ) : (
+            <ul className="surface rows mt-2 overflow-hidden">
+              {shown.map((p) => (
+                <li key={p.id}>
+                  <button
+                    type="button"
+                    onClick={() => setProductId(p.id)}
+                    className="flex w-full items-center gap-3 px-3 py-2.5 text-right transition-colors hover:bg-sunken active:bg-sunken"
+                  >
+                    <Thumb product={p} size="md" />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[1rem] font-bold">{p.name}</span>
+                      <span className="tnum mt-0.5 block truncate text-[0.8rem] font-semibold text-fg-3">
+                        {availableSizes(p)
+                          .map((s) => s.size)
+                          .join(' · ')}
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-left">
+                      <span className="tnum block font-display text-[1.1rem] font-black text-brand-500">
+                        {money(p.sellPrice)}
+                      </span>
+                      <span className="tnum block text-[0.74rem] font-bold text-fg-3">{num(totalStock(p))} قطعة</span>
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      ) : (
+        /* ---------- step 2: size, quantity, price ---------- */
+        <section>
+          <div className="mb-3 flex items-center gap-3">
+            <Thumb product={product} size="lg" />
+            <div className="min-w-0 flex-1">
+              <h1 className="truncate text-[1.35rem] leading-tight">{product.name}</h1>
+              <p className="tnum text-[0.84rem] font-bold text-fg-3">
+                {num(totalStock(product))} قطعة · {CATEGORY_LABEL[product.category]}
+              </p>
+            </div>
+            <Button variant="secondary" size="sm" onClick={clearPicker} icon={<IconChevronLeft className="h-4 w-4 rotate-180" />}>
+              تغيير
+            </Button>
+          </div>
+
+          <p className="ledger-head">١ · المقاس</p>
+          <SizeGrid
+            sizes={options}
+            lowStockThreshold={product.lowStockThreshold}
+            onSelect={(s) => {
+              setSize(s);
+              setQty(1);
+            }}
+            selected={size}
+            availableOnly
+            size="lg"
+          />
+
+          {size ? (
+            <>
+              <p className="ledger-head mt-5">٢ · الكمية والسعر</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="label">الكمية (متوفر {num(stockForSize)})</label>
+                  <Stepper value={qty} max={Math.max(1, stockForSize)} onChange={setQty} label="الكمية" />
+                </div>
+                <div>
+                  <label className="label" htmlFor="sell-price">
+                    سعر القطعة
+                  </label>
+                  <input
+                    id="sell-price"
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    value={price || ''}
+                    onChange={(e) => setPrice(Number(e.target.value) || 0)}
+                    className="field tnum h-[3.1rem] text-center font-display text-num font-black text-brand-500"
+                  />
+                </div>
+              </div>
+              {price !== product.sellPrice ? (
+                <p className="tnum mt-2 text-[0.8rem] font-bold text-warn">
+                  {price < product.sellPrice ? 'خصم' : 'زيادة'} {money(Math.abs(product.sellPrice - price))} عن{' '}
+                  {money(product.sellPrice)}
+                  <button type="button" onClick={() => setPrice(product.sellPrice)} className="mr-2 underline">
+                    رجوع للسعر الأصلي
+                  </button>
+                </p>
+              ) : null}
+
+              {/* Optional: the line being configured already counts towards the
+                  total, so a one-item sale needs no extra tap. */}
+              <button
+                type="button"
+                onClick={addToCart}
+                disabled={!pendingLine}
+                className="press mt-4 flex w-full items-center justify-center gap-2 rounded-card border-[1.5px] border-dashed border-line-strong py-3.5 text-[0.95rem] font-bold text-fg-2 transition-colors hover:border-fg hover:text-fg disabled:opacity-40"
+              >
+                <IconPlus className="h-4 w-4" />
+                أضف للفاتورة واختر صنفاً آخر
+              </button>
+            </>
+          ) : null}
+        </section>
+      )}
+
+      {cart.length > 0 ? (
+        <div className="mt-5">
+          <CartList
+            lines={cart}
+            onRemove={(index) => setCart((c) => c.filter((_, i) => i !== index))}
+            onChangeQty={(index, nextQty) => setCart((c) => c.map((l, i) => (i === index ? { ...l, qty: nextQty } : l)))}
           />
         </div>
+      ) : null}
 
-        {sellable.length === 0 ? (
-          <div className="surface">
-            <EmptyState
-              icon={<IconBoxes className="h-7 w-7" />}
-              title="لا يوجد مخزون للبيع"
-              hint="أضف منتجات بكميات متوفرة أولاً، وبعدها تقدر تسجل البيع من هنا."
-              action={
-                <Link href="/inventory">
-                  <Button size="lg">الذهاب للمخزون</Button>
-                </Link>
-              }
-            />
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="surface">
-            <EmptyState title="لا توجد نتائج" hint="جرّب اسماً آخر." />
-          </div>
-        ) : (
-          <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
-            {filtered.map((p) => (
+      {lines.length > 0 ? (
+        <section className="mt-5 space-y-4">
+          <p className="ledger-head !mb-0">٣ · الدفع</p>
+          <div className="seg" role="group" aria-label="طريقة الدفع">
+            {(
+              [
+                ['paid', 'مدفوع كامل'],
+                ['partial', 'دفع جزئي'],
+                ['debt', 'دين'],
+              ] as [PaymentStatus, string][]
+            ).map(([key, label]) => (
               <button
-                key={p.id}
-                onClick={() => setProductId(p.id)}
-                className="surface flex items-center gap-3 p-2.5 text-right transition hover:border-brand-500 active:scale-[0.99]"
+                key={key}
+                type="button"
+                aria-pressed={payment === key}
+                onClick={() => {
+                  setPayment(key);
+                  if (key === 'partial' && amountPaid === 0) setAmountPaid(Math.floor(total / 2));
+                }}
               >
-                <div className="h-14 w-14 shrink-0 overflow-hidden rounded-card bg-ink-100 dark:bg-ink-900">
-                  {productImage(p) ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={productImage(p)!} alt="" loading="lazy" className="h-full w-full object-cover" />
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center text-ink-300 dark:text-ink-700">
-                      <IconImage className="h-5 w-5" />
-                    </div>
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[0.95rem] font-bold">{p.name}</p>
-                  <p className="tnum mt-0.5 text-[0.78rem] font-bold text-ink-400 dark:text-ink-500">
-                    {num(totalStock(p))} قطعة · {availableSizes(p).length} مقاس
-                  </p>
-                </div>
-                <span className="tnum shrink-0 font-display text-[1.05rem] font-black text-brand-500">
-                  {money(p.sellPrice)}
-                </span>
+                {label}
               </button>
             ))}
           </div>
-        )}
-      </>
-  );
 
-  /* ---------- step 2 + 3: size, quantity, payment ---------- */
-  const options = product ? availableSizes(product) : [];
-  const canConfirm = lines.length > 0 && !busy;
-
-  return (
-    <>
-      {!product ? productPicker : (
-      <>
-      <button
-        onClick={clearPicker}
-        className="mb-3 inline-flex items-center gap-1 text-[0.85rem] font-bold text-ink-500 dark:text-ink-400"
-      >
-        <IconChevronLeft className="h-4 w-4 rotate-180" />
-        تغيير المنتج
-      </button>
-
-      <div className="surface mb-3 flex items-center gap-3 p-3">
-        <div className="h-16 w-16 shrink-0 overflow-hidden rounded-card bg-ink-100 dark:bg-ink-900">
-          {productImage(product) ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={productImage(product)!} alt="" className="h-full w-full object-cover" />
-          ) : (
-            <div className="flex h-full w-full items-center justify-center text-ink-300 dark:text-ink-700">
-              <IconImage className="h-6 w-6" />
-            </div>
-          )}
-        </div>
-        <div className="min-w-0 flex-1">
-          <h2 className="truncate text-[1.05rem]">{product.name}</h2>
-          <p className="tnum text-[0.78rem] font-bold text-ink-400 dark:text-ink-500">
-            {num(totalStock(product))} قطعة متوفرة
-          </p>
-        </div>
-      </div>
-
-      <section className="surface mb-3 p-3.5">
-        <h3 className="mb-2.5 text-[0.95rem]">1 · اختر المقاس</h3>
-        <SizeGrid
-          sizes={options}
-          lowStockThreshold={product.lowStockThreshold}
-          onSelect={(s) => {
-            setSize(s);
-            setQty(1);
-          }}
-          selected={size}
-          availableOnly
-          size="lg"
-        />
-        {size ? (
-          <p className="tnum mt-2.5 text-[0.8rem] font-bold text-ink-500 dark:text-ink-400">
-            المتوفر من مقاس {size}: {num(stockForSize)} قطعة
-          </p>
-        ) : null}
-      </section>
-
-      {size ? (
-        <>
-          <section className="surface mb-3 p-3.5">
-            <h3 className="mb-3 text-[0.95rem]">2 · الكمية والسعر</h3>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div>
-                <label className="label">الكمية</label>
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    aria-label="إنقاص الكمية"
-                    onClick={() => setQty((q) => Math.max(1, q - 1))}
-                    className="h-14 w-14 shrink-0 rounded-card border border-ink-200 text-2xl font-bold dark:border-ink-700"
-                  >
-                    −
-                  </button>
-                  <input
-                    type="number"
-                    inputMode="numeric"
-                    min={1}
-                    max={stockForSize}
-                    value={qty}
-                    onChange={(e) =>
-                      setQty(Math.min(stockForSize, Math.max(1, Number(e.target.value) || 1)))
-                    }
-                    className="field tnum h-14 flex-1 text-center font-display text-num-lg font-black"
-                  />
-                  <button
-                    type="button"
-                    aria-label="زيادة الكمية"
-                    onClick={() => setQty((q) => Math.min(stockForSize, q + 1))}
-                    className="h-14 w-14 shrink-0 rounded-card border border-ink-200 text-2xl font-bold dark:border-ink-700"
-                  >
-                    +
-                  </button>
-                </div>
-                {qty >= stockForSize ? (
-                  <p className="tnum mt-1.5 text-[0.75rem] font-bold text-warn">
-                    هذه كل الكمية المتوفرة من المقاس
-                  </p>
-                ) : null}
-              </div>
-
-              <div>
-                <label className="label" htmlFor="sell-price">
-                  سعر القطعة (قابل للتعديل)
-                </label>
-                <input
-                  id="sell-price"
-                  type="number"
-                  inputMode="numeric"
-                  min={0}
-                  value={price || ''}
-                  onChange={(e) => setPrice(Number(e.target.value) || 0)}
-                  className="field tnum h-14 text-center font-display text-num-lg font-black text-brand-500"
-                />
-                {price !== product.sellPrice ? (
-                  <p className="tnum mt-1.5 text-[0.75rem] font-bold text-warn">
-                    السعر الافتراضي {money(product.sellPrice)} —{' '}
-                    {price < product.sellPrice ? 'خصم' : 'زيادة'} {money(Math.abs(product.sellPrice - price))}
-                    <button onClick={() => setPrice(product.sellPrice)} className="mr-2 underline">
-                      رجوع للافتراضي
-                    </button>
-                  </p>
-                ) : null}
-              </div>
-            </div>
-          </section>
-
-          {/* Adding another line is optional: the pending line already counts
-              towards the total, so a one-item sale needs no extra tap. */}
-          <button
-            type="button"
-            onClick={addToCart}
-            disabled={!pendingLine}
-            className="mb-3 flex w-full items-center justify-center gap-2 rounded-card border border-dashed border-ink-300 py-3 text-[0.88rem] font-bold text-ink-500 transition-colors hover:border-brand-500 hover:text-brand-500 disabled:opacity-50 dark:border-ink-700 dark:text-ink-400"
-          >
-            <IconPlus className="h-4 w-4" />
-            أضف هذا الصنف واختر صنفاً آخر
-          </button>
-        </>
-      ) : null}
-      </>
-      )}
-
-      <CartList
-        lines={cart}
-        onRemove={(index) => setCart((c) => c.filter((_, i) => i !== index))}
-        onChangeQty={(index, nextQty) =>
-          setCart((c) => c.map((l, i) => (i === index ? { ...l, qty: nextQty } : l)))
-        }
-      />
-
-      {lines.length > 0 ? (
-          <section className="surface mb-3 p-3.5">
-            <h3 className="mb-3 text-[0.95rem]">الدفع</h3>
-
-            <div className="grid grid-cols-3 gap-2">
-              {(
-                [
-                  ['paid', 'مدفوع'],
-                  ['partial', 'دفع جزئي'],
-                  ['debt', 'دين كامل'],
-                ] as [PaymentStatus, string][]
-              ).map(([key, label]) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => {
-                    setPayment(key);
-                    if (key === 'partial' && amountPaid === 0) setAmountPaid(Math.floor(total / 2));
-                  }}
-                  className={`h-12 rounded-card border text-[0.88rem] font-bold transition
-                    ${payment === key
-                      ? key === 'paid'
-                        ? 'border-good bg-good/12 text-good'
-                        : 'border-warn bg-warn/12 text-warn'
-                      : 'border-ink-200 text-ink-500 dark:border-ink-700 dark:text-ink-400'}`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-
-            {payment === 'partial' ? (
-              <div className="mt-3">
-                <label className="label" htmlFor="paid-amount">
-                  المبلغ المدفوع الآن
-                </label>
-                <input
-                  id="paid-amount"
-                  type="number"
-                  inputMode="numeric"
-                  min={0}
-                  max={total}
-                  value={amountPaid || ''}
-                  onChange={(e) => setAmountPaid(Math.min(total, Math.max(0, Number(e.target.value) || 0)))}
-                  className="field tnum h-12 text-center font-display text-num font-black"
-                />
-              </div>
-            ) : null}
-
-            <div className="mt-4 border-t border-ink-200 pt-4 dark:border-ink-800">
-              <CustomerBlock
-                value={customer}
-                onChange={setCustomer}
-                maxCredit={gross}
-                nameRequired={payment !== 'paid'}
+          {payment === 'partial' ? (
+            <div>
+              <label className="label" htmlFor="paid-amount">
+                المبلغ المدفوع الآن
+              </label>
+              <input
+                id="paid-amount"
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={total}
+                value={amountPaid || ''}
+                onChange={(e) => setAmountPaid(Math.min(total, Math.max(0, Number(e.target.value) || 0)))}
+                className="field tnum text-center font-display text-num font-black"
               />
             </div>
+          ) : null}
 
-            <div className="mt-3">
-              <label className="label">قناة البيع</label>
-              <div className="flex flex-wrap gap-1.5">
-                {CHANNELS.map((c) => (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => setChannel(c)}
-                    className={`rounded-card border px-3 py-1.5 text-[0.8rem] font-bold transition
-                      ${channel === c
-                        ? 'border-brand-500 bg-brand-500/12 text-brand-500'
-                        : 'border-ink-200 text-ink-500 dark:border-ink-700 dark:text-ink-400'}`}
-                  >
-                    {CHANNEL_LABEL[c]}
-                  </button>
-                ))}
-              </div>
+          <div className="surface p-3.5">
+            <CustomerBlock value={customer} onChange={setCustomer} maxCredit={gross} nameRequired={payment !== 'paid'} />
+          </div>
+
+          <div>
+            <p className="label">جاء من</p>
+            <div className="scroller sm:mx-0 sm:px-0">
+              {CHANNELS.map((c) => (
+                <Pill key={c} active={channel === c} onClick={() => setChannel(c)}>
+                  {CHANNEL_LABEL[c]}
+                </Pill>
+              ))}
             </div>
-          </section>
+          </div>
+        </section>
       ) : null}
 
-      {/* Sticky confirm bar: the total is the largest number on screen. */}
-      <div className="sticky bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-30 lg:bottom-4">
-        <div className="surface-key flex items-center gap-3 p-3">
-          <div className="min-w-0 flex-1">
-            <p className="text-[0.72rem] font-bold text-ink-400 dark:text-ink-500">الإجمالي</p>
-            <p className="tnum font-display text-num-lg font-black">{money(total)}</p>
-            {creditUsed > 0 ? (
-              <p className="tnum text-[0.75rem] font-bold text-good">
-                خُصم رصيد إحالة {money(creditUsed)} من {money(gross)}
-              </p>
-            ) : null}
-            {due > 0 ? (
-              <p className="tnum text-[0.75rem] font-bold text-warn">دين على العميل: {money(due)}</p>
+      {/* The running bill. Sticky above the bottom bar; the total is the largest
+          number on screen because it is the one read aloud to the customer. */}
+      {lines.length > 0 ? (
+        <div className="sticky bottom-[calc(4.9rem+env(safe-area-inset-bottom))] z-30 mt-5 lg:bottom-4">
+          <div className="ticket rounded-card border border-line-strong px-5 py-3 shadow-lift">
+            <div className="flex items-center gap-3">
+              <div className="min-w-0 flex-1">
+                <p className="tnum text-[0.76rem] font-bold text-fg-3">
+                  الإجمالي · {num(units)} قطعة
+                  {creditUsed > 0 ? ` · خصم إحالة ${money(creditUsed)}` : ''}
+                </p>
+                <p className="tnum font-display text-num-lg font-black leading-tight">{money(total)}</p>
+                {due > 0 ? <p className="tnum text-[0.78rem] font-bold text-warn">دين {money(due)}</p> : null}
+              </div>
+              <Button size="lg" loading={busy} disabled={!canConfirm} onClick={() => void submit()}>
+                {online ? 'تأكيد البيع' : 'تسجيل على الجهاز'}
+              </Button>
+            </div>
+            {payment !== 'paid' && !customer.name.trim() ? (
+              <p className="mt-1 text-[0.76rem] font-bold text-warn">اكتب اسم العميل لتسجيل الدين</p>
             ) : null}
           </div>
-          <Button
-            size="lg"
-            icon={<IconTag className="h-5 w-5" />}
-            loading={busy}
-            disabled={!canConfirm || (payment !== 'paid' && !customer.name.trim())}
-            onClick={() => void submit()}
-          >
-            تأكيد البيع
-          </Button>
         </div>
-        {payment !== 'paid' && !customer.name.trim() ? (
-          <p className="mt-1.5 text-center text-[0.75rem] font-bold text-warn">
-            أدخل اسم العميل لتسجيل الدين
-          </p>
-        ) : null}
-      </div>
+      ) : null}
 
       {lastSale ? (
-        <SaleSuccess
-          sale={lastSale}
-          remaining={remaining}
-          onClose={() => setLastSaleId(null)}
-          onSellAnother={reset}
-        />
+        <SaleSuccess sale={lastSale} remaining={remaining} onClose={() => setLastSaleId(null)} onSellAnother={reset} />
       ) : null}
-    </>
+    </div>
+  );
+}
+
+/** Product picture, or a printed placeholder with the first letter. */
+function Thumb({ product, size }: { product: Product; size: 'md' | 'lg' }) {
+  const box = size === 'lg' ? 'h-16 w-16' : 'h-14 w-14';
+  const src = productImage(product);
+  return (
+    <span className={`${box} flex shrink-0 items-center justify-center overflow-hidden rounded-card border border-line bg-sunken`}>
+      {src ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={src} alt="" loading="lazy" className="h-full w-full object-cover" />
+      ) : (
+        <span className="font-display text-xl font-black text-fg-3">{product.name.trim().charAt(0) || '؟'}</span>
+      )}
+    </span>
   );
 }

@@ -43,7 +43,7 @@ export function SalesChart({ points }: { points: DailyPoint[] }) {
                 <span
                   className={`w-full rounded-t transition-all ${
                     p.revenue === 0
-                      ? 'bg-ink-200 dark:bg-ink-800'
+                      ? 'bg-sunken'
                       : isToday
                         ? 'bg-brand-500'
                         : 'bg-brand-500/45 group-hover:bg-brand-500/70'
@@ -54,7 +54,7 @@ export function SalesChart({ points }: { points: DailyPoint[] }) {
 
               <span
                 className={`text-[0.68rem] font-bold ${
-                  isToday ? 'text-brand-500' : 'text-ink-400 dark:text-ink-500'
+                  isToday ? 'text-brand-500' : 'text-fg-3'
                 }`}
               >
                 {weekdayShort(p.date)}
@@ -65,7 +65,7 @@ export function SalesChart({ points }: { points: DailyPoint[] }) {
       </div>
 
       {!hasData ? (
-        <p className="mt-3 text-center text-[0.8rem] font-semibold text-ink-400 dark:text-ink-500">
+        <p className="mt-3 text-center text-[0.8rem] font-semibold text-fg-3">
           لا توجد مبيعات مسجّلة في آخر 7 أيام
         </p>
       ) : null}

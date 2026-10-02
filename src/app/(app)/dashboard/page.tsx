@@ -54,7 +54,7 @@ export default function DashboardPage() {
   return (
     <>
       <div className="mb-4">
-        <p className="text-[0.82rem] font-bold text-ink-400 dark:text-ink-500">أهلاً</p>
+        <p className="text-[0.82rem] font-bold text-fg-3">أهلاً</p>
         <h1 className="text-xl sm:text-2xl">{profile?.name}</h1>
       </div>
 
@@ -84,11 +84,11 @@ export default function DashboardPage() {
           <section className="surface-key mb-3 overflow-hidden">
             <div className="flex flex-wrap items-end justify-between gap-4 p-4">
               <div>
-                <p className="text-[0.8rem] font-bold text-ink-400 dark:text-ink-500">مبيعات اليوم</p>
+                <p className="text-[0.8rem] font-bold text-fg-3">مبيعات اليوم</p>
                 <p className="tnum mt-1 font-display text-num-xl font-black text-brand-500">
                   {money(today.revenue)}
                 </p>
-                <p className="tnum mt-1 text-[0.82rem] font-bold text-ink-500 dark:text-ink-400">
+                <p className="tnum mt-1 text-[0.82rem] font-bold text-fg-2">
                   {num(today.units)} قطعة · {num(today.transactions)} عملية
                 </p>
               </div>
@@ -99,8 +99,8 @@ export default function DashboardPage() {
               </Link>
             </div>
 
-            <div className="border-t border-ink-200 px-4 py-4 dark:border-ink-800">
-              <p className="mb-3 text-[0.8rem] font-bold text-ink-400 dark:text-ink-500">آخر 7 أيام</p>
+            <div className="border-t border-line px-4 py-4 ">
+              <p className="mb-3 text-[0.8rem] font-bold text-fg-3">آخر 7 أيام</p>
               <SalesChart points={series} />
             </div>
           </section>
@@ -148,7 +148,7 @@ export default function DashboardPage() {
               <section className="surface p-4">
                 <SectionTitle>الأكثر مبيعاً هذا الشهر</SectionTitle>
                 {best.length === 0 ? (
-                  <p className="py-6 text-center text-[0.85rem] font-semibold text-ink-400 dark:text-ink-500">
+                  <p className="py-6 text-center text-[0.85rem] font-semibold text-fg-3">
                     لا توجد مبيعات هذا الشهر بعد
                   </p>
                 ) : (
@@ -159,7 +159,7 @@ export default function DashboardPage() {
                           {i + 1}
                         </span>
                         <span className="min-w-0 flex-1 truncate text-[0.88rem] font-bold">{p.productName}</span>
-                        <span className="tnum shrink-0 text-[0.8rem] font-bold text-ink-500 dark:text-ink-400">
+                        <span className="tnum shrink-0 text-[0.8rem] font-bold text-fg-2">
                           {num(p.units)} قطعة
                         </span>
                         <span className="tnum shrink-0 text-[0.82rem] font-black text-brand-500">
@@ -188,11 +188,11 @@ export default function DashboardPage() {
                     action={<span className="chip bg-ink-200 text-ink-600 dark:bg-ink-800 dark:text-ink-300">{num(stale.length)}</span>}
                   >
                     <span className="inline-flex items-center gap-2">
-                      <IconHourglass className="h-[1.1rem] w-[1.1rem] text-ink-400" />
+                      <IconHourglass className="h-[1.1rem] w-[1.1rem] text-fg-3" />
                       بضاعة راكدة
                     </span>
                   </SectionTitle>
-                  <p className="mb-2 text-[0.75rem] text-ink-400 dark:text-ink-500">
+                  <p className="mb-2 text-[0.75rem] text-fg-3">
                     لم تُبع منها أي قطعة منذ 30 يوماً أو أكثر — فكّر في عرض أو خصم.
                   </p>
                   <ul className="space-y-1.5">
@@ -201,7 +201,7 @@ export default function DashboardPage() {
                         <span className="min-w-0 flex-1 truncate text-[0.86rem] font-bold">
                           {row.product.name}
                         </span>
-                        <span className="tnum shrink-0 text-[0.78rem] font-bold text-ink-400 dark:text-ink-500">
+                        <span className="tnum shrink-0 text-[0.78rem] font-bold text-fg-3">
                           {num(row.idleDays)} يوم
                         </span>
                       </li>
@@ -240,10 +240,10 @@ function Stat({
 
   const body = (
     <div className="surface h-full px-4 py-3.5">
-      <p className="text-[0.78rem] font-bold text-ink-400 dark:text-ink-500">{label}</p>
+      <p className="text-[0.78rem] font-bold text-fg-3">{label}</p>
       <p className={`tnum mt-1 font-display text-num-lg font-black ${color}`}>{value}</p>
       {note ? (
-        <p className="mt-1 text-[0.72rem] font-semibold leading-snug text-ink-400 dark:text-ink-500">{note}</p>
+        <p className="mt-1 text-[0.72rem] font-semibold leading-snug text-fg-3">{note}</p>
       ) : null}
     </div>
   );

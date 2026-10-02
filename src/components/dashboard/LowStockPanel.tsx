@@ -12,7 +12,7 @@ import { num } from '@/lib/format';
 export function LowStockPanel({ rows }: { rows: LowStockRow[] }) {
   if (rows.length === 0) {
     return (
-      <p className="py-6 text-center text-[0.85rem] font-semibold text-ink-400 dark:text-ink-500">
+      <p className="py-6 text-center text-[0.85rem] font-semibold text-fg-3">
         كل المقاسات فوق حد التنبيه ✓
       </p>
     );

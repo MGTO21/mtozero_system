@@ -29,24 +29,24 @@ export default function InvoicePrintPage() {
         <Button onClick={() => window.print()}>طباعة / حفظ PDF</Button>
       </div>
 
-      <article className="rounded-card border border-ink-200 p-8 print:border-0 print:p-0">
+      <article className="rounded-card border border-line p-8 print:border-0 print:p-0">
         <div className="h-2.5 rounded-t bg-gradient-to-l from-accent-500 to-violet-500 print:h-1.5" />
 
-        <header className="mt-6 flex items-start justify-between gap-4 border-b border-ink-200 pb-5">
+        <header className="mt-6 flex items-start justify-between gap-4 border-b border-line pb-5">
           <div className="text-left">
-            <p className="tnum text-[0.8rem] font-semibold text-ink-500">
+            <p className="tnum text-[0.8rem] font-semibold text-fg-2">
               {formatDate(sale.createdAt)}
             </p>
-            <p className="tnum text-[0.8rem] font-semibold text-ink-500">
+            <p className="tnum text-[0.8rem] font-semibold text-fg-2">
               #{sale.id.slice(0, 6).toUpperCase()}
             </p>
           </div>
           <div className="flex items-center gap-3">
             <div className="text-right">
               <h1 className="font-display text-2xl font-black">{settings.shopName}</h1>
-              <p className="text-[0.75rem] font-bold tracking-[0.2em] text-ink-400">{settings.tagline}</p>
+              <p className="text-[0.75rem] font-bold tracking-[0.2em] text-fg-3">{settings.tagline}</p>
               {settings.phone || settings.address ? (
-                <p className="mt-1 text-[0.78rem] text-ink-500">
+                <p className="mt-1 text-[0.78rem] text-fg-2">
                   {[settings.phone, settings.address].filter(Boolean).join(' · ')}
                 </p>
               ) : null}
@@ -66,13 +66,13 @@ export default function InvoicePrintPage() {
           <dl className="mt-3 space-y-1 text-[0.9rem]">
             {sale.customerName ? (
               <div className="flex justify-between">
-                <dt className="font-bold text-ink-500">العميل</dt>
+                <dt className="font-bold text-fg-2">العميل</dt>
                 <dd className="font-bold">{sale.customerName}</dd>
               </div>
             ) : null}
             {sale.customerPhone ? (
               <div className="flex justify-between">
-                <dt className="font-bold text-ink-500">الهاتف</dt>
+                <dt className="font-bold text-fg-2">الهاتف</dt>
                 <dd dir="ltr" className="tnum font-bold">
                   {sale.customerPhone}
                 </dd>
@@ -83,7 +83,7 @@ export default function InvoicePrintPage() {
 
         <table className="mt-6 w-full text-right">
           <thead>
-            <tr className="border-y border-ink-200 text-[0.78rem] font-bold text-ink-500">
+            <tr className="border-y border-line text-[0.78rem] font-bold text-fg-2">
               <th className="py-2 font-bold">الصنف</th>
               <th className="py-2 font-bold">المقاس</th>
               <th className="py-2 font-bold">الكمية</th>
@@ -95,7 +95,7 @@ export default function InvoicePrintPage() {
             {sale.items
               .filter((item) => itemNetQty(item) > 0)
               .map((item, index) => (
-                <tr key={`${item.productId}-${item.size}-${index}`} className="border-b border-ink-200 text-[0.9rem]">
+                <tr key={`${item.productId}-${item.size}-${index}`} className="border-b border-line text-[0.9rem]">
                   <td className="py-3 font-bold">{item.productName}</td>
                   <td className="tnum py-3">{item.size}</td>
                   <td className="tnum py-3">{num(itemNetQty(item))}</td>
@@ -109,18 +109,18 @@ export default function InvoicePrintPage() {
         <dl className="mt-5 space-y-2">
           {sale.creditUsed > 0 ? (
             <div className="flex justify-between text-[0.9rem]">
-              <dt className="font-bold text-ink-500">خصم رصيد الإحالة</dt>
+              <dt className="font-bold text-fg-2">خصم رصيد الإحالة</dt>
               <dd className="tnum font-bold text-good">- {money(sale.creditUsed)}</dd>
             </div>
           ) : null}
-          <div className="flex items-center justify-between border-t border-ink-200 pt-3">
+          <div className="flex items-center justify-between border-t border-line pt-3">
             <dt className="font-display text-lg font-extrabold">الإجمالي</dt>
             <dd className="tnum font-display text-3xl font-black text-brand-500">{money(saleTotal(sale))}</dd>
           </div>
           {due > 0 ? (
             <>
               <div className="flex justify-between text-[0.9rem]">
-                <dt className="font-bold text-ink-500">المدفوع</dt>
+                <dt className="font-bold text-fg-2">المدفوع</dt>
                 <dd className="tnum font-bold">{money(sale.amountPaid)}</dd>
               </div>
               <div className="flex justify-between text-[0.95rem]">
@@ -133,9 +133,9 @@ export default function InvoicePrintPage() {
           )}
         </dl>
 
-        <footer className="mt-8 border-t border-ink-200 pt-5 text-center">
+        <footer className="mt-8 border-t border-line pt-5 text-center">
           <p className="font-bold">{settings.invoiceFooter}</p>
-          <p className="mt-1 text-[0.8rem] text-ink-500">{settings.shopName}</p>
+          <p className="mt-1 text-[0.8rem] text-fg-2">{settings.shopName}</p>
         </footer>
       </article>
     </div>

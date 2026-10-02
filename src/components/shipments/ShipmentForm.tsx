@@ -114,7 +114,7 @@ export function ShipmentForm({
             onChange={(e) => setExtraCost(Number(e.target.value) || 0)}
             placeholder="0"
           />
-          <p className="mt-1 text-[0.72rem] text-ink-400 dark:text-ink-500">
+          <p className="mt-1 text-[0.72rem] text-fg-3">
             تُسجَّل على مستوى الشحنة كاملة، لا على القطعة — تظهر في تفاصيل الشحنة.
           </p>
         </div>
@@ -131,7 +131,7 @@ export function ShipmentForm({
               value={arrived}
               onChange={(e) => setArrived(e.target.value)}
             />
-            <p className="mt-1 text-[0.72rem] text-ink-400 dark:text-ink-500">
+            <p className="mt-1 text-[0.72rem] text-fg-3">
               يحدد ترتيب الشحنة في الخصم — الأقدم يُباع أولاً.
             </p>
           </div>
