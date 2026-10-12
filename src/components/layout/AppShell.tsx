@@ -18,7 +18,8 @@ import { ROLE_LABEL } from '@/lib/types';
 import { Brand } from './Brand';
 import { MOBILE_TABS, NAV, SECTION_LABEL, SECTION_ORDER, navItemFor, visibleNav } from './nav';
 import { SyncPill, useQueueSummary, useSyncDriver } from './SyncStatus';
-import { useCatalogPublisher, useNewOrderCount } from '@/lib/db/store';
+import { useCatalogPublisher, useLogoPublisher, useNewOrderCount } from '@/lib/db/store';
+import { useSettings } from '@/lib/db/settings';
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { profile, loading, firebaseUser, profileError, isOwner, signOut } = useAuth();
@@ -34,6 +35,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   useSyncDriver(profile?.uid, queue.pending.length);
   // Keeps the website's public catalog in step with the stock while the app is open.
   useCatalogPublisher(Boolean(profile));
+  const { settings, loading: settingsLoading } = useSettings();
+  // Only the owner may write storefront/logo; their device keeps it in step.
+  useLogoPublisher(Boolean(profile) && isOwner, settings.logoData, settingsLoading);
   const newOrders = useNewOrderCount();
 
   useEffect(() => {
@@ -58,7 +62,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   if (loading) {
     return (
       <div className="app-height flex flex-col items-center justify-center gap-3 px-6 text-center">
-        <Brand />
+        <Brand src={settings.logoData} />
         <LoadingBlock label="جاري فتح الدفتر…" />
         {!online ? (
           <p className="max-w-xs text-[0.84rem] font-semibold text-fg-3">
@@ -72,7 +76,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   if (profileError) {
     return (
       <div className="app-height flex flex-col items-center justify-center gap-5 px-6 text-center">
-        <Brand />
+        <Brand src={settings.logoData} />
         <p className="max-w-sm text-sm font-bold leading-relaxed text-bad">{profileError}</p>
         <Button variant="secondary" icon={<IconLogout className="h-4 w-4" />} onClick={() => void signOut()}>
           تسجيل الخروج
@@ -93,7 +97,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       {/* Desktop rail — on the right because the layout is RTL. */}
       <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col border-l border-line bg-surface px-3 py-5 lg:flex">
         <div className="px-2 pb-5">
-          <Brand />
+          <Brand src={settings.logoData} />
         </div>
 
         <Link
@@ -149,7 +153,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <div className="min-w-0 flex-1">
               {pathname === '/dashboard' ? (
                 <span className="lg:hidden">
-                  <Brand compact />
+                  <Brand compact src={settings.logoData} />
                 </span>
               ) : (
                 <span className="block truncate font-display text-[1.15rem] font-extrabold lg:hidden">

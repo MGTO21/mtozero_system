@@ -74,7 +74,12 @@ src/
 > وتمر على `toCatalog`. **الصور الإضافية** (`gallery`) لا تُخزَّن في مستند المنتج — كل صورة مستند
 > `catalogThumbs/{productId}_g{id}` والمنتج يحمل id وhash فقط، لأن `products` محمّل كاملاً على كل جهاز.
 > وبنفس المنطق: `thumbData` يظل صغيراً (360px) للتطبيق، ونسخة واضحة (1100px) للموقع في
-> `catalogThumbs/{productId}_hd` مع `hdHash` في المنتج. اعرضها عبر `productHdPath` / `productSrcSet`. شكل المتجر لا يتأثر بثيم الموظف: `.store` تعيد تعريف كل المتغيرات.
+> `catalogThumbs/{productId}_hd` مع `hdHash` في المنتج. اعرضها عبر `productHdPath` / `productSrcSet`.
+>
+> **لوغو واحد في كل مكان**: اللوغو المرفوع في الإعدادات (للفاتورة) له نسخة عامة في `storefront/logo` ينشرها
+> جهاز المالك (`useLogoPublisher` في AppShell). منها تُولَّد أيقونة التبويب والتطبيق (`/brand/icon/[size]`)،
+> صورة معاينة الروابط (`/brand/og`)، `/favicon.ico` و`/manifest.json`. `Brand` يأخذ `src`، و`LiveBrand`
+> للشاشات خارج التطبيق. مسارات الصور على **edge** (نسخة Node من ImageResponse تتعطّل على Windows). شكل المتجر لا يتأثر بثيم الموظف: `.store` تعيد تعريف كل المتغيرات.
 >
 > **المتجر لا يقرأ `products` أبداً** — فيها التكلفة والدفعات. يقرأ `catalog/{id}` (اسم، سعر،
 > حالة المقاس فقط) الذي يبنيه `useCatalogPublisher` من أي جهاز موظف مفتوح، ويكتب الفرق فقط.

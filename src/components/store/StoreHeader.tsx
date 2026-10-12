@@ -30,6 +30,7 @@ export function StoreHeader({
   freeOver,
   items,
   hasSale,
+  logoSrc,
 }: {
   announcements: string[];
   lookToggle: boolean;
@@ -37,6 +38,7 @@ export function StoreHeader({
   freeOver: number;
   items: CatalogItem[];
   hasSale: boolean;
+  logoSrc: string | null;
 }) {
   const cart = useCart();
   const wishlist = useWishlist();
@@ -68,7 +70,7 @@ export function StoreHeader({
 
         <div className="mx-auto flex h-16 max-w-7xl items-center gap-1.5 px-4 sm:gap-2 sm:px-6">
           <Link href="/" aria-label="الرئيسية" className="shrink-0">
-            <Brand compact />
+            <Brand compact src={logoSrc} />
           </Link>
 
           <nav className="hidden flex-1 items-center justify-center gap-8 md:flex">

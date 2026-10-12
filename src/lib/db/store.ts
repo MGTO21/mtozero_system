@@ -159,6 +159,49 @@ export function useCatalogPublisher(enabled: boolean) {
   }, [enabled, products.data, products.loading, products.fromCache, products.error, catalog.data, catalog.loading, catalog.fromCache, catalog.error]);
 }
 
+/* ---------- the shop logo, in public ---------- */
+
+/**
+ * The logo the owner uploaded for invoices lives in settings, which only staff
+ * can read. The website, search engines and link previews need it too, so the
+ * owner's device keeps a public copy in storefront/logo — the same "publish
+ * from a signed-in device" approach as the catalog, with no server functions.
+ */
+export function useLogoPublisher(enabled: boolean, logoData: string | null, settingsLoading: boolean) {
+  useEffect(() => {
+    if (!enabled || settingsLoading || !isFirebaseConfigured) return;
+    const ref = doc(db(), COL.storefront, 'logo');
+    const unsubscribe = onSnapshot(
+      ref,
+      { includeMetadataChanges: true },
+      (snap) => {
+        // Only compare against what the server holds, never the offline cache.
+        if (snap.metadata.fromCache) return;
+        const want = logoData ? hashString(logoData) : '';
+        const have = snap.exists() ? String(snap.data().hash ?? '') : '';
+        if (want === have) return;
+        void setDoc(ref, { data: logoData ?? '', hash: want, updatedAt: serverTimestamp() }).catch(() => undefined);
+      },
+      () => undefined,
+    );
+    return unsubscribe;
+  }, [enabled, logoData, settingsLoading]);
+}
+
+/** The public logo for screens anyone can open (login, customer card…). */
+export function useShopLogo(): string | null {
+  const [logo, setLogo] = useState<string | null>(null);
+  useEffect(() => {
+    if (!isFirebaseConfigured) return;
+    return onSnapshot(
+      doc(db(), COL.storefront, 'logo'),
+      (snap) => setLogo(snap.exists() && snap.data().data ? String(snap.data().data) : null),
+      () => undefined,
+    );
+  }, []);
+  return logo;
+}
+
 /* ---------- store settings ---------- */
 
 export function useStoreConfig(): { config: StoreConfig; loading: boolean } {

@@ -150,3 +150,13 @@ export async function fetchOffers(): Promise<PublicOffer[]> {
     }))
     .filter((o) => o.kind !== 'gift' && (o.expiresAtMs === null || o.expiresAtMs > now));
 }
+
+/**
+ * The shop logo (public copy of the invoice logo), or null before one is
+ * uploaded. `fresh` for the image routes, cached for page metadata.
+ */
+export async function fetchLogo(fresh = false): Promise<{ data: string; hash: string } | null> {
+  const raw = await getDoc('storefront/logo', fresh);
+  if (!raw || typeof raw.data !== 'string' || !raw.data) return null;
+  return { data: raw.data, hash: String(raw.hash ?? '') };
+}

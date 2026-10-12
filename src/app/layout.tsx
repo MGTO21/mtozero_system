@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Cairo, IBM_Plex_Sans_Arabic } from 'next/font/google';
 import type { ReactNode } from 'react';
 import './globals.css';
+import { fetchLogo } from '@/lib/store/server';
 import { AuthProvider } from '@/components/providers/AuthProvider';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
 import { ToastProvider } from '@/components/providers/ToastProvider';
@@ -23,7 +24,7 @@ const plex = IBM_Plex_Sans_Arabic({
   display: 'swap',
 });
 
-export const metadata: Metadata = {
+const BASE_METADATA: Metadata = {
   title: 'Mtozero Shop — إدارة المخزون والمبيعات',
   description: 'نظام إدارة مخزون ومبيعات متجر Mtozero Shop — الأبيض، شمال كردفان.',
   manifest: '/manifest.json',
@@ -44,6 +45,28 @@ export const metadata: Metadata = {
     'mobile-web-app-capable': 'yes',
   },
 };
+
+/**
+ * The tab icon, home-screen icon and search-result icon all come from the logo
+ * the owner uploaded for invoices (its public copy), so the shop has one mark
+ * everywhere. Until a logo is uploaded, the built-in icons stay.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const logo = await fetchLogo();
+  if (!logo) return BASE_METADATA;
+  const v = `?v=${logo.hash}`;
+  return {
+    ...BASE_METADATA,
+    icons: {
+      icon: [
+        { url: `/brand/icon/48${v}`, sizes: '48x48', type: 'image/png' },
+        { url: `/brand/icon/192${v}`, sizes: '192x192', type: 'image/png' },
+      ],
+      shortcut: [{ url: `/brand/icon/48${v}` }],
+      apple: [{ url: `/brand/icon/180${v}`, sizes: '180x180' }],
+    },
+  };
+}
 
 export const viewport: Viewport = {
   width: 'device-width',

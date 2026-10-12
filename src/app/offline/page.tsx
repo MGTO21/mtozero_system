@@ -1,4 +1,4 @@
-import { Brand } from '@/components/layout/Brand';
+import { LiveBrand } from '@/components/layout/LiveBrand';
 
 export const metadata = { title: 'غير متصل — Mtozero Shop' };
 
@@ -10,7 +10,7 @@ export const metadata = { title: 'غير متصل — Mtozero Shop' };
 export default function OfflinePage() {
   return (
     <div className="app-height flex flex-col items-center justify-center gap-4 px-6 text-center">
-      <Brand />
+      <LiveBrand />
       <h1 className="text-xl">بدون شبكة</h1>
       <p className="max-w-sm text-[0.92rem] leading-relaxed text-fg-2">
         الصفحة دي لسه ما اتحفظت على الجهاز. افتح النظام مرة واحدة والشبكة شغّالة — بعدها كل الشاشات تفتح

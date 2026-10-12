@@ -45,11 +45,23 @@ export function BrandMark({ className = 'h-8 w-8' }: { className?: string }) {
   );
 }
 
-/** Mark plus wordmark. `compact` drops the tagline for tight bars. */
-export function Brand({ compact = false }: { compact?: boolean }) {
+/**
+ * Mark plus wordmark. `compact` drops the tagline for tight bars.
+ *
+ * `src` is the shop's own logo — the picture uploaded for invoices — and wins
+ * whenever there is one, so the app, the website and the invoices show one and
+ * the same mark. Without it, the drawn MTOZERO mark stands in.
+ */
+export function Brand({ compact = false, src }: { compact?: boolean; src?: string | null }) {
+  const size = compact ? 'h-7 w-7' : 'h-9 w-9';
   return (
     <span className="inline-flex items-center gap-2.5">
-      <BrandMark className={compact ? 'h-7 w-7' : 'h-9 w-9'} />
+      {src ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={src} alt="" className={`${size} shrink-0 rounded-[4px] object-contain`} />
+      ) : (
+        <BrandMark className={size} />
+      )}
       <span className="flex flex-col leading-none">
         <span className={`font-display font-black tracking-[0.06em] text-fg ${compact ? 'text-base' : 'text-lg'}`}>
           MTOZERO

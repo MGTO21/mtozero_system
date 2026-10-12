@@ -4,7 +4,7 @@ import { IconFacebook, IconInstagram, IconTikTok, IconWhatsApp } from '@/compone
 import { socialUrl } from '@/lib/store/model';
 import type { StoreConfig } from '@/lib/types';
 
-export function StoreFooter({ config }: { config: StoreConfig }) {
+export function StoreFooter({ config, logoSrc }: { config: StoreConfig; logoSrc: string | null }) {
   const socials = (
     [
       ['instagram', 'انستغرام', IconInstagram],
@@ -19,7 +19,7 @@ export function StoreFooter({ config }: { config: StoreConfig }) {
     <footer className="mt-24 border-t border-line bg-surface">
       <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:grid-cols-3 sm:px-6">
         <div>
-          <Brand />
+          <Brand src={logoSrc} />
           <p className="mt-3 max-w-xs text-[0.9rem] leading-relaxed text-fg-2">{config.about}</p>
           {socials.length > 0 ? (
             <div className="mt-4 flex gap-2">

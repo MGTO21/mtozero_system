@@ -2,7 +2,7 @@
 
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useCallback, useEffect, useState, type FormEvent } from 'react';
-import { Brand } from '@/components/layout/Brand';
+import { LiveBrand } from '@/components/layout/LiveBrand';
 import { Button } from '@/components/ui/Button';
 import { LoadingBlock } from '@/components/ui/Feedback';
 import { IconCopy, IconCoupon, IconWhatsApp } from '@/components/ui/Icons';
@@ -90,7 +90,7 @@ function CustomerCardView() {
     <div className="app-height bg-page px-4 pb-12 pt-8">
       <div className="mx-auto w-full max-w-md">
         <div className="mb-6 flex flex-col items-center text-center">
-          <Brand />
+          <LiveBrand />
           <h1 className="mt-4 text-[1.5rem]">بطاقتك</h1>
           <p className="mt-1 text-[0.9rem] font-semibold text-fg-3">رصيدك وكود الإحالة حقك في أي وقت</p>
         </div>

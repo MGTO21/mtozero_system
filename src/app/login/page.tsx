@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useEffect, useState, type FormEvent } from 'react';
-import { Brand } from '@/components/layout/Brand';
+import { LiveBrand } from '@/components/layout/LiveBrand';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { SetupNotice } from '@/components/SetupNotice';
 import { Button } from '@/components/ui/Button';
@@ -40,7 +40,7 @@ export default function LoginPage() {
     <div className="app-height flex flex-col justify-center px-5 py-10">
       <div className="mx-auto w-full max-w-sm">
         <div className="mb-8 flex flex-col items-center text-center">
-          <Brand />
+          <LiveBrand />
           <p className="mt-3 text-[0.9rem] font-semibold text-fg-3">دفتر المحل — المخزون والمبيعات</p>
         </div>
 
