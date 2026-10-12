@@ -46,9 +46,6 @@ export function CartCheckout({ config }: { config: StoreConfig }) {
   async function submit() {
     setBusy(true);
     setError(null);
-    // Opened synchronously, inside the tap, so the phone does not block it as a
-    // popup; it is pointed at WhatsApp once the order is saved.
-    const waWindow = config.whatsapp ? window.open('', '_blank') : null;
     try {
       const order = await placeOrder(
         {
@@ -69,12 +66,15 @@ export function CartCheckout({ config }: { config: StoreConfig }) {
       }
       const trackUrl = `${window.location.origin}/order?id=${order.id}`;
       const waUrl = `https://wa.me/${config.whatsapp}?text=${encodeURIComponent(orderWhatsappText(order, trackUrl))}`;
-      if (waWindow) waWindow.location.href = waUrl;
       clearCart();
       setPlaced(order);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      window.scrollTo({ top: 0 });
+      // Straight into WhatsApp with the order written out. The same tab is sent
+      // there rather than a new one: phones block a window opened after an await
+      // as a popup, while a navigation hands off to the WhatsApp app directly.
+      // The confirmation screen stays behind it with a button to send again.
+      if (config.whatsapp) window.location.assign(waUrl);
     } catch (err) {
-      waWindow?.close();
       setError(errorMessage(err, 'ما قدرنا نرسل الطلب.'));
     } finally {
       setBusy(false);
