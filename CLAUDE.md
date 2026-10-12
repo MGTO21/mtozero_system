@@ -72,7 +72,9 @@ src/
 > يمر على `mapStoreConfig` في `lib/store/model.ts` بقيمة افتراضية — والقسم الجديد يُضاف لـ`DEFAULT_SECTIONS`
 > فيظهر تلقائياً بدون إعادة حفظ. عروض المنتج (`compareAtPrice`، `featured`، `storeBadge`) تُكتب من شاشة المنتج
 > وتمر على `toCatalog`. **الصور الإضافية** (`gallery`) لا تُخزَّن في مستند المنتج — كل صورة مستند
-> `catalogThumbs/{productId}_g{id}` والمنتج يحمل id وhash فقط، لأن `products` محمّل كاملاً على كل جهاز. شكل المتجر لا يتأثر بثيم الموظف: `.store` تعيد تعريف كل المتغيرات.
+> `catalogThumbs/{productId}_g{id}` والمنتج يحمل id وhash فقط، لأن `products` محمّل كاملاً على كل جهاز.
+> وبنفس المنطق: `thumbData` يظل صغيراً (360px) للتطبيق، ونسخة واضحة (1100px) للموقع في
+> `catalogThumbs/{productId}_hd` مع `hdHash` في المنتج. اعرضها عبر `productHdPath` / `productSrcSet`. شكل المتجر لا يتأثر بثيم الموظف: `.store` تعيد تعريف كل المتغيرات.
 >
 > **المتجر لا يقرأ `products` أبداً** — فيها التكلفة والدفعات. يقرأ `catalog/{id}` (اسم، سعر،
 > حالة المقاس فقط) الذي يبنيه `useCatalogPublisher` من أي جهاز موظف مفتوح، ويكتب الفرق فقط.

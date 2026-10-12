@@ -14,7 +14,7 @@ import { useMemo } from 'react';
 import { db } from '@/lib/firebase';
 import { cloudinaryEnabled, uploadFullImage } from '@/lib/cloudinary';
 import { makeThumbnail } from '@/lib/image';
-import { mapGallery } from '@/lib/store/model';
+import { hashString, mapGallery } from '@/lib/store/model';
 import { MAX_GALLERY, type Product, type ProductPhoto, type SizeInput, type SizeStock } from '@/lib/types';
 import { useLiveQuery } from '@/lib/hooks/useFirestore';
 import { useOutbox } from '@/lib/offline/outbox';
@@ -105,6 +105,7 @@ export function mapProduct(id: string, raw: Record<string, unknown>): Product {
     featured: raw.featured === true,
     storeBadge: (raw.storeBadge as string) || undefined,
     gallery: mapGallery(raw.gallery),
+    hdHash: (raw.hdHash as string) || undefined,
   };
 }
 
@@ -254,6 +255,8 @@ function normalizeSizes(
  */
 export interface ImageOutcome {
   thumbData: string | null;
+  /** Sharp store copy, written to catalogThumbs/{id}_hd by the caller. */
+  hdData: string | null;
   imageUrl: string | null;
   imagePublicId: string | null;
   warning: string | null;
@@ -265,8 +268,11 @@ export interface ImageOutcome {
  */
 async function processImage(file: File, productId: string): Promise<ImageOutcome> {
   const thumb = await makeThumbnail(file);
+  // Same compression as the gallery; made from the original file, not the thumbnail.
+  const hd = await makeThumbnail(file, GALLERY_IMAGE).catch(() => null);
   const outcome: ImageOutcome = {
     thumbData: thumb.dataUrl,
+    hdData: hd?.dataUrl ?? null,
     imageUrl: null,
     imagePublicId: null,
     warning: null,
@@ -313,6 +319,7 @@ export async function createProduct(
     featured: input.featured === true,
     storeBadge: input.storeBadge?.trim().slice(0, 18) || null,
     thumbData: null as string | null,
+    hdHash: null as string | null,
     imageUrl: null as string | null,
     imagePublicId: null as string | null,
     isArchived: false,
@@ -333,6 +340,10 @@ export async function createProduct(
     payload.thumbData = outcome.thumbData;
     payload.imageUrl = outcome.imageUrl;
     payload.imagePublicId = outcome.imagePublicId;
+    if (outcome.hdData) {
+      await settle(setDoc(doc(db(), COL.catalogThumbs, `${ref.id}_hd`), { data: outcome.hdData }));
+      payload.hdHash = hashString(outcome.hdData);
+    }
   }
 
   const gallery = await writeGallery(ref.id, input);
@@ -386,7 +397,15 @@ export async function updateProduct(
     patch.thumbData = outcome.thumbData;
     patch.imageUrl = outcome.imageUrl;
     patch.imagePublicId = outcome.imagePublicId;
+    if (outcome.hdData) {
+      await settle(setDoc(doc(db(), COL.catalogThumbs, `${id}_hd`), { data: outcome.hdData }));
+      patch.hdHash = hashString(outcome.hdData);
+    } else {
+      patch.hdHash = null;
+    }
   } else if (removeExistingImage) {
+    patch.hdHash = null;
+    void settle(setDoc(doc(db(), COL.catalogThumbs, `${id}_hd`), { data: '' })).catch(() => undefined);
     patch.thumbData = null;
     patch.imageUrl = null;
     patch.imagePublicId = null;

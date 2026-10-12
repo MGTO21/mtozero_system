@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { IconHeart, IconPlus } from '@/components/ui/Icons';
 import { money } from '@/lib/format';
 import { isNewArrival, salePercent } from '@/lib/store/model';
-import { galleryImagePath, productImagePath } from '@/lib/store/paths';
+import { galleryImagePath, productImagePath, productSrcSet } from '@/lib/store/paths';
 import { toggleWishlist, useMounted, useMySizes, useWishlist } from '@/lib/store/prefs';
 import type { CatalogItem } from '@/lib/types';
 import { QuickAdd } from './QuickAdd';
@@ -51,6 +51,8 @@ export function ProductTile({
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={productImagePath(item.id, item.thumbHash, item.imageUrl)}
+            srcSet={productSrcSet(item)}
+            sizes="(min-width: 1024px) 22vw, (min-width: 640px) 30vw, 44vw"
             alt=""
             loading={priority ? 'eager' : 'lazy'}
             decoding="async"

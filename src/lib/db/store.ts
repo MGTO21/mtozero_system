@@ -32,25 +32,18 @@ import {
   type StoreSizeState,
 } from '@/lib/types';
 import { makeThumbnail } from '@/lib/image';
-import { mapCatalog, mapStoreConfig, safeHref } from '@/lib/store/model';
+import { hashString, mapCatalog, mapStoreConfig, safeHref } from '@/lib/store/model';
 import { AppError, COL } from './collections';
 import { logActivity } from './activity';
 import { totalStock, useServerProducts } from './products';
 
-export { mapCatalog, mapStoreConfig };
+export { hashString, mapCatalog, mapStoreConfig };
 import { invoiceNumber } from './sale-math';
 
 /* ---------- the public catalog ---------- */
 
 /** Pieces at or below this read as "last pieces" to customers. */
 const LAST_PIECES = 2;
-
-/** Small, stable string hash — enough to notice a thumbnail changed. */
-export function hashString(text: string): string {
-  let h = 5381;
-  for (let i = 0; i < text.length; i++) h = ((h << 5) + h + text.charCodeAt(i)) | 0;
-  return (h >>> 0).toString(36);
-}
 
 function sizeState(qty: number): StoreSizeState {
   if (qty <= 0) return 'out';
@@ -81,6 +74,7 @@ export function toCatalog(p: Product): Omit<CatalogItem, 'id'> {
     featured: p.featured === true,
     badge: (p.storeBadge ?? '').trim().slice(0, 18),
     gallery: (p.gallery ?? []).map((g) => ({ id: g.id, hash: g.hash })),
+    hdHash: p.hdHash ?? '',
   };
 }
 
@@ -107,6 +101,7 @@ function normalize(item: Omit<CatalogItem, 'id'>) {
     featured: item.featured,
     badge: item.badge,
     gallery: item.gallery,
+    hdHash: item.hdHash,
   };
 }
 

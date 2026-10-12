@@ -8,7 +8,7 @@ import { IconChevronLeft, IconReturn, IconShip, IconWallet, IconWhatsApp } from 
 import { money } from '@/lib/format';
 import { HOME_SECTION_LABEL, type CatalogItem, type Category, type HomeSection, type StoreConfig } from '@/lib/types';
 import { salePercent } from '@/lib/store/model';
-import { productImagePath } from '@/lib/store/paths';
+import { productHdPath } from '@/lib/store/paths';
 import { fetchCatalog, fetchOffers, fetchStoreConfig, STORE_REVALIDATE, type PublicOffer } from '@/lib/store/server';
 import { CATEGORY_LABEL } from '@/lib/types';
 
@@ -103,7 +103,7 @@ function TypeHero({ config, catalog }: { config: StoreConfig; catalog: CatalogIt
               <Link href={`/p/${p.id}`} className="tile group relative block h-full overflow-hidden rounded-card bg-sunken">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src={productImagePath(p.id, p.thumbHash, p.imageUrl)}
+                  src={productHdPath(p)}
                   alt={p.name}
                   className={`tile-img w-full object-cover ${i === 0 ? 'aspect-[3/4] h-full' : 'aspect-square'}`}
                 />
@@ -160,7 +160,7 @@ function Departments({ catalog }: { catalog: CatalogItem[] }) {
             <Link href={`/shop?c=${c}`} className="tile group relative block aspect-[3/4] overflow-hidden rounded-card bg-sunken sm:aspect-[4/3]">
               {cover ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={productImagePath(cover.id, cover.thumbHash, cover.imageUrl)} alt="" loading="lazy" className="tile-img h-full w-full object-cover" />
+                <img src={productHdPath(cover)} alt="" loading="lazy" className="tile-img h-full w-full object-cover" />
               ) : null}
               <span className="absolute inset-x-3 bottom-3 flex items-center justify-between gap-2 rounded-card bg-surface px-4 py-3 sm:inset-x-5 sm:bottom-5">
                 <span>

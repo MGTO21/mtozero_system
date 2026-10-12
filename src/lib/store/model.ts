@@ -38,6 +38,7 @@ export function mapCatalog(id: string, raw: Record<string, unknown>): CatalogIte
     featured: raw.featured === true,
     badge: typeof raw.badge === 'string' ? raw.badge.slice(0, 18) : '',
     gallery: mapGallery(raw.gallery),
+    hdHash: typeof raw.hdHash === 'string' ? raw.hdHash : '',
   };
 }
 
@@ -170,4 +171,11 @@ export function deliveryLine(config: Pick<StoreConfig, 'freeDeliveryOver'>, mone
   return config.freeDeliveryOver > 0
     ? `توصيل مجاني للطلبات فوق ${money(config.freeDeliveryOver)} · الدفع عند الاستلام`
     : 'الدفع عند الاستلام';
+}
+
+/** Small, stable string hash — enough to notice a thumbnail changed. */
+export function hashString(text: string): string {
+  let h = 5381;
+  for (let i = 0; i < text.length; i++) h = ((h << 5) + h + text.charCodeAt(i)) | 0;
+  return (h >>> 0).toString(36);
 }

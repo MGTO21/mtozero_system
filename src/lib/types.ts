@@ -119,6 +119,12 @@ export interface Product {
    * collection — kept live on every staff device — stays light.
    */
   gallery?: ProductPhoto[];
+  /**
+   * Hash of the sharp store copy of the main picture (catalogThumbs/{id}_hd).
+   * thumbData stays small because every staff device keeps every product live;
+   * the website shows this copy wherever the picture is large.
+   */
+  hdHash?: string;
 }
 
 export interface ProductPhoto {
@@ -164,6 +170,8 @@ export interface CatalogItem {
   badge: string;
   /** Extra pictures after the main one. */
   gallery: ProductPhoto[];
+  /** Sharp copy of the main picture; empty for products photographed before it existed. */
+  hdHash: string;
 }
 
 /** The two looks of the public website. */

@@ -7,7 +7,7 @@ import { PersonalShelf } from '@/components/store/PersonalShelf';
 import { Shelf } from '@/components/store/Shelf';
 import { money } from '@/lib/format';
 import { isNewArrival, salePercent } from '@/lib/store/model';
-import { productImagePath, productPictures } from '@/lib/store/paths';
+import { productHdPath, productPictures } from '@/lib/store/paths';
 import { fetchCatalog, fetchProduct, fetchStoreConfig, STORE_REVALIDATE } from '@/lib/store/server';
 import { CATEGORY_LABEL } from '@/lib/types';
 
@@ -23,7 +23,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     .filter((s) => s.state !== 'out')
     .map((s) => s.size)
     .join('، ')} · الدفع عند الاستلام`;
-  const image = productImagePath(item.id, item.thumbHash, item.imageUrl);
+  const image = productHdPath(item);
   const images = productPictures(item).slice(0, 4).map((url) => ({ url }));
   return {
     title: item.name,

@@ -121,7 +121,9 @@ export async function fetchBannerImage(id: string): Promise<string | null> {
 /** The thumbnail data URI for a product, for the image route. */
 export async function fetchThumb(id: string): Promise<string | null> {
   if (!/^[A-Za-z0-9_-]{1,64}$/.test(id)) return null;
-  const raw = await getDoc(`catalogThumbs/${id}`);
+  // Fresh read: the /img URL carries the picture's hash and the CDN caches the
+  // response under it, so a cached read here could pin an old picture to a new URL.
+  const raw = await getDoc(`catalogThumbs/${id}`, true);
   return raw && typeof raw.data === 'string' ? raw.data : null;
 }
 
