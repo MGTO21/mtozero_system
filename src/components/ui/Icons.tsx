@@ -322,6 +322,22 @@ export const IconShare = (p: IconProps) => (
   </svg>
 );
 
+/** Offers and coupons: a ticket with a cut-out percent — a discount you hand over. */
+export const IconCoupon = (p: IconProps) => (
+  <Solid {...p}>
+    <path d="M3 6a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v3.2a2.8 2.8 0 0 0 0 5.6V18a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1v-3.2a2.8 2.8 0 0 0 0-5.6Z M14.6 8.1l1.3 1.3-6.5 6.5-1.3-1.3Z M9.3 8.3a1.4 1.4 0 1 0 0 2.8 1.4 1.4 0 0 0 0-2.8Z M14.7 12.9a1.4 1.4 0 1 0 0 2.8 1.4 1.4 0 0 0 0-2.8Z" />
+  </Solid>
+);
+
+/** A gift: credit given to a customer. */
+export const IconGift = (p: IconProps) => (
+  <Solid {...p}>
+    <path d="M3 8.5a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1V11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1Z M11 7.5h2V12h-2Z" />
+    <path d="M4.5 13.5h6.4V21H5.5a1 1 0 0 1-1-1Z M13.1 13.5h6.4V20a1 1 0 0 1-1 1h-5.4Z" />
+    <path d="M12 7.2C10.7 4.6 8.9 3 7.4 3.4 6 3.8 6 5.9 7.6 6.9 8.7 7.5 10.6 7.6 12 7.2Z M12 7.2c1.3-2.6 3.1-4.2 4.6-3.8 1.4.4 1.4 2.5-.2 3.5-1.1.6-3 .7-4.4.3Z" />
+  </Solid>
+);
+
 /** Waiting to be sent: a stack with a clock — work held on this device. */
 export const IconQueue = (p: IconProps) => (
   <Solid {...p}>

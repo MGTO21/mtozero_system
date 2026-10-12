@@ -12,6 +12,7 @@ import {
   setDoc,
   updateDoc,
   where,
+  writeBatch,
   type Timestamp,
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
@@ -21,6 +22,7 @@ import { settle } from '@/lib/offline/write';
 import type { Customer, Referral } from '@/lib/types';
 import { AppError, COL } from './collections';
 import { logActivity } from './activity';
+import { cardFields } from './promos';
 
 export function mapCustomer(id: string, raw: Record<string, unknown>): Customer {
   return {
@@ -134,21 +136,30 @@ export async function ensureCustomer(
   }
 
   const created = doc(collection(db(), COL.customers));
-  await settle(setDoc(created, {
+  const referralCode = makeReferralCode(name, normalized);
+  // Customer and card land together, so a new customer can look their code up
+  // from the moment they leave the counter.
+  const batch = writeBatch(db());
+  batch.set(created, {
     name,
     phone: normalized,
     note: null,
     totalSpent: 0,
     totalOrders: 0,
     lastPurchaseAt: null,
-    referralCode: makeReferralCode(name, normalized),
+    referralCode,
     referredBy: referredBy?.id ?? null,
     referredByName: referredBy?.name ?? null,
     creditBalance: 0,
     creditEarned: 0,
     referralCount: 0,
     createdAt: serverTimestamp(),
-  }));
+  });
+  batch.set(
+    doc(db(), COL.cards, normalized),
+    cardFields({ name, referralCode, creditBalance: 0, creditEarned: 0, referralCount: 0 }),
+  );
+  await settle(batch.commit());
 
   await logActivity(actor, 'edited_user', `أضاف العميل "${name}" (${normalized})`);
   return mapCustomer(created.id, {
@@ -206,11 +217,14 @@ export async function awardReferralIfDue(
     if (!referrerSnap.exists()) return null;
     const referrer = mapCustomer(referrerSnap.id, referrerSnap.data());
 
-    tx.update(referrerRef, {
+    const next = {
       creditBalance: referrer.creditBalance + reward,
       creditEarned: referrer.creditEarned + reward,
       referralCount: referrer.referralCount + 1,
-    });
+    };
+    tx.update(referrerRef, next);
+    // The referrer sees the reward on their card straight away.
+    if (referrer.phone) tx.set(doc(db(), COL.cards, referrer.phone), cardFields({ ...referrer, ...next }));
 
     tx.set(referralRef, {
       referrerId: referrer.id,

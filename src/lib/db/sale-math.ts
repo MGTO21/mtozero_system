@@ -5,7 +5,7 @@
  * rules to work that has not reached the server yet. `db/products.ts` and
  * `db/sales.ts` re-export everything here, so callers keep importing from there.
  */
-import type { ConsumedLot, PaymentStatus, Sale, SaleItem, SizeStock } from '@/lib/types';
+import type { ConsumedLot, PaymentStatus, Promo, Sale, SaleItem, SizeStock } from '@/lib/types';
 import { AppError } from './collections';
 
 /* ---------- size rows and lots ---------- */
@@ -191,9 +191,9 @@ export function saleGross(sale: Sale): number {
   return sale.items.reduce((sum, i) => sum + itemGross(i), 0);
 }
 
-/** What the customer actually owes: kept lines less any referral credit applied. */
+/** What the customer actually owes: kept lines less the code's discount and wallet credit. */
 export function saleTotal(sale: Sale): number {
-  return Math.max(0, saleGross(sale) - sale.creditUsed);
+  return Math.max(0, saleGross(sale) - sale.promoDiscount - sale.creditUsed);
 }
 
 export function saleDue(sale: Sale): number {
@@ -205,9 +205,50 @@ export function saleCost(sale: Sale): number {
   return sale.items.reduce((sum, i) => sum + itemCost(i), 0);
 }
 
-/** Profit recomputed from current state; credit is a cost the shop absorbs. */
+/** Profit recomputed from current state; credit and discounts are costs the shop absorbs. */
 export function saleProfit(sale: Sale): number {
-  return saleGross(sale) - sale.creditUsed - saleCost(sale);
+  return saleGross(sale) - sale.promoDiscount - sale.creditUsed - saleCost(sale);
+}
+
+/* ---------- discount codes ---------- */
+
+/** Normalizes a typed code: case and spaces never make two codes differ. */
+export function normalizeCode(code: string): string {
+  return code.trim().toUpperCase().replace(/\s+/g, '');
+}
+
+/**
+ * How much a code takes off an invoice of `gross`, or the reason it cannot be
+ * used — thrown as an AppError so the seller reads it as is.
+ *
+ * One function for both sides: the sell screen calls it on the cached code to
+ * show the discount before confirming, and the sale transaction calls it again
+ * on the code as the server holds it, which is the answer that counts.
+ */
+export function evaluatePromo(promo: Promo, gross: number, phone: string | null, nowMs: number): number {
+  if (!promo.active) throw new AppError(`الكود ${promo.code} موقوف.`);
+  const expires = promo.expiresAt?.toMillis?.() ?? null;
+  if (expires !== null && nowMs > expires) throw new AppError(`انتهت صلاحية الكود ${promo.code}.`);
+  if (promo.maxUses > 0 && promo.uses >= promo.maxUses)
+    throw new AppError(`الكود ${promo.code} استُخدم بالعدد المسموح.`);
+  if (promo.oncePerCustomer) {
+    if (!phone) throw new AppError(`الكود ${promo.code} يحتاج رقم هاتف العميل.`);
+    if (promo.usedBy.includes(phone)) throw new AppError('العميل استخدم الكود دا قبل كدا.');
+  }
+  if (promo.minTotal > 0 && gross < promo.minTotal)
+    throw new AppError(`الكود ${promo.code} يحتاج فاتورة ${promo.minTotal.toLocaleString('en-US')} ج أو أكثر.`);
+
+  let discount: number;
+  if (promo.kind === 'percent') {
+    discount = Math.floor((gross * Math.min(100, Math.max(0, promo.value))) / 100);
+    if (promo.maxDiscount > 0) discount = Math.min(discount, promo.maxDiscount);
+  } else if (promo.kind === 'fixed') {
+    discount = Math.min(promo.value, gross);
+  } else {
+    if (promo.balance <= 0) throw new AppError(`رصيد القسيمة ${promo.code} خلص.`);
+    discount = Math.min(promo.balance, gross);
+  }
+  return Math.max(0, Math.floor(discount));
 }
 
 /** One-line description for lists: the first product, plus a count of the rest. */

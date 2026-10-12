@@ -146,8 +146,12 @@ export interface Sale {
   customerPhone?: string;
   /** Link to the customers collection, set whenever a phone number was given. */
   customerId?: string | null;
-  /** Referral credit spent on this sale; reduces what the customer owes. */
+  /** Customer wallet credit (referral rewards and gifts) spent on this sale. */
   creditUsed: number;
+  /** Discount code applied, if any. */
+  promoCode?: string;
+  /** What the code took off this invoice, fixed at the moment of sale. */
+  promoDiscount: number;
   paymentStatus: PaymentStatus;
   amountPaid: number;
   soldBy: string;
@@ -165,6 +169,73 @@ export interface Sale {
 
 /** Where a queued operation stands. See lib/offline/outbox.ts. */
 export type SyncState = 'pending' | 'conflict';
+
+/**
+ * percent — a share off the invoice (Eid: 15% off)
+ * fixed   — a flat amount off (5,000 ج off any purchase over 30,000)
+ * gift    — a stored-value voucher: the code carries a balance that is spent
+ *           down across as many purchases as it takes
+ */
+export type PromoKind = 'percent' | 'fixed' | 'gift';
+
+/**
+ * A discount code, offer or gift voucher. The document id IS the code, so a
+ * sale reads it by key inside its transaction and two codes can never collide.
+ */
+export interface Promo {
+  code: string;
+  name: string;
+  kind: PromoKind;
+  /** Percent (1–100) for 'percent'; an amount for 'fixed' and the original value for 'gift'. */
+  value: number;
+  /** Remaining value of a gift voucher. Unused for the other kinds. */
+  balance: number;
+  /** Invoice total (before the code) the code needs. 0 = none. */
+  minTotal: number;
+  /** Most a percent code may take off one invoice. 0 = no cap. */
+  maxDiscount: number;
+  /** Total redemptions allowed. 0 = unlimited. */
+  maxUses: number;
+  uses: number;
+  /** One use per customer phone. */
+  oncePerCustomer: boolean;
+  /** Phones that already used it, for `oncePerCustomer`. */
+  usedBy: string[];
+  expiresAt: Timestamp | null;
+  active: boolean;
+  /** Listed on every customer's card page as a current offer. */
+  public: boolean;
+  note?: string;
+  createdBy: string;
+  createdByName: string;
+  createdAt: Timestamp | null;
+}
+
+/**
+ * What a customer may see about themselves without signing in. Kept apart from
+ * the customer record on purpose: first name only, no phone, no spend history,
+ * no debts. Document id is the normalized phone.
+ */
+export interface CustomerCard {
+  firstName: string;
+  code: string;
+  balance: number;
+  earned: number;
+  referrals: number;
+  updatedAt: Timestamp | null;
+}
+
+/** Credit added to a customer's wallet by hand — a gift, an apology, a prize. */
+export interface CreditGrant {
+  id: string;
+  customerId: string;
+  customerName: string;
+  amount: number;
+  reason: string;
+  grantedBy: string;
+  grantedByName: string;
+  createdAt: Timestamp | null;
+}
 
 export interface Expense {
   id: string;
@@ -209,7 +280,9 @@ export type ActivityAction =
   | 'stock_adjusted'
   | 'edited_settings'
   | 'sync_conflict'
-  | 'sync_discarded';
+  | 'sync_discarded'
+  | 'saved_promo'
+  | 'granted_credit';
 
 export interface ActivityEntry {
   id: string;
@@ -419,6 +492,14 @@ export const ACTION_LABEL: Record<ActivityAction, string> = {
   edited_settings: 'تعديل إعدادات المتجر',
   sync_conflict: 'عملية معلّقة تحتاج مراجعة',
   sync_discarded: 'إلغاء عملية معلّقة',
+  saved_promo: 'كوبون أو عرض',
+  granted_credit: 'هدية رصيد لعميل',
+};
+
+export const PROMO_KIND_LABEL: Record<PromoKind, string> = {
+  percent: 'خصم بنسبة',
+  fixed: 'خصم بمبلغ',
+  gift: 'قسيمة هدية',
 };
 
 export const EXPENSE_CATEGORIES = [

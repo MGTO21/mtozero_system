@@ -31,6 +31,8 @@ const TONE: Record<ActivityAction, string> = {
   edited_settings: 'bg-sunken text-fg-2',
   sync_conflict: 'bg-bad/15 text-bad',
   sync_discarded: 'bg-bad/15 text-bad',
+  saved_promo: 'bg-brand-500/15 text-brand-500',
+  granted_credit: 'bg-good/15 text-good',
 };
 
 export default function ActivityPage() {

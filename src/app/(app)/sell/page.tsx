@@ -15,11 +15,12 @@ import { IconBoxes, IconChevronLeft, IconPlus, IconSearch } from '@/components/u
 import { useOnlineStatus } from '@/lib/hooks/useFirestore';
 import { errorMessage } from '@/lib/db/collections';
 import { availableSizes, productImage, totalStock, useProducts } from '@/lib/db/products';
+import { evaluatePromo, normalizeCode, usePromos } from '@/lib/db/promos';
 import { useSale, type CartLine, type RemainingStock } from '@/lib/db/sales';
 import { submitSale } from '@/lib/offline/operations';
 import { CartList } from '@/components/sell/CartList';
 import { useSettings } from '@/lib/db/settings';
-import { money, num } from '@/lib/format';
+import { money, num, whatsappNumber } from '@/lib/format';
 import { CATEGORY_LABEL, CHANNEL_LABEL, type Channel, type PaymentStatus, type Product } from '@/lib/types';
 
 export default function SellPage() {
@@ -141,8 +142,27 @@ function QuickSale() {
   );
 
   const gross = lines.reduce((sum, l) => sum + l.sellPrice * l.qty, 0);
-  const creditUsed = Math.min(customer.creditUsed, gross);
-  const total = gross - creditUsed;
+
+  // Discount code: checked here against the cached codes so the seller sees the
+  // discount (or why not) before confirming; the transaction checks it again.
+  const { data: promos } = usePromos();
+  const [promoInput, setPromoInput] = useState('');
+  const promoCheck = useMemo(() => {
+    const code = normalizeCode(promoInput);
+    if (!code) return { code: '', discount: 0, error: null as string | null, name: '' };
+    const promo = promos.find((p) => p.code === code);
+    if (!promo) return { code, discount: 0, error: 'الكود غير موجود.', name: '' };
+    try {
+      const discount = evaluatePromo(promo, gross, whatsappNumber(customer.phone), Date.now());
+      return { code, discount, error: null, name: promo.name };
+    } catch (err) {
+      return { code, discount: 0, error: errorMessage(err), name: promo.name };
+    }
+  }, [promoInput, promos, gross, customer.phone]);
+  const promoDiscount = promoCheck.error ? 0 : promoCheck.discount;
+
+  const creditUsed = Math.min(customer.creditUsed, gross - promoDiscount);
+  const total = gross - promoDiscount - creditUsed;
   const due = payment === 'paid' ? 0 : payment === 'debt' ? total : Math.max(0, total - amountPaid);
 
   function addToCart() {
@@ -176,6 +196,7 @@ function QuickSale() {
     setPayment('paid');
     setAmountPaid(0);
     setCustomer({ name: '', phone: '', referredByCode: '', matched: null, creditUsed: 0 });
+    setPromoInput('');
     setSearch('');
     setLastSaleId(null);
     setCart([]);
@@ -209,6 +230,9 @@ function QuickSale() {
           customerPhone: customer.phone,
           referredByCode: customer.referredByCode,
           creditUsed,
+          // A code the screen already rejected is not sent: the seller saw why.
+          promoCode: promoCheck.error ? '' : promoCheck.code,
+          promoDiscount,
           paymentStatus: payment,
           amountPaid,
           channel,
@@ -466,7 +490,39 @@ function QuickSale() {
           ) : null}
 
           <div className="surface p-3.5">
-            <CustomerBlock value={customer} onChange={setCustomer} maxCredit={gross} nameRequired={payment !== 'paid'} />
+            <CustomerBlock
+              value={customer}
+              onChange={setCustomer}
+              maxCredit={gross - promoDiscount}
+              nameRequired={payment !== 'paid'}
+            />
+          </div>
+
+          <div>
+            <label className="label" htmlFor="promo-code">
+              كود خصم أو قسيمة هدية
+            </label>
+            <input
+              id="promo-code"
+              dir="ltr"
+              autoCapitalize="characters"
+              autoComplete="off"
+              value={promoInput}
+              onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
+              className={`field text-left font-display font-black tracking-wider ${
+                promoCheck.error ? 'border-bad' : promoDiscount > 0 ? 'border-good' : ''
+              }`}
+              placeholder="اختياري"
+            />
+            {promoCheck.code ? (
+              promoCheck.error ? (
+                <p className="mt-1 text-[0.8rem] font-bold text-bad">{promoCheck.error}</p>
+              ) : (
+                <p className="tnum mt-1 text-[0.82rem] font-bold text-good">
+                  {promoCheck.name} — خصم {money(promoDiscount)}
+                </p>
+              )
+            ) : null}
           </div>
 
           <div>
@@ -491,7 +547,8 @@ function QuickSale() {
               <div className="min-w-0 flex-1">
                 <p className="tnum text-[0.76rem] font-bold text-fg-3">
                   الإجمالي · {num(units)} قطعة
-                  {creditUsed > 0 ? ` · خصم إحالة ${money(creditUsed)}` : ''}
+                  {promoDiscount > 0 ? ` · كود ${money(promoDiscount)}` : ''}
+                  {creditUsed > 0 ? ` · رصيد ${money(creditUsed)}` : ''}
                 </p>
                 <p className="tnum font-display text-num-lg font-black leading-tight">{money(total)}</p>
                 {due > 0 ? <p className="tnum text-[0.78rem] font-bold text-warn">دين {money(due)}</p> : null}

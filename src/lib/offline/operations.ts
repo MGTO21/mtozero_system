@@ -73,6 +73,7 @@ async function execute(entry: OutboxEntry, replay: boolean): Promise<RemainingSt
         customerPhone: op.customerPhone,
         customerId: customer?.id ?? null,
         creditUsed: op.creditUsed,
+        promoCode: op.promoCode || undefined,
         paymentStatus: op.paymentStatus,
         amountPaid: op.amountPaid,
         channel: op.channel,
@@ -141,6 +142,9 @@ export interface SaleSubmission {
   customerPhone: string;
   referredByCode: string;
   creditUsed: number;
+  /** Code typed at the counter, and what the screen worked out it takes off. */
+  promoCode: string;
+  promoDiscount: number;
   paymentStatus: SaleOp['paymentStatus'];
   amountPaid: number;
   channel: SaleOp['channel'];
@@ -179,13 +183,16 @@ function previewItems(cart: CartLine[]): SaleItem[] {
 
 export async function submitSale(input: SaleSubmission, actor: Actor) {
   const lines = toSaleLines(input.cart);
-  const { credit, paid } = validateSale({
-    lines,
-    creditUsed: input.creditUsed,
-    paymentStatus: input.paymentStatus,
-    amountPaid: input.amountPaid,
-    channel: input.channel,
-  });
+  const { credit, paid, promo } = validateSale(
+    {
+      lines,
+      creditUsed: input.creditUsed,
+      paymentStatus: input.paymentStatus,
+      amountPaid: input.amountPaid,
+      channel: input.channel,
+    },
+    input.promoCode ? input.promoDiscount : 0,
+  );
   if (input.paymentStatus !== 'paid' && !input.customerName.trim())
     throw new AppError('أدخل اسم العميل لتسجيل الدين.');
 
@@ -196,6 +203,8 @@ export async function submitSale(input: SaleSubmission, actor: Actor) {
     customerPhone: input.customerPhone.trim(),
     referredByCode: input.referredByCode.trim(),
     creditUsed: credit,
+    promoCode: input.promoCode.trim().toUpperCase(),
+    promoDiscount: promo,
     paymentStatus: input.paymentStatus,
     amountPaid: paid,
     channel: input.channel,

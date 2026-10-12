@@ -27,7 +27,12 @@ export interface InvoiceModel {
   gross: number;
   /** What the customer saved against list prices — shown because customers like seeing it. */
   saved: number;
+  /** Wallet credit spent (referral rewards and gifts). */
   credit: number;
+  /** Discount code applied, with what it took off. */
+  promo: { code: string; amount: number } | null;
+  /** Public page where the customer checks balance and code. */
+  cardUrl: string | null;
   total: number;
   paid: number;
   due: number;
@@ -45,6 +50,7 @@ export function buildInvoice(
   sale: Sale,
   settings: Pick<ShopSettings, 'shopName' | 'invoiceFooter' | 'returnPolicy' | 'referralReward'>,
   referralCode: string | null = null,
+  cardUrl: string | null = null,
 ): InvoiceModel {
   const lines = sale.items
     .filter((i) => itemNetQty(i) > 0)
@@ -56,7 +62,10 @@ export function buildInvoice(
       listUnit: i.listPrice > i.sellPrice ? i.listPrice : null,
       total: itemGross(i),
     }));
-  const saved = lines.reduce((sum, l) => sum + (l.listUnit ? (l.listUnit - l.unit) * l.qty : 0), 0) + sale.creditUsed;
+  const saved =
+    lines.reduce((sum, l) => sum + (l.listUnit ? (l.listUnit - l.unit) * l.qty : 0), 0) +
+    sale.creditUsed +
+    sale.promoDiscount;
   const total = saleTotal(sale);
   const due = saleDue(sale);
 
@@ -71,6 +80,8 @@ export function buildInvoice(
     gross: saleGross(sale),
     saved,
     credit: sale.creditUsed,
+    promo: sale.promoCode && sale.promoDiscount > 0 ? { code: sale.promoCode, amount: sale.promoDiscount } : null,
+    cardUrl,
     total,
     paid: Math.min(sale.amountPaid, total),
     due,
@@ -110,9 +121,10 @@ export function invoiceText(model: InvoiceModel): string {
   }
 
   out.push('');
-  if (model.credit > 0) {
+  if (model.credit > 0 || model.promo) {
     out.push(`المجموع: ${money(model.gross)}`);
-    out.push(`خصم رصيد الإحالة: ${money(model.credit)}-`);
+    if (model.promo) out.push(`كود ${model.promo.code}: ${money(model.promo.amount)}-`);
+    if (model.credit > 0) out.push(`من رصيدك: ${money(model.credit)}-`);
   }
   out.push(`الإجمالي: ${money(model.total)}`);
   if (model.saved > 0) out.push(`وفّرت معانا: ${money(model.saved)}`);
@@ -128,6 +140,9 @@ export function invoiceText(model: InvoiceModel): string {
     out.push('');
     out.push(`🎁 كودك: ${model.referralCode}`);
     out.push(`أي صاحب يشتري بيه، تاخد ${money(model.referralReward)} خصم في مشترياتك الجاية.`);
+  }
+  if (model.cardUrl) {
+    out.push(`رصيدك وكودك في أي وقت: ${model.cardUrl}`);
   }
 
   if (model.returnPolicy) {

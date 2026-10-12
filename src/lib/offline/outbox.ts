@@ -36,6 +36,10 @@ export interface SaleOp {
   customerPhone: string;
   referredByCode: string;
   creditUsed: number;
+  /** Discount code, re-checked by the transaction when the sale is sent. */
+  promoCode: string;
+  /** What the device worked out the code takes off — display only. */
+  promoDiscount: number;
   paymentStatus: PaymentStatus;
   amountPaid: number;
   channel: Channel;

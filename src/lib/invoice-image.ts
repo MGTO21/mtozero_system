@@ -140,11 +140,18 @@ async function draw(
   if (paint) perforation(ctx, y);
   y += 48;
 
-  if (model.credit > 0) {
+  if (model.credit > 0 || model.promo) {
     if (paint) row(ctx, y, 'المجموع', money(model.gross), { size: 21, color: MUTED });
     y += 40;
-    if (paint) row(ctx, y, 'خصم رصيد الإحالة', `- ${money(model.credit)}`, { size: 21, color: GOOD });
-    y += 44;
+    if (model.promo) {
+      if (paint) row(ctx, y, `كود ${model.promo.code}`, `- ${money(model.promo.amount)}`, { size: 21, color: GOOD });
+      y += 40;
+    }
+    if (model.credit > 0) {
+      if (paint) row(ctx, y, 'من رصيدك', `- ${money(model.credit)}`, { size: 21, color: GOOD });
+      y += 40;
+    }
+    y += 4;
   }
 
   // The total: the number the customer looks for.

@@ -157,6 +157,50 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    /* ---------- discount codes, offers and gift vouchers ---------- */
+    match /promos/{code} {
+      // Codes the owner marked public are listed on customers' card pages, which
+      // are opened without signing in. Queries must filter on public == true.
+      allow read: if member() || resource.data.public == true;
+      allow create, delete: if isOwner() && request.resource.data.code == code;
+      // The owner edits anything. A sale (any member) may only redeem: one more
+      // use, the buyer added to usedBy, a gift balance spent down — never the
+      // terms of the code itself.
+      allow update: if isOwner()
+        || (member()
+          && request.resource.data.code == resource.data.code
+          && request.resource.data.kind == resource.data.kind
+          && request.resource.data.value == resource.data.value
+          && request.resource.data.minTotal == resource.data.minTotal
+          && request.resource.data.maxDiscount == resource.data.maxDiscount
+          && request.resource.data.maxUses == resource.data.maxUses
+          && request.resource.data.expiresAt == resource.data.expiresAt
+          && request.resource.data.active == resource.data.active
+          && request.resource.data.public == resource.data.public
+          && request.resource.data.uses == resource.data.uses + 1
+          && request.resource.data.balance <= resource.data.balance);
+    }
+
+    /* ---------- customers' public cards ---------- */
+    match /cards/{phone} {
+      // A customer looks up their own card by phone number, without an account.
+      // Only a single, exactly-named card can be fetched: listing is refused, so
+      // the collection cannot be dumped. The card holds a first name, the code
+      // and the balance — nothing else about the customer.
+      allow get: if true;
+      allow list: if false;
+      allow create, update: if member();
+      allow delete: if false;
+    }
+
+    /* ---------- credit gifted to customers ---------- */
+    match /creditGrants/{grantId} {
+      allow read: if member();
+      allow create: if isOwner() && request.resource.data.grantedBy == request.auth.uid;
+      // Money given away: append-only.
+      allow update, delete: if false;
+    }
+
     /* ---------- referrals ---------- */
     match /referrals/{referralId} {
       allow read: if member();

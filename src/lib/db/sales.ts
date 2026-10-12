@@ -35,12 +35,16 @@ import type {
 import { AppError, COL } from './collections';
 import { logActivity } from './activity';
 import { normalizeStoredSizes } from './products';
+import { cardFields, mapPromo } from './promos';
+import { whatsappNumber } from '@/lib/format';
 import {
   averageCost,
   consumeFifo,
+  evaluatePromo,
   itemNetQty,
   lotsAfterReturns,
   lotsCost,
+  normalizeCode,
   reconcileSize,
   saleDue,
   saleTotal,
@@ -126,6 +130,8 @@ export function mapSale(id: string, raw: Record<string, unknown>): Sale {
     customerPhone: (raw.customerPhone as string) || undefined,
     customerId: (raw.customerId as string) ?? null,
     creditUsed: Number(raw.creditUsed ?? 0),
+    promoCode: (raw.promoCode as string) || undefined,
+    promoDiscount: Number(raw.promoDiscount ?? 0),
     paymentStatus: (raw.paymentStatus as PaymentStatus) ?? 'paid',
     amountPaid: Number(raw.amountPaid ?? 0),
     soldBy: String(raw.soldBy ?? ''),
@@ -335,8 +341,10 @@ export interface SaleInput {
   customerPhone?: string;
   /** Existing customer record, when the buyer was matched or created up front. */
   customerId?: string | null;
-  /** Referral credit the customer is spending on this purchase. */
+  /** Wallet credit (referral rewards, gifts) the customer is spending on this purchase. */
   creditUsed?: number;
+  /** Discount code typed at the counter. Checked and redeemed inside the transaction. */
+  promoCode?: string;
   paymentStatus: PaymentStatus;
   /** Cash collected now. Ignored for 'paid' (full) and 'debt' (zero). */
   amountPaid?: number;
@@ -377,21 +385,30 @@ export function effectivePaid(status: PaymentStatus, total: number, typed: numbe
   return Math.min(Math.max(0, typed ?? 0), total);
 }
 
-export function validateSale(input: SaleInput): { gross: number; credit: number; total: number; paid: number } {
+/**
+ * The invoice arithmetic, in the order it applies: lines → code discount →
+ * wallet credit → what is paid now. `promoDiscount` comes from `evaluatePromo`;
+ * the screen passes its local estimate, the transaction passes the server's.
+ */
+export function validateSale(
+  input: SaleInput,
+  promoDiscount = 0,
+): { gross: number; promo: number; credit: number; total: number; paid: number } {
   if (input.lines.length === 0) throw new AppError('السلة فارغة — أضف صنفاً واحداً على الأقل.');
   for (const line of input.lines) {
     if (line.qty <= 0) throw new AppError('الكمية يجب أن تكون قطعة واحدة على الأقل.');
     if (line.sellPrice <= 0) throw new AppError(`سعر البيع غير صحيح لـ "${line.productName}".`);
   }
   const gross = input.lines.reduce((sum, l) => sum + l.sellPrice * l.qty, 0);
-  // Referral credit is applied before payment: it lowers what the customer owes,
-  // so a fully-credited sale is 'paid' with no cash at all.
-  const credit = Math.min(Math.max(0, input.creditUsed ?? 0), gross);
-  const total = gross - credit;
+  const promo = Math.min(Math.max(0, promoDiscount), gross);
+  // Credit is applied before payment: it lowers what the customer owes, so a
+  // fully-credited sale is 'paid' with no cash at all.
+  const credit = Math.min(Math.max(0, input.creditUsed ?? 0), gross - promo);
+  const total = gross - promo - credit;
   const paid = effectivePaid(input.paymentStatus, total, input.amountPaid);
-  if (input.paymentStatus === 'partial' && paid <= 0)
+  if (input.paymentStatus === 'partial' && paid <= 0 && total > 0)
     throw new AppError('أدخل المبلغ المدفوع، أو اختر "دين كامل".');
-  return { gross, credit, total, paid };
+  return { gross, promo, credit, total, paid };
 }
 
 /**
@@ -416,7 +433,12 @@ export async function recordSale(
   options: ReplayOptions,
 ): Promise<{ saleId: string; remaining: RemainingStock; alreadyApplied: boolean }> {
   const lines = input.lines.map((l) => ({ ...l, qty: Math.floor(l.qty) }));
-  const { credit, total, paid } = validateSale({ ...input, lines });
+  const { gross } = validateSale({ ...input, lines });
+  const promoCode = input.promoCode ? normalizeCode(input.promoCode) : '';
+  const promoRef = promoCode ? doc(db(), COL.promos, promoCode) : null;
+  const buyerPhone = whatsappNumber(input.customerPhone);
+  // Filled in by the transaction, read by the activity log after it.
+  let total = 0;
 
   // Group by product so each document is read and written exactly once.
   const byProduct = new Map<string, SaleLine[]>();
@@ -437,6 +459,19 @@ export async function recordSale(
       productIds.map((id) => tx.get(doc(db(), COL.products, id))),
     );
     const customerSnap = customerRef ? await tx.get(customerRef) : null;
+    const promoSnap = promoRef ? await tx.get(promoRef) : null;
+
+    // The code is judged here, against the server's copy, in the same
+    // transaction that redeems it — so a code limited to 20 uses cannot be used
+    // 21 times by two phones racing, and a failed sale never burns a use.
+    let promoDiscount = 0;
+    if (promoRef) {
+      if (!promoSnap?.exists()) throw new AppError(`الكود ${promoCode} غير موجود.`);
+      promoDiscount = evaluatePromo(mapPromo(promoSnap.id, promoSnap.data()), gross, buyerPhone, options.at);
+    }
+    const priced = validateSale({ ...input, lines }, promoDiscount);
+    const { credit, paid } = priced;
+    total = priced.total;
 
     // Credit is validated inside the same transaction as the stock move, so a
     // failed sale can never leave a customer's balance reduced.
@@ -503,12 +538,14 @@ export async function recordSale(
 
     tx.set(saleRef, {
       items,
-      // Credit spent is a real cost to the shop, so it comes out of profit too.
-      profit: items.reduce((sum, it) => sum + it.profit, 0) - credit,
+      // Credit and discounts are a real cost to the shop, so they come out of profit too.
+      profit: items.reduce((sum, it) => sum + it.profit, 0) - credit - priced.promo,
       customerName: input.customerName?.trim() || null,
       customerPhone: input.customerPhone?.trim() || null,
       customerId: input.customerId ?? null,
       creditUsed: credit,
+      promoCode: promoCode || null,
+      promoDiscount: priced.promo,
       paymentStatus: input.paymentStatus,
       amountPaid: paid,
       soldBy: actor.uid,
@@ -523,11 +560,36 @@ export async function recordSale(
 
     if (customerRef && customerSnap?.exists()) {
       const customer = customerSnap.data();
+      const balance = Math.max(0, Number(customer.creditBalance ?? 0) - credit);
       tx.update(customerRef, {
-        creditBalance: Math.max(0, Number(customer.creditBalance ?? 0) - credit),
+        creditBalance: balance,
         totalSpent: Number(customer.totalSpent ?? 0) + total,
         totalOrders: Number(customer.totalOrders ?? 0) + 1,
         lastPurchaseAt: serverTimestamp(),
+      });
+      // The customer's public card shows the new balance the moment they pay.
+      const phone = String(customer.phone ?? '');
+      if (phone) {
+        tx.set(
+          doc(db(), COL.cards, phone),
+          cardFields({
+            name: String(customer.name ?? ''),
+            referralCode: String(customer.referralCode ?? ''),
+            creditBalance: balance,
+            creditEarned: Number(customer.creditEarned ?? 0),
+            referralCount: Number(customer.referralCount ?? 0),
+          }),
+        );
+      }
+    }
+
+    if (promoRef && promoSnap?.exists() && priced.promo > 0) {
+      const promo = mapPromo(promoSnap.id, promoSnap.data());
+      tx.update(promoRef, {
+        uses: promo.uses + 1,
+        ...(promo.oncePerCustomer && buyerPhone ? { usedBy: [...promo.usedBy, buyerPhone] } : {}),
+        // A gift voucher is spent down; whatever is left stays on the code.
+        ...(promo.kind === 'gift' ? { balance: Math.max(0, promo.balance - priced.promo) } : {}),
       });
     }
 
@@ -692,7 +754,7 @@ export async function recordReturn(
 
     tx.update(saleRef, {
       items: nextItems,
-      profit: nextItems.reduce((sum, it) => sum + it.profit, 0) - fresh.creditUsed,
+      profit: nextItems.reduce((sum, it) => sum + it.profit, 0) - fresh.creditUsed - fresh.promoDiscount,
       amountPaid: nextPaid,
       paymentStatus: statusFor(nextTotal, nextPaid),
     });

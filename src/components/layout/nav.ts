@@ -4,6 +4,7 @@ import {
   IconCashRegister,
   IconChart,
   IconClipboard,
+  IconCoupon,
   IconDebt,
   IconGauge,
   IconHistory,
@@ -46,6 +47,7 @@ export const NAV: NavItem[] = [
   { href: '/close', label: 'تقفيل اليوم', icon: IconCashRegister, section: 'daily' },
   { href: '/customers', label: 'العملاء', icon: IconUserCircle, section: 'daily' },
   { href: '/campaigns', label: 'حملات واتساب', icon: IconMegaphone, section: 'daily', ownerOnly: true },
+  { href: '/offers', label: 'العروض والكوبونات', icon: IconCoupon, section: 'daily', ownerOnly: true },
 
   { href: '/inventory', label: 'المخزون', icon: IconBoxes, section: 'stock' },
   { href: '/shipments', label: 'الشحنات', icon: IconShip, section: 'stock' },

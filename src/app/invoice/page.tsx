@@ -169,10 +169,13 @@ function InvoicePrint() {
         </table>
 
         <dl className="mt-4 space-y-1.5">
-          {invoice.credit > 0 ? (
+          {invoice.credit > 0 || invoice.promo ? (
             <>
               <Row label="المجموع" value={money(invoice.gross)} muted />
-              <Row label="خصم رصيد الإحالة" value={`- ${money(invoice.credit)}`} good />
+              {invoice.promo ? (
+                <Row label={`كود ${invoice.promo.code}`} value={`- ${money(invoice.promo.amount)}`} good />
+              ) : null}
+              {invoice.credit > 0 ? <Row label="من رصيدك" value={`- ${money(invoice.credit)}`} good /> : null}
             </>
           ) : null}
           <div className="flex items-baseline justify-between border-t-2 border-[#1A1714] pt-2">
@@ -202,6 +205,11 @@ function InvoicePrint() {
               {invoice.referralCode}
             </p>
             <p className="text-[0.85em]">كل صاحب يشتري بيه، تاخد {money(invoice.referralReward)} خصم في مشترياتك الجاية</p>
+            {invoice.cardUrl ? (
+              <p dir="ltr" className="mt-1 break-all text-[0.75em] text-[#6B6257]">
+                {invoice.cardUrl.replace(/^https?:\/\//, '')}
+              </p>
+            ) : null}
           </div>
         ) : null}
 

@@ -296,9 +296,15 @@ function SaleDetail({
       </ul>
 
       <dl className="mt-3 space-y-1.5 px-1">
+        {sale.promoDiscount > 0 ? (
+          <div className="flex justify-between text-[0.9rem] font-bold text-good">
+            <dt>كود {sale.promoCode}</dt>
+            <dd className="tnum">- {money(sale.promoDiscount)}</dd>
+          </div>
+        ) : null}
         {sale.creditUsed > 0 ? (
           <div className="flex justify-between text-[0.9rem] font-bold text-good">
-            <dt>خصم رصيد الإحالة</dt>
+            <dt>من رصيد العميل</dt>
             <dd className="tnum">- {money(sale.creditUsed)}</dd>
           </div>
         ) : null}

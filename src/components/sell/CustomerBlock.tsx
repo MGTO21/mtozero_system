@@ -241,7 +241,7 @@ export function CustomerBlock({ value, onChange, maxCredit, nameRequired }: Prop
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
             <span className="inline-flex items-center gap-1.5 text-[0.85rem] font-bold text-good">
               <IconUsers className="h-4 w-4" />
-              رصيد إحالة متاح
+              رصيد العميل
             </span>
             <span className="tnum font-display text-num font-black text-good">{money(credit)}</span>
             <span className="flex-1" />

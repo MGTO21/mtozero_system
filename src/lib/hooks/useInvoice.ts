@@ -1,12 +1,17 @@
 'use client';
 
 import { useMemo } from 'react';
-import { useCustomers } from '@/lib/db/customers';
-import { makeReferralCode } from '@/lib/db/customers';
+import { makeReferralCode, useCustomers } from '@/lib/db/customers';
 import { useSettings } from '@/lib/db/settings';
 import { whatsappNumber } from '@/lib/format';
 import { buildInvoice, type InvoiceModel } from '@/lib/invoice';
 import type { Sale } from '@/lib/types';
+
+/** Public card page for a phone — what the customer opens to check balance and code. */
+export function cardUrlFor(phone: string): string {
+  const origin = typeof window === 'undefined' ? '' : window.location.origin;
+  return `${origin}/card?p=${phone}`;
+}
 
 /**
  * The invoice for a sale, with the shop's settings and the customer's own
@@ -29,6 +34,6 @@ export function useInvoice(sale: Sale | null): InvoiceModel | null {
       const known = customers.find((c) => c.phone === phone);
       code = known?.referralCode ?? makeReferralCode(sale.customerName?.trim() || 'عميل', phone);
     }
-    return buildInvoice(sale, settings, code);
+    return buildInvoice(sale, settings, code, phone ? cardUrlFor(phone) : null);
   }, [sale, settings, customers]);
 }

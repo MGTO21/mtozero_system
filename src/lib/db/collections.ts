@@ -12,6 +12,9 @@ export const COL = {
   referrals: 'referrals',
   campaigns: 'campaigns',
   stockCounts: 'stockCounts',
+  promos: 'promos',
+  cards: 'cards',
+  creditGrants: 'creditGrants',
   settings: 'settings',
 } as const;
 

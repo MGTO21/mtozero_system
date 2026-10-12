@@ -8,6 +8,7 @@ import { EmptyState, ErrorBlock, PermissionNotice, SkeletonRows } from '@/compon
 import {
   IconCopy,
   IconDownload,
+  IconGift,
   IconSearch,
   IconShare,
   IconUserCircle,
@@ -17,6 +18,10 @@ import { PageHeader } from '@/components/ui/PageHeader';
 import { Sheet } from '@/components/ui/Sheet';
 import { downloadCsv, stamp } from '@/lib/csv';
 import { useCustomers, useReferrals } from '@/lib/db/customers';
+import { errorMessage } from '@/lib/db/collections';
+import { grantCredit, publishAllCards } from '@/lib/db/promos';
+import { cardUrlFor } from '@/lib/hooks/useInvoice';
+import { useActor } from '@/components/providers/AuthProvider';
 import { useSettings } from '@/lib/db/settings';
 import { formatDate, money, num, whatsappNumber } from '@/lib/format';
 import { copyText } from '@/lib/invoice';
@@ -34,6 +39,21 @@ export default function CustomersPage() {
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<Sort>('recent');
   const [broadcast, setBroadcast] = useState(false);
+  const [gifting, setGifting] = useState<Customer | null>(null);
+  const [publishing, setPublishing] = useState(false);
+
+  /** Writes a card for every existing customer so they can all look themselves up. */
+  async function publishCards() {
+    setPublishing(true);
+    try {
+      const count = await publishAllCards(customers);
+      toast.success(`جهزت بطاقات ${num(count)} عميل`);
+    } catch (err) {
+      toast.error(errorMessage(err, 'تعذّر تجهيز البطاقات.'));
+    } finally {
+      setPublishing(false);
+    }
+  }
 
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -71,7 +91,7 @@ export default function CustomersPage() {
     <>
       <PageHeader
         title="العملاء"
-        subtitle={loading ? undefined : `${num(customers.length)} عميل · رصيد إحالات ${money(totalCredit)}`}
+        subtitle={loading ? undefined : `${num(customers.length)} عميل · أرصدة عند العملاء ${money(totalCredit)}`}
         action={
           customers.length > 0 ? (
             <div className="flex gap-2">
@@ -119,6 +139,21 @@ export default function CustomersPage() {
         </div>
       </div>
 
+      {isOwner && customers.length > 0 ? (
+        <div className="surface-sunken mb-3 flex flex-wrap items-center gap-3 px-3.5 py-3">
+          <p className="min-w-0 flex-1 text-[0.84rem] font-semibold text-fg-2">
+            العملاء يشوفوا رصيدهم وكودهم برقم الهاتف في صفحة{' '}
+            <a href="/card" target="_blank" rel="noopener noreferrer" className="font-bold text-fg underline">
+              البطاقة
+            </a>
+            . العملاء القدام محتاجين تجهيز مرة واحدة.
+          </p>
+          <Button variant="secondary" size="sm" loading={publishing} onClick={() => void publishCards()}>
+            جهّز كل البطاقات
+          </Button>
+        </div>
+      ) : null}
+
       {denied ? (
         <PermissionNotice collection="customers" isOwner={isOwner} />
       ) : error ? (
@@ -140,7 +175,13 @@ export default function CustomersPage() {
       ) : (
         <ul className="space-y-2">
           {visible.map((c) => (
-            <CustomerRow key={c.id} customer={c} reward={settings.referralReward} />
+            <CustomerRow
+              key={c.id}
+              customer={c}
+              reward={settings.referralReward}
+              canGift={isOwner}
+              onGift={() => setGifting(c)}
+            />
           ))}
         </ul>
       )}
@@ -169,14 +210,26 @@ export default function CustomersPage() {
       ) : null}
 
       <BroadcastSheet open={broadcast} onClose={() => setBroadcast(false)} customers={visible} />
+      <GiftSheet customer={gifting} onClose={() => setGifting(null)} />
     </>
   );
 }
 
-function CustomerRow({ customer, reward }: { customer: Customer; reward: number }) {
+function CustomerRow({
+  customer,
+  reward,
+  canGift,
+  onGift,
+}: {
+  customer: Customer;
+  reward: number;
+  canGift: boolean;
+  onGift: () => void;
+}) {
   const toast = useToast();
   const wa = whatsappNumber(customer.phone);
-  const inviteText = `السلام عليكم 🌸\nاستخدم كودي ${customer.referralCode} عند الشراء من MTOZERO وتحصل أنت وأنا على مكافأة.\nكل إحالة ناجحة = ${money(reward)} رصيد خصم.`;
+  const inviteText = `السلام عليكم\nاستخدم كودي ${customer.referralCode} عند الشراء من MTOZERO.\nكل صاحب يشتري بيه = ${money(reward)} رصيد خصم.`;
+  const cardText = `أهلاً ${customer.name.trim().split(/\s+/)[0]}\nرصيدك عندنا ${money(customer.creditBalance)}، وكود الإحالة حقك ${customer.referralCode}.\nتقدر تشوفهم في أي وقت هنا:\n${wa ? cardUrlFor(wa) : ''}`;
 
   return (
     <li className="surface p-3.5">
@@ -226,15 +279,25 @@ function CustomerRow({ customer, reward }: { customer: Customer; reward: number 
           <IconCopy className="h-4 w-4" />
           رسالة الإحالة
         </button>
+        {canGift ? (
+          <button
+            type="button"
+            onClick={onGift}
+            className="inline-flex items-center gap-1.5 rounded-card px-2.5 py-1.5 text-[0.76rem] font-bold text-fg-2 transition hover:bg-sunken"
+          >
+            <IconGift className="h-4 w-4" />
+            هدية رصيد
+          </button>
+        ) : null}
         {wa ? (
           <a
-            href={`https://wa.me/${wa}`}
+            href={`https://wa.me/${wa}?text=${encodeURIComponent(cardText)}`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 rounded-card px-2.5 py-1.5 text-[0.76rem] font-bold text-good transition hover:bg-good/10"
           >
             <IconWhatsApp className="h-4 w-4" />
-            محادثة
+            أرسل بطاقته
           </a>
         ) : null}
       </div>
@@ -320,6 +383,97 @@ function BroadcastSheet({
             </li>
           ))}
         </ul>
+      </div>
+    </Sheet>
+  );
+}
+
+/**
+ * Adds credit to one customer's wallet: a birthday gift, an apology for a late
+ * order, a prize. Lands in the same balance as referral rewards and is spent
+ * the same way at the counter. Needs a connection — it is money given away, so
+ * it is written straight to the server with its reason, never queued.
+ */
+function GiftSheet({ customer, onClose }: { customer: Customer | null; onClose: () => void }) {
+  const actor = useActor();
+  const toast = useToast();
+  const [amount, setAmount] = useState(0);
+  const [reason, setReason] = useState('');
+  const [busy, setBusy] = useState(false);
+
+  if (!customer) return null;
+
+  async function save() {
+    if (!customer) return;
+    setBusy(true);
+    try {
+      await grantCredit(customer, amount, reason, actor);
+      toast.success(`أُضيف ${money(amount)} لرصيد ${customer.name}`);
+      setAmount(0);
+      setReason('');
+      onClose();
+    } catch (err) {
+      toast.error(errorMessage(err, 'تعذّر إضافة الرصيد — تحتاج اتصال.'));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Sheet
+      open
+      onClose={onClose}
+      title="هدية رصيد"
+      subtitle={`${customer.name} · رصيده الحالي ${money(customer.creditBalance)}`}
+      footer={
+        <Button block size="lg" variant="ink" loading={busy} disabled={amount <= 0 || !reason.trim()} onClick={() => void save()}>
+          إضافة {amount > 0 ? money(amount) : ''}
+        </Button>
+      }
+    >
+      <div className="space-y-4">
+        <div>
+          <label className="label" htmlFor="g-amount">
+            المبلغ
+          </label>
+          <input
+            id="g-amount"
+            type="number"
+            inputMode="numeric"
+            min={1}
+            className="field tnum text-center font-display text-num-lg font-black text-good"
+            value={amount || ''}
+            onChange={(e) => setAmount(Math.max(0, Math.floor(Number(e.target.value) || 0)))}
+          />
+          <div className="scroller mt-2 sm:mx-0 sm:px-0">
+            {[1000, 2000, 5000, 10000].map((v) => (
+              <button
+                key={v}
+                type="button"
+                onClick={() => setAmount(v)}
+                className="press tnum h-9 shrink-0 rounded-card border border-line-strong bg-surface px-3 text-[0.84rem] font-bold"
+              >
+                {money(v)}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="label" htmlFor="g-reason">
+            السبب
+          </label>
+          <input
+            id="g-reason"
+            className="field"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="هدية عيد ميلاد، تعويض تأخير، عميل مميز…"
+          />
+        </div>
+        <p className="text-[0.8rem] leading-relaxed text-fg-3">
+          الرصيد يظهر في بطاقة العميل فوراً، ويتخصم من فاتورته الجاية لما يقول للبائع «استخدم رصيدي». الهدية
+          تتسجّل باسمك وسببها في سجل النشاط.
+        </p>
       </div>
     </Sheet>
   );

@@ -35,7 +35,9 @@ const ROUTES = [
   '/team',
   '/settings',
   '/sync',
+  '/offers',
   '/invoice',
+  '/card',
 ];
 
 const STATIC_URLS = ['/manifest.json', '/icons/icon-192.png', '/icons/icon-512.png'];
