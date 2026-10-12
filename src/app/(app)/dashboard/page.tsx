@@ -9,8 +9,10 @@ import { useQueueSummary } from '@/components/layout/SyncStatus';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { Button } from '@/components/ui/Button';
 import { EmptyState, ErrorBlock, Figure, SkeletonRows } from '@/components/ui/Feedback';
+import { useNewOrderCount } from '@/lib/db/store';
 import {
   IconAlert,
+  IconBag,
   IconCashRegister,
   IconChevronLeft,
   IconDebt,
@@ -38,6 +40,7 @@ const LONG_DATE = new Intl.DateTimeFormat('ar-EG', { weekday: 'long', day: 'nume
 export default function DashboardPage() {
   const { profile, isOwner, canSeeProfit } = useAuth();
   const queue = useQueueSummary(profile?.uid);
+  const newOrders = useNewOrderCount();
 
   // One window covers today, yesterday, the last 7 days and the current month.
   const { from, to, todayStart, yesterdayStart, weekStart, monthStart } = useMemo(() => {
@@ -86,6 +89,8 @@ export default function DashboardPage() {
 
   // What needs a person today, most urgent first. Empty means a quiet day.
   const attention: { key: string; href: string; icon: ComponentType<SVGProps<SVGSVGElement>>; tone: string; title: string; note: string }[] = [];
+  if (newOrders > 0)
+    attention.push({ key: 'orders', href: '/orders', icon: IconBag, tone: 'text-brand-500', title: `${num(newOrders)} طلب جديد من الموقع`, note: 'أكّدها مع العملاء واتساب' });
   if (queue.conflicts.length > 0)
     attention.push({ key: 'conflict', href: '/sync', icon: IconAlert, tone: 'text-bad', title: `${num(queue.conflicts.length)} عملية رفضها النظام`, note: 'محتاجة قرارك — غالباً قطعة اتباعت من جهازين' });
   if (queue.pending.length > 0)

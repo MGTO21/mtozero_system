@@ -15,6 +15,10 @@ export const COL = {
   promos: 'promos',
   cards: 'cards',
   creditGrants: 'creditGrants',
+  catalog: 'catalog',
+  catalogThumbs: 'catalogThumbs',
+  storefront: 'storefront',
+  orders: 'orders',
   settings: 'settings',
 } as const;
 

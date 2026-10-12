@@ -3,7 +3,7 @@ import type { Timestamp } from 'firebase/firestore';
 export type Category = 'shoes' | 'clothing';
 export type Role = 'owner' | 'employee';
 export type PaymentStatus = 'paid' | 'debt' | 'partial';
-export type Channel = 'whatsapp' | 'facebook' | 'in_person' | 'other';
+export type Channel = 'whatsapp' | 'facebook' | 'in_person' | 'website' | 'other';
 
 /**
  * One batch of a single size that arrived together.
@@ -103,7 +103,115 @@ export interface Product {
   isArchived: boolean;
   /** Set on every sale so the stale-stock report needs no cross-collection scan. */
   lastSoldAt?: Timestamp | null;
+  /** Shown to customers on the product page of the online store. */
+  description?: string;
+  /** False hides the product from the online store; absent means shown. */
+  onStore: boolean;
 }
+
+/* ---------- online store ---------- */
+
+/**
+ * How a size reads to a customer. Exact counts stay private — "last pieces"
+ * creates urgency without telling competitors how deep the stock is.
+ */
+export type StoreSizeState = 'in' | 'last' | 'out';
+
+/**
+ * The public face of a product: catalog/{productId}. Never carries cost,
+ * supplier, lots or quantities — it is readable by anyone.
+ */
+export interface CatalogItem {
+  id: string;
+  name: string;
+  brand?: string;
+  category: Category;
+  price: number;
+  sizes: { size: string; state: StoreSizeState }[];
+  description?: string;
+  /** Full-size Cloudinary picture when there is one; otherwise /img/{id} serves the thumbnail. */
+  imageUrl: string | null;
+  /** Changes whenever the thumbnail does, so cached images refresh. */
+  thumbHash: string;
+  /** Listed on the store: in stock, has a picture, not archived or hidden. */
+  listed: boolean;
+  createdAtMs: number;
+  lastSoldAtMs: number;
+}
+
+/** Store-wide settings shown to customers: storefront/config. */
+export interface StoreConfig {
+  shopName: string;
+  tagline: string;
+  /** WhatsApp number orders are sent to, 249… form. */
+  whatsapp: string;
+  address: string;
+  deliveryFee: number;
+  /** Order subtotal from which delivery is free. 0 = never free. */
+  freeDeliveryOver: number;
+  pickupEnabled: boolean;
+  heroTitle: string;
+  heroSubtitle: string;
+  about: string;
+  returnPolicy: string;
+  /** False pauses ordering (holidays, stock-take) while the site stays up. */
+  acceptingOrders: boolean;
+}
+
+export const DEFAULT_STORE: StoreConfig = {
+  shopName: 'MTOZERO',
+  tagline: 'WEAR YOUR IDENTITY',
+  whatsapp: '',
+  address: 'الأبيض — شمال كردفان',
+  deliveryFee: 3000,
+  freeDeliveryOver: 100000,
+  pickupEnabled: true,
+  heroTitle: 'لبس يشبهك',
+  heroSubtitle: 'أحذية وملابس أصلية بمقاسات كاملة — اطلب من تلفونك ونوصلك لحدي الباب، والدفع عند الاستلام.',
+  about: 'MTOZERO متجر أحذية وملابس في الأبيض. نختار القطع بعناية ونوصلها لحدي بابك.',
+  returnPolicy: 'الاستبدال خلال 3 أيام بالفاتورة، والقطعة بحالتها الأصلية.',
+  acceptingOrders: true,
+};
+
+export type OrderStatus = 'new' | 'confirmed' | 'out' | 'delivered' | 'cancelled';
+
+export interface OrderItem {
+  productId: string;
+  name: string;
+  size: string;
+  qty: number;
+  /** Price the customer saw when ordering. */
+  price: number;
+}
+
+/** An order placed on the online store: orders/{id}. */
+export interface StoreOrder {
+  id: string;
+  number: string;
+  status: OrderStatus;
+  items: OrderItem[];
+  subtotal: number;
+  deliveryFee: number;
+  total: number;
+  promoCode: string;
+  fulfilment: 'delivery' | 'pickup';
+  customer: { name: string; phone: string; area: string; address: string; notes: string };
+  createdAt: Timestamp | null;
+  /** When the status last changed, and by whom. */
+  statusAt: Timestamp | null;
+  handledByName?: string;
+  /** The sale recorded when the order was delivered. */
+  saleId?: string;
+  cancelReason?: string;
+}
+
+export const ORDER_STATUS_LABEL: Record<OrderStatus, string> = {
+  new: 'جديد',
+  confirmed: 'مؤكَّد',
+  out: 'في الطريق',
+  delivered: 'اتسلّم',
+  cancelled: 'ملغي',
+};
 
 /**
  * One line on an invoice: a product in a size, at the price actually charged.
@@ -282,7 +390,8 @@ export type ActivityAction =
   | 'sync_conflict'
   | 'sync_discarded'
   | 'saved_promo'
-  | 'granted_credit';
+  | 'granted_credit'
+  | 'store_order';
 
 export interface ActivityEntry {
   id: string;
@@ -456,6 +565,7 @@ export const CHANNEL_LABEL: Record<Channel, string> = {
   whatsapp: 'واتساب',
   facebook: 'فيسبوك',
   in_person: 'في المحل',
+  website: 'الموقع',
   other: 'أخرى',
 };
 
@@ -494,6 +604,7 @@ export const ACTION_LABEL: Record<ActivityAction, string> = {
   sync_discarded: 'إلغاء عملية معلّقة',
   saved_promo: 'كوبون أو عرض',
   granted_credit: 'هدية رصيد لعميل',
+  store_order: 'طلب من الموقع',
 };
 
 export const PROMO_KIND_LABEL: Record<PromoKind, string> = {

@@ -10,7 +10,7 @@ import { InstallBanner } from '@/components/pwa/InstallBanner';
 import { UPDATE_READY_EVENT } from '@/components/pwa/ServiceWorkerRegistrar';
 import { Button, IconButton } from '@/components/ui/Button';
 import { LoadingBlock } from '@/components/ui/Feedback';
-import { IconGrid, IconLogout, IconMoon, IconOffline, IconSearch, IconSun, IconSync, IconTag } from '@/components/ui/Icons';
+import { IconBag, IconGrid, IconLogout, IconMoon, IconOffline, IconSearch, IconSun, IconSync, IconTag } from '@/components/ui/Icons';
 import { useConfirm } from '@/components/ui/Confirm';
 import { Sheet } from '@/components/ui/Sheet';
 import { useOnlineStatus } from '@/lib/hooks/useFirestore';
@@ -18,6 +18,7 @@ import { ROLE_LABEL } from '@/lib/types';
 import { Brand } from './Brand';
 import { MOBILE_TABS, NAV, SECTION_LABEL, SECTION_ORDER, navItemFor, visibleNav } from './nav';
 import { SyncPill, useQueueSummary, useSyncDriver } from './SyncStatus';
+import { useCatalogPublisher, useNewOrderCount } from '@/lib/db/store';
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { profile, loading, firebaseUser, profileError, isOwner, signOut } = useAuth();
@@ -31,6 +32,9 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   useQuickSearchHotkey(useCallback(() => setSearchOpen(true), []));
   useSyncDriver(profile?.uid, queue.pending.length);
+  // Keeps the website's public catalog in step with the stock while the app is open.
+  useCatalogPublisher(Boolean(profile));
+  const newOrders = useNewOrderCount();
 
   useEffect(() => {
     if (!loading && !firebaseUser) router.replace('/login');
@@ -120,7 +124,10 @@ export function AppShell({ children }: { children: ReactNode }) {
                           ${active ? 'bg-fg text-page' : 'text-fg-2 hover:bg-sunken hover:text-fg'}`}
                       >
                         <item.icon className="h-[1.15rem] w-[1.15rem]" />
-                        {item.label}
+                        <span className="flex-1">{item.label}</span>
+                        {item.href === '/orders' && newOrders > 0 ? (
+                          <span className="tnum rounded-full bg-brand-500 px-1.5 text-[0.72rem] font-black text-white">{newOrders}</span>
+                        ) : null}
                       </Link>
                     );
                   })}
@@ -154,6 +161,15 @@ export function AppShell({ children }: { children: ReactNode }) {
               </span>
             </div>
 
+            {newOrders > 0 ? (
+              <Link
+                href="/orders"
+                className="press inline-flex h-8 items-center gap-1.5 rounded-card bg-brand-500 px-2 text-[0.76rem] font-extrabold text-white"
+              >
+                <IconBag className="h-4 w-4" />
+                <span className="tnum">{newOrders}</span> طلب
+              </Link>
+            ) : null}
             <SyncPill summary={queue} />
 
             <button

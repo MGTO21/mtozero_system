@@ -31,6 +31,8 @@ const EMPTY: ProductInput = {
   sku: '',
   supplier: '',
   lowStockThreshold: 2,
+  description: '',
+  onStore: true,
 };
 
 /** Ready-made size sets so a full run can be entered in two taps. */
@@ -70,6 +72,8 @@ export function ProductForm({ open, onClose, product }: Props) {
         sku: product.sku ?? '',
         supplier: product.supplier ?? '',
         lowStockThreshold: product.lowStockThreshold,
+        description: product.description ?? '',
+        onStore: product.onStore,
       });
       setPreview(productImage(product));
     } else {
@@ -369,6 +373,33 @@ export function ProductForm({ open, onClose, product }: Props) {
               ينبّهك النظام عندما تصل كمية أي مقاس لهذا الرقم أو أقل.
             </p>
           </div>
+
+          <div className="sm:col-span-2">
+            <label className="label" htmlFor="p-desc">
+              وصف للموقع
+            </label>
+            <textarea
+              id="p-desc"
+              rows={2}
+              className="field resize-none"
+              value={form.description ?? ''}
+              onChange={(e) => patch({ description: e.target.value })}
+              placeholder="خامة، مناسبة الاستخدام، نصيحة المقاس… (اختياري)"
+            />
+          </div>
+
+          <label className="flex cursor-pointer items-center gap-3 rounded-card border border-line bg-sunken px-3.5 py-3 sm:col-span-2">
+            <span className="min-w-0 flex-1">
+              <span className="block font-bold">اعرض في المتجر الإلكتروني</span>
+              <span className="block text-[0.78rem] text-fg-3">يظهر للعملاء لما يكون متوفر وعندو صورة</span>
+            </span>
+            <input
+              type="checkbox"
+              checked={form.onStore !== false}
+              onChange={(e) => patch({ onStore: e.target.checked })}
+              className="h-6 w-6 accent-[rgb(var(--fg))]"
+            />
+          </label>
         </div>
 
         {/* sizes */}

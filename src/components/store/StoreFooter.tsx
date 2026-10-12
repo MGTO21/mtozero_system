@@ -1,0 +1,77 @@
+import Link from 'next/link';
+import { Brand } from '@/components/layout/Brand';
+import { IconWhatsApp } from '@/components/ui/Icons';
+import type { StoreConfig } from '@/lib/types';
+
+export function StoreFooter({ config }: { config: StoreConfig }) {
+  return (
+    <footer className="mt-16 border-t border-line bg-surface">
+      <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:grid-cols-3 sm:px-6">
+        <div>
+          <Brand />
+          <p className="mt-3 max-w-xs text-[0.9rem] leading-relaxed text-fg-2">{config.about}</p>
+        </div>
+        <div>
+          <p className="ledger-head">تسوّق</p>
+          <ul className="space-y-2 text-[0.92rem] font-bold text-fg-2">
+            <li>
+              <Link href="/shop?c=shoes" className="hover:text-fg">
+                أحذية
+              </Link>
+            </li>
+            <li>
+              <Link href="/shop?c=clothing" className="hover:text-fg">
+                ملابس
+              </Link>
+            </li>
+            <li>
+              <Link href="/card" className="hover:text-fg">
+                رصيدك وكود الإحالة
+              </Link>
+            </li>
+          </ul>
+        </div>
+        <div>
+          <p className="ledger-head">تواصل معانا</p>
+          <p className="text-[0.9rem] text-fg-2">{config.address}</p>
+          {config.whatsapp ? (
+            <a
+              href={`https://wa.me/${config.whatsapp}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="press mt-3 inline-flex h-11 items-center gap-2 rounded-card bg-good px-4 font-display font-extrabold text-white"
+            >
+              <IconWhatsApp className="h-5 w-5" />
+              واتساب
+            </a>
+          ) : null}
+          <p className="mt-4 text-[0.8rem] leading-relaxed text-fg-3">{config.returnPolicy}</p>
+        </div>
+      </div>
+      <div className="border-t border-line">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-4 text-[0.78rem] text-fg-3 sm:px-6">
+          <span>© {new Date().getFullYear()} {config.shopName} — الدفع عند الاستلام</span>
+          <Link href="/login" className="hover:text-fg-2">
+            دخول الفريق
+          </Link>
+        </div>
+      </div>
+    </footer>
+  );
+}
+
+/** The always-there WhatsApp button: most customers here still prefer to ask first. */
+export function WhatsAppFloat({ number }: { number: string }) {
+  if (!number) return null;
+  return (
+    <a
+      href={`https://wa.me/${number}`}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="تواصل واتساب"
+      className="press fixed bottom-5 left-5 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-good text-white shadow-lift"
+    >
+      <IconWhatsApp className="h-7 w-7" />
+    </a>
+  );
+}

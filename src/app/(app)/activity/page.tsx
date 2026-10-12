@@ -33,6 +33,7 @@ const TONE: Record<ActivityAction, string> = {
   sync_discarded: 'bg-bad/15 text-bad',
   saved_promo: 'bg-brand-500/15 text-brand-500',
   granted_credit: 'bg-good/15 text-good',
+  store_order: 'bg-accent-500/15 text-accent-500',
 };
 
 export default function ActivityPage() {

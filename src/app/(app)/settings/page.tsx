@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useActor } from '@/components/providers/AuthProvider';
 import { useToast } from '@/components/providers/ToastProvider';
 import { BrandMark } from '@/components/layout/Brand';
+import { StoreSettings } from '@/components/store/StoreSettings';
 import { Button } from '@/components/ui/Button';
 import { IconImage, IconX } from '@/components/ui/Icons';
 import { PageHeader, SectionTitle } from '@/components/ui/PageHeader';
@@ -209,6 +210,8 @@ export default function SettingsPage() {
         <Button variant="ink" size="lg" block loading={busy} onClick={() => void save()}>
           حفظ الإعدادات
         </Button>
+
+        <StoreSettings />
       </div>
     </>
   );

@@ -98,6 +98,8 @@ export function mapProduct(id: string, raw: Record<string, unknown>): Product {
     updatedAt: (raw.updatedAt as Timestamp) ?? null,
     isArchived: raw.isArchived === true,
     lastSoldAt: (raw.lastSoldAt as Timestamp) ?? null,
+    description: (raw.description as string) || undefined,
+    onStore: raw.onStore !== false,
   };
 }
 
@@ -155,6 +157,10 @@ export interface ProductInput {
   lowStockThreshold: number;
   /** Shipment the opening stock came from; only used when creating. */
   shipmentId?: string | null;
+  /** Shown on the online store's product page. */
+  description?: string;
+  /** Listed on the online store (still needs stock and a picture). */
+  onStore?: boolean;
 }
 
 function validate(input: ProductInput) {
@@ -256,6 +262,8 @@ export async function createProduct(
     sku: input.sku?.trim() || null,
     supplier: input.supplier?.trim() || null,
     lowStockThreshold: Math.max(0, Math.floor(input.lowStockThreshold)),
+    description: input.description?.trim() || null,
+    onStore: input.onStore !== false,
     thumbData: null as string | null,
     imageUrl: null as string | null,
     imagePublicId: null as string | null,
@@ -314,6 +322,8 @@ export async function updateProduct(
     sku: input.sku?.trim() || null,
     supplier: input.supplier?.trim() || null,
     lowStockThreshold: Math.max(0, Math.floor(input.lowStockThreshold)),
+    description: input.description?.trim() || null,
+    onStore: input.onStore !== false,
     updatedAt: serverTimestamp(),
   };
 

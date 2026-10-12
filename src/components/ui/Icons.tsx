@@ -329,6 +329,13 @@ export const IconCoupon = (p: IconProps) => (
   </Solid>
 );
 
+/** Website orders and the shopping bag. */
+export const IconBag = (p: IconProps) => (
+  <Solid {...p}>
+    <path d="M5 8a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1l.9 12a1 1 0 0 1-1 1.1H5.1a1 1 0 0 1-1-1.1Z M8.2 7.3V6.6a3.8 3.8 0 0 1 7.6 0v.7h-1.9v-.7a1.9 1.9 0 0 0-3.8 0v.7Z M8.4 10.2h1.8v1.8H8.4Z M13.8 10.2h1.8v1.8h-1.8Z" />
+  </Solid>
+);
+
 /** A gift: credit given to a customer. */
 export const IconGift = (p: IconProps) => (
   <Solid {...p}>
