@@ -22,7 +22,7 @@ import { settle } from '@/lib/offline/write';
 import type { Customer, Referral } from '@/lib/types';
 import { AppError, COL } from './collections';
 import { logActivity } from './activity';
-import { cardFields } from './promos';
+import { publishCard } from './promos';
 
 export function mapCustomer(id: string, raw: Record<string, unknown>): Customer {
   return {
@@ -137,8 +137,8 @@ export async function ensureCustomer(
 
   const created = doc(collection(db(), COL.customers));
   const referralCode = makeReferralCode(name, normalized);
-  // Customer and card land together, so a new customer can look their code up
-  // from the moment they leave the counter.
+  // The card goes out separately and best-effort: if it cannot be written, the
+  // customer must still be created and the sale must still go through.
   const batch = writeBatch(db());
   batch.set(created, {
     name,
@@ -155,11 +155,8 @@ export async function ensureCustomer(
     referralCount: 0,
     createdAt: serverTimestamp(),
   });
-  batch.set(
-    doc(db(), COL.cards, normalized),
-    cardFields({ name, referralCode, creditBalance: 0, creditEarned: 0, referralCount: 0 }),
-  );
   await settle(batch.commit());
+  publishCard(normalized, { name, referralCode, creditBalance: 0, creditEarned: 0, referralCount: 0 });
 
   await logActivity(actor, 'edited_user', `أضاف العميل "${name}" (${normalized})`);
   return mapCustomer(created.id, {
@@ -223,8 +220,6 @@ export async function awardReferralIfDue(
       referralCount: referrer.referralCount + 1,
     };
     tx.update(referrerRef, next);
-    // The referrer sees the reward on their card straight away.
-    if (referrer.phone) tx.set(doc(db(), COL.cards, referrer.phone), cardFields({ ...referrer, ...next }));
 
     tx.set(referralRef, {
       referrerId: referrer.id,
@@ -236,10 +231,12 @@ export async function awardReferralIfDue(
       createdAt: serverTimestamp(),
     });
 
-    return { referrer: referrer.name, referred: customer.name };
+    return { referrer: referrer.name, referred: customer.name, card: { phone: referrer.phone, fields: { ...referrer, ...next } } };
   });
 
   if (result) {
+    // The referrer sees the reward on their card — best-effort, outside the transaction.
+    publishCard(result.card.phone, result.card.fields);
     await logActivity(
       actor,
       'awarded_referral',

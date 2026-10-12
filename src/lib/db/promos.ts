@@ -8,6 +8,7 @@ import {
   query,
   runTransaction,
   serverTimestamp,
+  setDoc,
   Timestamp,
   where,
   writeBatch,
@@ -199,6 +200,22 @@ export function cardFields(customer: {
   };
 }
 
+/**
+ * Refreshes a customer's public card. Always best-effort and never inside a
+ * business transaction: the card is a convenience copy for the customer, and a
+ * failure to write it — rules not yet published, a flaky connection — must
+ * never cost the shop a sale, a new customer or a referral reward. A stale card
+ * is corrected by the next write or by "publish all cards".
+ */
+export function publishCard(phone: string, customer: Parameters<typeof cardFields>[0]): void {
+  if (!phone) return;
+  try {
+    void setDoc(doc(db(), COL.cards, phone), cardFields(customer)).catch(() => undefined);
+  } catch {
+    // Silent on purpose — see above.
+  }
+}
+
 export async function getCard(phone: string): Promise<CustomerCard | null> {
   const snap = await getDoc(doc(db(), COL.cards, phone));
   return snap.exists() ? mapCard(snap.data()) : null;
@@ -276,20 +293,18 @@ export async function grantCredit(
       grantedByName: actor.name,
       createdAt: serverTimestamp(),
     });
-    if (customer.phone) {
-      tx.set(
-        doc(db(), COL.cards, customer.phone),
-        cardFields({
-          name: String(data.name ?? customer.name),
-          referralCode: String(data.referralCode ?? customer.referralCode),
-          creditBalance: balance,
-          creditEarned: earned,
-          referralCount: Number(data.referralCount ?? 0),
-        }),
-      );
-    }
-    return balance;
+    return {
+      balance,
+      card: {
+        name: String(data.name ?? customer.name),
+        referralCode: String(data.referralCode ?? customer.referralCode),
+        creditBalance: balance,
+        creditEarned: earned,
+        referralCount: Number(data.referralCount ?? 0),
+      },
+    };
   });
 
-  await logActivity(actor, 'granted_credit', `أهدى ${customer.name} رصيد ${value} ج — ${reason.trim()} (الرصيد الآن ${next} ج)`);
+  publishCard(customer.phone, next.card);
+  await logActivity(actor, 'granted_credit', `أهدى ${customer.name} رصيد ${value} ج — ${reason.trim()} (الرصيد الآن ${next.balance} ج)`);
 }

@@ -35,7 +35,7 @@ import type {
 import { AppError, COL } from './collections';
 import { logActivity } from './activity';
 import { normalizeStoredSizes } from './products';
-import { cardFields, mapPromo } from './promos';
+import { mapPromo, publishCard } from './promos';
 import { whatsappNumber } from '@/lib/format';
 import {
   averageCost,
@@ -439,6 +439,9 @@ export async function recordSale(
   const buyerPhone = whatsappNumber(input.customerPhone);
   // Filled in by the transaction, read by the activity log after it.
   let total = 0;
+  // A holder rather than a plain variable: TypeScript does not follow writes made
+  // inside the transaction callback.
+  const pendingCard: { value: { phone: string; fields: Parameters<typeof publishCard>[1] } | null } = { value: null };
 
   // Group by product so each document is read and written exactly once.
   const byProduct = new Map<string, SaleLine[]>();
@@ -567,20 +570,18 @@ export async function recordSale(
         totalOrders: Number(customer.totalOrders ?? 0) + 1,
         lastPurchaseAt: serverTimestamp(),
       });
-      // The customer's public card shows the new balance the moment they pay.
-      const phone = String(customer.phone ?? '');
-      if (phone) {
-        tx.set(
-          doc(db(), COL.cards, phone),
-          cardFields({
-            name: String(customer.name ?? ''),
-            referralCode: String(customer.referralCode ?? ''),
-            creditBalance: balance,
-            creditEarned: Number(customer.creditEarned ?? 0),
-            referralCount: Number(customer.referralCount ?? 0),
-          }),
-        );
-      }
+      // The public card is refreshed after the transaction, never inside it:
+      // a card that cannot be written must not cost the shop the sale.
+      pendingCard.value = {
+        phone: String(customer.phone ?? ''),
+        fields: {
+          name: String(customer.name ?? ''),
+          referralCode: String(customer.referralCode ?? ''),
+          creditBalance: balance,
+          creditEarned: Number(customer.creditEarned ?? 0),
+          referralCount: Number(customer.referralCount ?? 0),
+        },
+      };
     }
 
     if (promoRef && promoSnap?.exists() && priced.promo > 0) {
@@ -595,6 +596,8 @@ export async function recordSale(
 
     return { left, alreadyApplied: false };
   });
+
+  if (pendingCard.value) publishCard(pendingCard.value.phone, pendingCard.value.fields);
 
   if (!result.alreadyApplied) {
     const units = lines.reduce((sum, l) => sum + l.qty, 0);
