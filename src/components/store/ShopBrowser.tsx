@@ -1,9 +1,11 @@
 'use client';
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Pill } from '@/components/ui/DateRange';
 import { IconSearch } from '@/components/ui/Icons';
+import { compareSizes } from '@/lib/store/model';
+import { setMySize, useMounted, useMySizes } from '@/lib/store/prefs';
 import { CATEGORY_LABEL, type CatalogItem, type Category } from '@/lib/types';
 import { ProductTile } from './ProductTile';
 
@@ -21,7 +23,7 @@ const SORT_LABEL: Record<Sort, string> = {
  * instant — no reload on a slow connection. The choices are mirrored in the
  * address, so "all our 42s" is a link the shop can send a customer.
  */
-export function ShopBrowser({ items }: { items: CatalogItem[] }) {
+export function ShopBrowser({ items, newDays }: { items: CatalogItem[]; newDays: number }) {
   const params = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -30,10 +32,33 @@ export function ShopBrowser({ items }: { items: CatalogItem[] }) {
   const [size, setSize] = useState<string | null>(params.get('size'));
   const [sort, setSort] = useState<Sort>((params.get('sort') as Sort) || 'new');
   const [q, setQ] = useState(params.get('q') ?? '');
+  const [sale, setSale] = useState(params.get('sale') === '1');
+  const featuredOnly = params.get('featured') === '1';
+  const mounted = useMounted();
+  const mySizes = useMySizes();
 
-  function sync(next: { c?: string; size?: string | null; sort?: string; q?: string }) {
+  // "/shop?mine=1" (from the home shelf): start on the visitor's saved size.
+  useEffect(() => {
+    if (!mounted || params.get('mine') !== '1' || size) return;
+    const c = category === 'all' ? null : category;
+    const mine = c ? mySizes[c] : mySizes.shoes ?? mySizes.clothing;
+    if (mine) setSize(mine);
+    // Only on arrival.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mounted]);
+
+  // Keep the URL in step when the search changes from the header overlay.
+  useEffect(() => {
+    setQ(params.get('q') ?? '');
+    setSale(params.get('sale') === '1');
+    const c = params.get('c') as Category | null;
+    setCategory(c === 'shoes' || c === 'clothing' ? c : 'all');
+  }, [params]);
+
+  function sync(next: { c?: string; size?: string | null; sort?: string; q?: string; sale?: string | null }) {
     const sp = new URLSearchParams(params.toString());
-    for (const [k, v] of Object.entries({ c: category, size, sort, q, ...next })) {
+    sp.delete('mine');
+    for (const [k, v] of Object.entries({ c: category, size, sort, q, sale: sale ? '1' : null, ...next })) {
       if (!v || v === 'all' || (k === 'sort' && v === 'new')) sp.delete(k);
       else sp.set(k, String(v));
     }
@@ -49,17 +74,14 @@ export function ShopBrowser({ items }: { items: CatalogItem[] }) {
   const sizes = useMemo(() => {
     const set = new Set<string>();
     for (const i of inCategory) for (const s of i.sizes) if (s.state !== 'out') set.add(s.size);
-    return [...set].sort((a, b) => {
-      const na = Number(a);
-      const nb = Number(b);
-      if (!Number.isNaN(na) && !Number.isNaN(nb)) return na - nb;
-      return a.localeCompare(b, 'ar');
-    });
+    return [...set].sort(compareSizes);
   }, [inCategory]);
 
   const visible = useMemo(() => {
     const term = q.trim().toLowerCase();
     const list = inCategory
+      .filter((i) => (sale ? i.compareAtPrice > i.price : true))
+      .filter((i) => (featuredOnly ? i.featured : true))
       .filter((i) => (size ? i.sizes.some((s) => s.size === size && s.state !== 'out') : true))
       .filter((i) => (term ? `${i.name} ${i.brand ?? ''}`.toLowerCase().includes(term) : true));
     const sorted = [...list];
@@ -68,12 +90,12 @@ export function ShopBrowser({ items }: { items: CatalogItem[] }) {
     else if (sort === 'popular') sorted.sort((a, b) => b.lastSoldAtMs - a.lastSoldAtMs);
     else sorted.sort((a, b) => b.createdAtMs - a.createdAtMs);
     return sorted;
-  }, [inCategory, size, q, sort]);
+  }, [inCategory, size, q, sort, sale, featuredOnly]);
 
   return (
-    <div className="mx-auto max-w-6xl px-4 pb-6 pt-6 sm:px-6">
-      <h1 className="text-[2rem] sm:text-[2.6rem]">
-        {category === 'all' ? 'كل المنتجات' : CATEGORY_LABEL[category]}
+    <div className="mx-auto max-w-7xl px-4 pb-6 pt-6 sm:px-6">
+      <h1 className="store-title">
+        {sale ? 'تخفيضات' : featuredOnly ? 'مختارات المحل' : category === 'all' ? 'كل المنتجات' : CATEGORY_LABEL[category]}
       </h1>
 
       <div className="mt-4 space-y-3">
@@ -107,11 +129,38 @@ export function ShopBrowser({ items }: { items: CatalogItem[] }) {
               {c === 'all' ? 'الكل' : CATEGORY_LABEL[c]}
             </Pill>
           ))}
+          {items.some((i) => i.compareAtPrice > i.price) ? (
+            <Pill
+              active={sale}
+              onClick={() => {
+                setSale(!sale);
+                sync({ sale: sale ? null : '1' });
+              }}
+              count={items.filter((i) => i.compareAtPrice > i.price).length}
+            >
+              تخفيضات
+            </Pill>
+          ) : null}
         </div>
 
         {sizes.length > 0 ? (
           <div>
-            <p className="mb-1.5 text-[0.82rem] font-bold text-fg-2">مقاسك</p>
+            <p className="mb-1.5 text-[0.82rem] font-bold text-fg-2">
+              مقاسك
+              {mounted && category !== 'all' && mySizes[category] && size !== mySizes[category] ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const mine = mySizes[category as Category]!;
+                    setSize(mine);
+                    sync({ size: mine });
+                  }}
+                  className="mr-2 font-black text-brand-500 underline underline-offset-2"
+                >
+                  مقاسي المحفوظ {mySizes[category]}
+                </button>
+              ) : null}
+            </p>
             <div className="flex flex-wrap gap-1.5">
               {sizes.map((s) => (
                 <button
@@ -122,6 +171,7 @@ export function ShopBrowser({ items }: { items: CatalogItem[] }) {
                     const next = size === s ? null : s;
                     setSize(next);
                     sync({ size: next });
+                    if (next && category !== 'all') setMySize(category, next);
                   }}
                   className={`press tnum h-10 min-w-[2.75rem] rounded-card border-[1.5px] px-2 font-display font-black transition-colors
                     ${size === s ? 'border-fg bg-fg text-page' : 'border-line-strong bg-surface text-fg'}`}
@@ -158,13 +208,15 @@ export function ShopBrowser({ items }: { items: CatalogItem[] }) {
 
       {visible.length === 0 ? (
         <div className="py-16 text-center">
-          <p className="font-display text-[1.2rem] font-black">ما لقينا حاجة</p>
-          <p className="mt-1 text-fg-3">جرّب مقاس أو كلمة تانية — أو اسألنا واتساب، ممكن يكون في الطريق.</p>
+          <p className="font-display text-[1.2rem] font-black">{sale ? 'ما في تخفيضات هسع' : 'ما لقينا حاجة'}</p>
+          <p className="mt-1 text-fg-3">
+            {sale ? 'تابعنا — العروض الجاية بتظهر هنا أول.' : 'جرّب مقاس أو كلمة تانية — أو اسألنا واتساب، ممكن يكون في الطريق.'}
+          </p>
         </div>
       ) : (
         <div className="mt-6 grid grid-cols-2 gap-x-3 gap-y-7 sm:grid-cols-3 lg:grid-cols-4 sm:gap-x-5">
           {visible.map((item, i) => (
-            <ProductTile key={item.id} item={item} priority={i < 4} />
+            <ProductTile key={item.id} item={item} newDays={newDays} priority={i < 4} />
           ))}
         </div>
       )}

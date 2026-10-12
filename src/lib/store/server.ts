@@ -1,3 +1,4 @@
+import { mapCatalog, mapStoreConfig } from '@/lib/store/model';
 import { DEFAULT_STORE, type CatalogItem, type Promo, type StoreConfig } from '@/lib/types';
 
 /**
@@ -46,10 +47,10 @@ function idOf(name: string): string {
   return name.slice(name.lastIndexOf('/') + 1);
 }
 
-async function getDoc(path: string): Promise<Record<string, unknown> | null> {
+async function getDoc(path: string, fresh = false): Promise<Record<string, unknown> | null> {
   if (!PROJECT) return null;
   try {
-    const res = await fetch(`${BASE}/${path}`, { next: { revalidate: STORE_REVALIDATE } });
+    const res = await fetch(`${BASE}/${path}`, fresh ? { cache: 'no-store' } : { next: { revalidate: STORE_REVALIDATE } });
     if (!res.ok) return null;
     const json = (await res.json()) as { fields?: Record<string, RestValue> };
     return decodeFields(json.fields ?? {});
@@ -91,39 +92,30 @@ async function runQuery(
   }
 }
 
-function toItem(id: string, raw: Record<string, unknown>): CatalogItem {
-  return {
-    id,
-    name: String(raw.name ?? ''),
-    brand: (raw.brand as string) || undefined,
-    category: raw.category === 'clothing' ? 'clothing' : 'shoes',
-    price: Number(raw.price ?? 0),
-    sizes: Array.isArray(raw.sizes) ? (raw.sizes as CatalogItem['sizes']) : [],
-    description: (raw.description as string) || undefined,
-    imageUrl: (raw.imageUrl as string) || null,
-    thumbHash: String(raw.thumbHash ?? ''),
-    listed: raw.listed === true,
-    createdAtMs: Number(raw.createdAtMs ?? 0),
-    lastSoldAtMs: Number(raw.lastSoldAtMs ?? 0),
-  };
-}
-
 /** Everything currently for sale, newest first. */
 export async function fetchCatalog(): Promise<CatalogItem[]> {
   const rows = await runQuery('catalog', [{ field: 'listed', value: true }]);
-  return rows.map((r) => toItem(r.id, r.data)).sort((a, b) => b.createdAtMs - a.createdAtMs);
+  return rows.map((r) => mapCatalog(r.id, r.data)).sort((a, b) => b.createdAtMs - a.createdAtMs);
 }
 
 export async function fetchProduct(id: string): Promise<CatalogItem | null> {
   if (!/^[A-Za-z0-9_-]{1,64}$/.test(id)) return null;
   const raw = await getDoc(`catalog/${id}`);
-  return raw ? toItem(id, raw) : null;
+  return raw ? mapCatalog(id, raw) : null;
 }
 
 export async function fetchStoreConfig(): Promise<StoreConfig> {
   const raw = await getDoc('storefront/config');
-  if (!raw) return DEFAULT_STORE;
-  return { ...DEFAULT_STORE, ...(raw as Partial<StoreConfig>) };
+  return raw ? mapStoreConfig(raw) : DEFAULT_STORE;
+}
+
+/** A home-page banner picture as a data URI, for the banner route. */
+export async function fetchBannerImage(id: string): Promise<string | null> {
+  if (!/^[A-Za-z0-9_-]{1,40}$/.test(id)) return null;
+  // Fresh read: the URL carries the picture's hash and the response is cached
+  // under it, so a cached read here would pin a replaced picture to the new URL.
+  const raw = await getDoc(`storefront/banner_${id}`, true);
+  return raw && typeof raw.data === 'string' && raw.data ? raw.data : null;
 }
 
 /** The thumbnail data URI for a product, for the image route. */

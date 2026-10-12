@@ -1,30 +1,62 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
-import { Button, Stepper } from '@/components/ui/Button';
-import { IconCheck, IconWhatsApp } from '@/components/ui/Icons';
+import { useEffect, useRef, useState } from 'react';
+import { Stepper } from '@/components/ui/Button';
+import { IconCheck, IconHeart, IconShare, IconWhatsApp } from '@/components/ui/Icons';
 import { money } from '@/lib/format';
 import { addToCart, productImagePath } from '@/lib/store/cart';
+import { compareSizes } from '@/lib/store/model';
+import { openPanel, rememberViewed, setMySize, toggleWishlist, useMounted, useMySizes, useWishlist } from '@/lib/store/prefs';
 import type { CatalogItem } from '@/lib/types';
 
 /**
  * Size, quantity, add to basket. Sold-out sizes stay visible but struck through
- * — a customer should see that 43 exists but is gone, not wonder whether the
- * shop ever carries it. "Last pieces" is shown instead of an exact count.
+ * — a customer should see that 43 exists but is gone. "Last pieces" is shown
+ * instead of an exact count. The visitor's saved size is picked for them when
+ * it is in stock, and the size they choose here becomes their saved size.
+ *
+ * On a phone, once the main button scrolls away a slim bar keeps "add" under
+ * the thumb.
  */
 export function ProductBuy({ item, whatsapp }: { item: CatalogItem; whatsapp: string }) {
-  const router = useRouter();
-  const available = item.sizes.filter((s) => s.state !== 'out');
+  const mounted = useMounted();
+  const mySizes = useMySizes();
+  const wishlist = useWishlist();
+  const sizes = [...item.sizes].sort((a, b) => compareSizes(a.size, b.size));
+  const available = sizes.filter((s) => s.state !== 'out');
   const [size, setSize] = useState<string | null>(available.length === 1 ? available[0]!.size : null);
   const [qty, setQty] = useState(1);
   const [added, setAdded] = useState(false);
   const [needSize, setNeedSize] = useState(false);
+  const [shared, setShared] = useState(false);
+  const [barVisible, setBarVisible] = useState(false);
+  const mainButtons = useRef<HTMLDivElement>(null);
   const chosen = item.sizes.find((s) => s.size === size);
+  const saved = mounted && wishlist.includes(item.id);
 
-  function add(goToCart: boolean) {
+  useEffect(() => rememberViewed(item.id), [item.id]);
+
+  // Pre-select the saved size once, if this product has it.
+  const preselected = useRef(false);
+  useEffect(() => {
+    if (!mounted || preselected.current || size) return;
+    preselected.current = true;
+    const mine = mySizes[item.category];
+    if (mine && available.some((s) => s.size === mine)) setSize(mine);
+  }, [mounted, mySizes, item.category, available, size]);
+
+  useEffect(() => {
+    const el = mainButtons.current;
+    if (!el || !('IntersectionObserver' in window)) return;
+    const io = new IntersectionObserver(([e]) => setBarVisible(!e!.isIntersecting && e!.boundingClientRect.top < 0), { threshold: 0 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  function add() {
     if (!size) {
       setNeedSize(true);
+      document.getElementById('size-picker')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
     addToCart({
@@ -35,23 +67,38 @@ export function ProductBuy({ item, whatsapp }: { item: CatalogItem; whatsapp: st
       price: item.price,
       image: productImagePath(item.id, item.thumbHash, item.imageUrl),
     });
-    if (goToCart) router.push('/cart');
-    else {
-      setAdded(true);
-      window.setTimeout(() => setAdded(false), 2500);
+    setMySize(item.category, size);
+    setAdded(true);
+    window.setTimeout(() => setAdded(false), 2000);
+    openPanel('cart');
+  }
+
+  async function share() {
+    const url = window.location.href;
+    const text = `${item.name} — ${money(item.price)}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: item.name, text, url });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      setShared(true);
+      window.setTimeout(() => setShared(false), 2000);
+    } catch {
+      // Cancelled by the visitor.
     }
   }
 
-  const askText = `السلام عليكم، عندكم ${item.name}${size ? ` مقاس ${size}` : ''}؟\n${typeof window !== 'undefined' ? window.location.href : ''}`;
+  const askText = `السلام عليكم، عندكم ${item.name}${size ? ` مقاس ${size}` : ''}؟\n${mounted ? window.location.href : ''}`;
 
   return (
     <div>
-      <div className="flex items-baseline justify-between">
+      <div id="size-picker" className="flex items-baseline justify-between">
         <p className="label !mb-2">المقاس</p>
         {needSize && !size ? <p className="text-[0.82rem] font-bold text-bad">اختار مقاسك أول</p> : null}
       </div>
       <div className="flex flex-wrap gap-2">
-        {item.sizes.map((s) => {
+        {sizes.map((s) => {
           const out = s.state === 'out';
           return (
             <button
@@ -71,9 +118,7 @@ export function ProductBuy({ item, whatsapp }: { item: CatalogItem; whatsapp: st
           );
         })}
       </div>
-      {chosen?.state === 'last' ? (
-        <p className="mt-2 text-[0.88rem] font-bold text-warn">آخر قطع من المقاس دا</p>
-      ) : null}
+      {chosen?.state === 'last' ? <p className="mt-2 text-[0.88rem] font-bold text-warn">آخر قطع من المقاس دا — اطلبو قبل يخلص</p> : null}
 
       <div className="mt-5 flex items-end gap-3">
         <div className="w-36">
@@ -83,26 +128,72 @@ export function ProductBuy({ item, whatsapp }: { item: CatalogItem; whatsapp: st
         <p className="tnum pb-2 font-display text-[1.2rem] font-black">{money(item.price * qty)}</p>
       </div>
 
-      <div className="mt-5 grid gap-2 sm:grid-cols-2">
-        <Button size="lg" onClick={() => add(true)}>
-          اطلب الآن
-        </Button>
-        <Button size="lg" variant="secondary" onClick={() => add(false)} icon={added ? <IconCheck className="h-5 w-5" /> : undefined}>
+      <div ref={mainButtons} className="mt-5 flex gap-2">
+        <button
+          type="button"
+          onClick={add}
+          className="press flex h-14 flex-1 items-center justify-center gap-2 rounded-full bg-brand-500 font-display text-[1.08rem] font-black text-white"
+        >
+          {added ? <IconCheck className="h-5 w-5" /> : null}
           {added ? 'اتضاف للسلة' : 'أضف للسلة'}
-        </Button>
+        </button>
+        <button
+          type="button"
+          onClick={() => toggleWishlist(item.id)}
+          aria-label={saved ? 'شيل من المفضلة' : 'احفظ في المفضلة'}
+          aria-pressed={saved}
+          className="press flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-[1.5px] border-line-strong hover:border-fg"
+        >
+          <IconHeart className={`h-6 w-6 ${saved ? 'pop text-brand-500' : 'text-fg-3'}`} />
+        </button>
+        <button
+          type="button"
+          onClick={() => void share()}
+          aria-label="شارك المنتج"
+          className="press relative flex h-14 w-14 shrink-0 items-center justify-center rounded-full border-[1.5px] border-line-strong hover:border-fg"
+        >
+          {shared ? <IconCheck className="h-5 w-5 text-good" /> : <IconShare className="h-5 w-5 text-fg-2" />}
+        </button>
       </div>
+      {shared ? <p className="mt-2 text-[0.82rem] font-bold text-good">اتنسخ الرابط</p> : null}
 
       {whatsapp ? (
         <a
           href={`https://wa.me/${whatsapp}?text=${encodeURIComponent(askText)}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="mt-3 inline-flex items-center gap-2 text-[0.92rem] font-bold text-good"
+          className="mt-4 inline-flex items-center gap-2 text-[0.92rem] font-bold text-good"
         >
           <IconWhatsApp className="h-5 w-5" />
-          عندك سؤال؟ اسألنا واتساب
+          عندك سؤال عن المقاس؟ اسألنا واتساب
         </a>
       ) : null}
+
+      {/* Phone: the buy bar that follows once the main button is out of sight. */}
+      <div
+        className={`buy-bar fixed inset-x-0 bottom-0 z-30 border-t border-line bg-page px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 transition-transform duration-300 md:hidden ${
+          barVisible ? 'translate-y-0' : 'translate-y-full'
+        }`}
+        aria-hidden={!barVisible}
+      >
+        <div className="flex items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[0.84rem] font-bold">{item.name}</p>
+            <p className="tnum font-display font-black text-brand-500">
+              {money(item.price)}
+              {size ? <span className="text-[0.8rem] text-fg-3"> · مقاس {size}</span> : null}
+            </p>
+          </div>
+          <button
+            type="button"
+            tabIndex={barVisible ? 0 : -1}
+            onClick={add}
+            className="press h-12 shrink-0 rounded-full bg-brand-500 px-6 font-display font-black text-white"
+          >
+            {size ? 'أضف للسلة' : 'اختار مقاس'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

@@ -46,6 +46,9 @@ const config: Config = {
         fg: v('fg'),
         'fg-2': v('fg-2'),
         'fg-3': v('fg-3'),
+        /** Store only: tag colour — ink on the light look, gold on the luxe one (store.css). */
+        spot: v('spot'),
+        'on-spot': v('on-spot'),
       },
       fontFamily: {
         display: ['var(--font-display)', 'system-ui', 'sans-serif'],

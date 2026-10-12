@@ -6,11 +6,13 @@
  * id per instance so several marks can sit on one page without clashing.
  */
 
-let gradientSeq = 0;
+import { useId } from 'react';
 
 /** The M-to-O monogram with the hanger inside the O. */
 export function BrandMark({ className = 'h-8 w-8' }: { className?: string }) {
-  const id = `mto-${(gradientSeq += 1)}`;
+  // useId, not a module counter: the counter ran on its own on the server and in
+  // the browser, so the ids never matched on hydration.
+  const id = `mto-${useId().replace(/:/g, '')}`;
   return (
     <svg viewBox="0 0 64 64" className={className} role="img" aria-label="MTOZERO">
       <defs>

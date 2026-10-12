@@ -429,3 +429,22 @@ export const IconOffline = (p: IconProps) => (
     <path d="M7 19a4.5 4.5 0 0 1-.6-9 6 6 0 0 1 11.5 1.6A3.8 3.8 0 0 1 17.5 19Z M3.9 2.7l17.4 17.4-1.3 1.3L2.6 4Z" />
   </Solid>
 );
+
+/** Saved to the wishlist on the store. */
+export const IconHeart = (p: IconProps) => (
+  <Solid {...p}>
+    <path d="M12 20.6 10.6 19.3C5.6 14.8 2.4 11.9 2.4 8.3 2.4 5.4 4.6 3.2 7.5 3.2c1.7 0 3.3.8 4.5 2 1.2-1.2 2.8-2 4.5-2 2.9 0 5.1 2.2 5.1 5.1 0 3.6-3.2 6.5-8.2 11L12 20.6Z" />
+  </Solid>
+);
+
+export const IconInstagram = (p: IconProps) => (
+  <Solid {...p}>
+    <path d="M7.5 2.5h9a5 5 0 0 1 5 5v9a5 5 0 0 1-5 5h-9a5 5 0 0 1-5-5v-9a5 5 0 0 1 5-5Z M12 7.2a4.8 4.8 0 1 0 0 9.6 4.8 4.8 0 0 0 0-9.6Z M12 9.2a2.8 2.8 0 1 1 0 5.6 2.8 2.8 0 0 1 0-5.6Z M17.4 5.3a1.3 1.3 0 1 0 0 2.6 1.3 1.3 0 0 0 0-2.6Z" />
+  </Solid>
+);
+
+export const IconTikTok = (p: IconProps) => (
+  <Solid {...p}>
+    <path d="M13.2 2.5h3.1c.3 2.4 1.9 4.1 4.3 4.3v3.2c-1.6 0-3-.5-4.3-1.3v6.7a6 6 0 1 1-6-6c.3 0 .7 0 1 .1v3.3a2.8 2.8 0 1 0 1.9 2.6V2.5Z" />
+  </Solid>
+);

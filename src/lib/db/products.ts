@@ -14,7 +14,8 @@ import { useMemo } from 'react';
 import { db } from '@/lib/firebase';
 import { cloudinaryEnabled, uploadFullImage } from '@/lib/cloudinary';
 import { makeThumbnail } from '@/lib/image';
-import type { Product, SizeInput, SizeStock } from '@/lib/types';
+import { mapGallery } from '@/lib/store/model';
+import { MAX_GALLERY, type Product, type ProductPhoto, type SizeInput, type SizeStock } from '@/lib/types';
 import { useLiveQuery } from '@/lib/hooks/useFirestore';
 import { useOutbox } from '@/lib/offline/outbox';
 import { applyPendingToProducts } from '@/lib/offline/overlay';
@@ -100,6 +101,10 @@ export function mapProduct(id: string, raw: Record<string, unknown>): Product {
     lastSoldAt: (raw.lastSoldAt as Timestamp) ?? null,
     description: (raw.description as string) || undefined,
     onStore: raw.onStore !== false,
+    compareAtPrice: Number(raw.compareAtPrice ?? 0) || undefined,
+    featured: raw.featured === true,
+    storeBadge: (raw.storeBadge as string) || undefined,
+    gallery: mapGallery(raw.gallery),
   };
 }
 
@@ -161,6 +166,44 @@ export interface ProductInput {
   description?: string;
   /** Listed on the online store (still needs stock and a picture). */
   onStore?: boolean;
+  /** Price before the discount on the store; 0 = not on sale. */
+  compareAtPrice?: number;
+  featured?: boolean;
+  storeBadge?: string;
+  /**
+   * Extra store pictures, in order. `data` is set on pictures picked in this
+   * edit (already compressed); kept ones carry only id and hash.
+   */
+  gallery?: GalleryInput[];
+  /** Ids of pictures that were on the product and were removed in this edit. */
+  galleryRemoved?: string[];
+}
+
+export interface GalleryInput {
+  id: string;
+  hash: string;
+  data?: string;
+}
+
+/** Wide enough for a full-screen phone view, small enough to stay a cheap read. */
+export const GALLERY_IMAGE = { maxDim: 1100, maxBytes: 130 * 1024 };
+
+/**
+ * Writes the new extra pictures and empties removed ones, then returns what the
+ * product document should list. Pictures go to catalogThumbs — public like the
+ * main store picture — one document each, so the product stays small.
+ */
+async function writeGallery(productId: string, input: ProductInput): Promise<ProductPhoto[]> {
+  const list = (input.gallery ?? []).slice(0, MAX_GALLERY);
+  await Promise.all([
+    ...list
+      .filter((g) => g.data)
+      .map((g) => settle(setDoc(doc(db(), COL.catalogThumbs, `${productId}_g${g.id}`), { data: g.data }))),
+    ...(input.galleryRemoved ?? []).map((id) =>
+      settle(setDoc(doc(db(), COL.catalogThumbs, `${productId}_g${id}`), { data: '' })),
+    ),
+  ]);
+  return list.map((g) => ({ id: g.id, hash: g.hash }));
 }
 
 function validate(input: ProductInput) {
@@ -169,6 +212,8 @@ function validate(input: ProductInput) {
   if (input.costPrice < 0) throw new AppError('سعر التكلفة غير صحيح.');
   if (input.sellPrice < input.costPrice)
     throw new AppError('سعر البيع أقل من التكلفة — تأكد من الأسعار.');
+  if (input.compareAtPrice && input.compareAtPrice <= input.sellPrice)
+    throw new AppError('السعر قبل الخصم لازم يكون أكبر من سعر البيع — أو خلّيه فاضي.');
   const cleaned = input.sizes.filter((s) => s.size.trim());
   if (cleaned.length === 0) throw new AppError('أضف مقاساً واحداً على الأقل.');
   const seen = new Set<string>();
@@ -264,6 +309,9 @@ export async function createProduct(
     lowStockThreshold: Math.max(0, Math.floor(input.lowStockThreshold)),
     description: input.description?.trim() || null,
     onStore: input.onStore !== false,
+    compareAtPrice: input.compareAtPrice && input.compareAtPrice > input.sellPrice ? Math.round(input.compareAtPrice) : null,
+    featured: input.featured === true,
+    storeBadge: input.storeBadge?.trim().slice(0, 18) || null,
     thumbData: null as string | null,
     imageUrl: null as string | null,
     imagePublicId: null as string | null,
@@ -287,7 +335,8 @@ export async function createProduct(
     payload.imagePublicId = outcome.imagePublicId;
   }
 
-  await settle(setDoc(ref, payload));
+  const gallery = await writeGallery(ref.id, input);
+  await settle(setDoc(ref, { ...payload, gallery }));
   await logActivity(actor, 'added_product', `أضاف المنتج "${payload.name}"`);
   return { id: ref.id, warning };
 }
@@ -324,6 +373,9 @@ export async function updateProduct(
     lowStockThreshold: Math.max(0, Math.floor(input.lowStockThreshold)),
     description: input.description?.trim() || null,
     onStore: input.onStore !== false,
+    compareAtPrice: input.compareAtPrice && input.compareAtPrice > input.sellPrice ? Math.round(input.compareAtPrice) : null,
+    featured: input.featured === true,
+    storeBadge: input.storeBadge?.trim().slice(0, 18) || null,
     updatedAt: serverTimestamp(),
   };
 
@@ -340,6 +392,7 @@ export async function updateProduct(
     patch.imagePublicId = null;
   }
 
+  patch.gallery = await writeGallery(id, input);
   await settle(updateDoc(ref, patch));
   await logActivity(actor, 'edited_product', `عدّل المنتج "${input.name.trim()}"`);
   return { warning };

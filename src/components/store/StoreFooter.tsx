@@ -1,15 +1,42 @@
 import Link from 'next/link';
 import { Brand } from '@/components/layout/Brand';
-import { IconWhatsApp } from '@/components/ui/Icons';
+import { IconFacebook, IconInstagram, IconTikTok, IconWhatsApp } from '@/components/ui/Icons';
+import { socialUrl } from '@/lib/store/model';
 import type { StoreConfig } from '@/lib/types';
 
 export function StoreFooter({ config }: { config: StoreConfig }) {
+  const socials = (
+    [
+      ['instagram', 'انستغرام', IconInstagram],
+      ['facebook', 'فيسبوك', IconFacebook],
+      ['tiktok', 'تيك توك', IconTikTok],
+    ] as const
+  )
+    .map(([kind, label, Icon]) => ({ url: socialUrl(kind, config[kind]), label, Icon }))
+    .filter((s) => s.url);
+
   return (
-    <footer className="mt-16 border-t border-line bg-surface">
-      <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:grid-cols-3 sm:px-6">
+    <footer className="mt-24 border-t border-line bg-surface">
+      <div className="mx-auto grid max-w-7xl gap-8 px-4 py-12 sm:grid-cols-3 sm:px-6">
         <div>
           <Brand />
           <p className="mt-3 max-w-xs text-[0.9rem] leading-relaxed text-fg-2">{config.about}</p>
+          {socials.length > 0 ? (
+            <div className="mt-4 flex gap-2">
+              {socials.map(({ url, label, Icon }) => (
+                <a
+                  key={label}
+                  href={url!}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={label}
+                  className="press flex h-11 w-11 items-center justify-center rounded-full border border-line-strong text-fg-2 hover:border-fg hover:text-fg"
+                >
+                  <Icon className="h-5 w-5" />
+                </a>
+              ))}
+            </div>
+          ) : null}
         </div>
         <div>
           <p className="ledger-head">تسوّق</p>
@@ -22,6 +49,11 @@ export function StoreFooter({ config }: { config: StoreConfig }) {
             <li>
               <Link href="/shop?c=clothing" className="hover:text-fg">
                 ملابس
+              </Link>
+            </li>
+            <li>
+              <Link href="/wishlist" className="hover:text-fg">
+                المفضلة
               </Link>
             </li>
             <li>
@@ -49,7 +81,7 @@ export function StoreFooter({ config }: { config: StoreConfig }) {
         </div>
       </div>
       <div className="border-t border-line">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-2 px-4 py-4 text-[0.78rem] text-fg-3 sm:px-6">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-2 px-4 py-4 text-[0.78rem] text-fg-3 sm:px-6">
           <span>© {new Date().getFullYear()} {config.shopName} — الدفع عند الاستلام</span>
           <Link href="/login" className="hover:text-fg-2">
             دخول الفريق
@@ -69,7 +101,7 @@ export function WhatsAppFloat({ number }: { number: string }) {
       target="_blank"
       rel="noopener noreferrer"
       aria-label="تواصل واتساب"
-      className="press fixed bottom-5 left-5 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-good text-white shadow-lift"
+      className="wa-float press fixed bottom-5 left-5 z-40 flex h-14 w-14 items-center justify-center rounded-full bg-good text-white shadow-lift"
     >
       <IconWhatsApp className="h-7 w-7" />
     </a>

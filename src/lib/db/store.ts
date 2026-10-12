@@ -31,9 +31,13 @@ import {
   type StoreOrder,
   type StoreSizeState,
 } from '@/lib/types';
+import { makeThumbnail } from '@/lib/image';
+import { mapCatalog, mapStoreConfig, safeHref } from '@/lib/store/model';
 import { AppError, COL } from './collections';
 import { logActivity } from './activity';
 import { totalStock, useServerProducts } from './products';
+
+export { mapCatalog, mapStoreConfig };
 import { invoiceNumber } from './sale-math';
 
 /* ---------- the public catalog ---------- */
@@ -73,23 +77,10 @@ export function toCatalog(p: Product): Omit<CatalogItem, 'id'> {
     listed: !p.isArchived && p.onStore !== false && totalStock(p) > 0 && hasPicture,
     createdAtMs: p.createdAt?.toMillis?.() ?? 0,
     lastSoldAtMs: p.lastSoldAt?.toMillis?.() ?? 0,
-  };
-}
-
-export function mapCatalog(id: string, raw: Record<string, unknown>): CatalogItem {
-  return {
-    id,
-    name: String(raw.name ?? ''),
-    brand: (raw.brand as string) || undefined,
-    category: raw.category === 'clothing' ? 'clothing' : 'shoes',
-    price: Number(raw.price ?? 0),
-    sizes: Array.isArray(raw.sizes) ? (raw.sizes as CatalogItem['sizes']) : [],
-    description: (raw.description as string) || undefined,
-    imageUrl: (raw.imageUrl as string) || null,
-    thumbHash: String(raw.thumbHash ?? ''),
-    listed: raw.listed === true,
-    createdAtMs: Number(raw.createdAtMs ?? 0),
-    lastSoldAtMs: Number(raw.lastSoldAtMs ?? 0),
+    compareAtPrice: p.compareAtPrice && p.compareAtPrice > p.sellPrice ? p.compareAtPrice : 0,
+    featured: p.featured === true,
+    badge: (p.storeBadge ?? '').trim().slice(0, 18),
+    gallery: (p.gallery ?? []).map((g) => ({ id: g.id, hash: g.hash })),
   };
 }
 
@@ -112,6 +103,10 @@ function normalize(item: Omit<CatalogItem, 'id'>) {
     listed: item.listed,
     createdAtMs: item.createdAtMs,
     lastSoldAtMs: item.lastSoldAtMs,
+    compareAtPrice: item.compareAtPrice,
+    featured: item.featured,
+    badge: item.badge,
+    gallery: item.gallery,
   };
 }
 
@@ -171,24 +166,6 @@ export function useCatalogPublisher(enabled: boolean) {
 
 /* ---------- store settings ---------- */
 
-export function mapStoreConfig(raw: Record<string, unknown> | undefined): StoreConfig {
-  const r = raw ?? {};
-  return {
-    shopName: String(r.shopName ?? DEFAULT_STORE.shopName),
-    tagline: String(r.tagline ?? DEFAULT_STORE.tagline),
-    whatsapp: String(r.whatsapp ?? DEFAULT_STORE.whatsapp),
-    address: String(r.address ?? DEFAULT_STORE.address),
-    deliveryFee: Number(r.deliveryFee ?? DEFAULT_STORE.deliveryFee),
-    freeDeliveryOver: Number(r.freeDeliveryOver ?? DEFAULT_STORE.freeDeliveryOver),
-    pickupEnabled: r.pickupEnabled !== false,
-    heroTitle: String(r.heroTitle ?? DEFAULT_STORE.heroTitle),
-    heroSubtitle: String(r.heroSubtitle ?? DEFAULT_STORE.heroSubtitle),
-    about: String(r.about ?? DEFAULT_STORE.about),
-    returnPolicy: String(r.returnPolicy ?? DEFAULT_STORE.returnPolicy),
-    acceptingOrders: r.acceptingOrders !== false,
-  };
-}
-
 export function useStoreConfig(): { config: StoreConfig; loading: boolean } {
   const [config, setConfig] = useState<StoreConfig>(DEFAULT_STORE);
   const [loading, setLoading] = useState(true);
@@ -213,10 +190,37 @@ export async function saveStoreConfig(config: StoreConfig, actor: { uid: string;
   const phone = whatsappNumber(config.whatsapp);
   if (!phone) throw new AppError('رقم واتساب المتجر مطلوب — الطلبات بتجي عليهو.');
   if (config.deliveryFee < 0 || config.freeDeliveryOver < 0) throw new AppError('الأرقام لا تكون سالبة.');
-  await settle(
-    setDoc(doc(db(), COL.storefront, 'config'), { ...config, whatsapp: phone, updatedAt: serverTimestamp() }),
-  );
-  await logActivity(actor, 'edited_settings', 'حدّث إعدادات المتجر الإلكتروني');
+  for (const b of config.banners) {
+    if (!b.imageHash) throw new AppError('في بانر بدون صورة — أضف صورة أو احذفه.');
+  }
+  // Round-trip through the mapper so only known fields, in sane sizes, are stored.
+  const clean = mapStoreConfig({
+    ...config,
+    whatsapp: phone,
+    announcements: config.announcements.map((a) => a.trim()).filter(Boolean),
+    banners: config.banners.map((b) => ({ ...b, href: safeHref(b.href) })),
+  });
+  await settle(setDoc(doc(db(), COL.storefront, 'config'), { ...clean, updatedAt: serverTimestamp() }));
+  await logActivity(actor, 'edited_settings', 'حدّث واجهة المتجر الإلكتروني');
+}
+
+/** Wide, sharp enough for a full-width phone banner, small enough for one document. */
+const BANNER_IMAGE = { maxDim: 1600, maxBytes: 260 * 1024 };
+
+/**
+ * Stores a banner picture. Pictures live in their own storefront/banner_{id}
+ * document — publicly readable like the rest of storefront, and kept out of the
+ * config document so the settings stay small. Returns the hash for the URL.
+ */
+export async function saveBannerImage(bannerId: string, file: File): Promise<string> {
+  const { dataUrl } = await makeThumbnail(file, BANNER_IMAGE);
+  await settle(setDoc(doc(db(), COL.storefront, `banner_${bannerId}`), { data: dataUrl, updatedAt: serverTimestamp() }));
+  return hashString(dataUrl);
+}
+
+/** Empties a removed banner's picture document so it stops taking space. */
+export async function clearBannerImage(bannerId: string): Promise<void> {
+  await settle(setDoc(doc(db(), COL.storefront, `banner_${bannerId}`), { data: '' }));
 }
 
 /** Delivery charge for a basket, by the store's rule. */

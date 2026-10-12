@@ -1,0 +1,343 @@
+/*
+ * The public website's two looks. The staff app keeps its ledger paper; the
+ * store redefines the same role tokens on its own root, so every shared class
+ * (bg-surface, text-fg-2, text-brand-500…) follows the look, and the staff
+ * member's own dark/light choice never leaks onto the customer's site.
+ *
+ *   light — "gallery": near-white, hard black type, fuchsia only for money.
+ *   luxe  — "night boutique": deep black, ivory type, a gold spot colour.
+ *
+ * No background gradients, by the house rules — depth comes from contrast,
+ * scale and motion instead.
+ */
+
+.store {
+  color-scheme: light;
+
+  --white: 255 255 255;
+
+  --ink-50: 247 246 243;
+  --ink-100: 238 236 231;
+  --ink-200: 222 219 212;
+  --ink-300: 190 186 178;
+  --ink-400: 145 140 132;
+  --ink-500: 107 103 96;
+  --ink-600: 78 75 70;
+  --ink-700: 56 54 50;
+  --ink-750: 44 42 39;
+  --ink-800: 34 33 30;
+  --ink-850: 26 25 23;
+  --ink-900: 20 19 17;
+  --ink-950: 10 10 9;
+
+  --brand-50: 251 237 243;
+  --brand-100: 247 219 231;
+  --brand-200: 239 184 208;
+  --brand-300: 226 133 172;
+  --brand-400: 212 79 135;
+  --brand-500: 194 48 110;
+  --brand-600: 170 36 94;
+  --brand-700: 142 28 78;
+  --brand-800: 115 26 65;
+  --brand-900: 92 24 54;
+
+  --accent-50: 234 244 251;
+  --accent-100: 208 230 246;
+  --accent-200: 163 204 234;
+  --accent-300: 104 166 214;
+  --accent-400: 49 128 190;
+  --accent-500: 18 96 155;
+  --accent-600: 16 82 133;
+  --accent-700: 17 68 110;
+  --accent-800: 19 56 89;
+  --accent-900: 20 47 73;
+
+  --good: 31 122 77;
+  --warn: 168 101 15;
+  --bad: 179 38 30;
+
+  --page: 250 249 246;
+  --surface: 255 255 255;
+  --sunken: 240 238 233;
+  --line: 228 225 218;
+  --line-strong: 196 191 182;
+  --fg: 17 17 16;
+  --fg-2: 72 70 66;
+  --fg-3: 112 108 101;
+  /* Tags and small highlights: ink on the gallery, gold in the boutique. */
+  --spot: 17 17 16;
+  --on-spot: 255 255 255;
+
+  background: rgb(var(--page));
+  color: rgb(var(--fg));
+}
+
+.store[data-look='luxe'] {
+  color-scheme: dark;
+
+  --ink-50: 246 242 234;
+  --ink-100: 236 230 219;
+  --ink-200: 214 206 192;
+  --ink-300: 178 169 154;
+  --ink-400: 141 132 119;
+  --ink-500: 112 104 93;
+  --ink-600: 84 77 68;
+  --ink-700: 60 54 47;
+  --ink-750: 48 43 37;
+  --ink-800: 38 34 29;
+  --ink-850: 29 26 22;
+  --ink-900: 6 6 7;
+  --ink-950: 3 3 4;
+
+  --brand-50: 60 18 36;
+  --brand-100: 82 24 49;
+  --brand-200: 120 34 72;
+  --brand-300: 247 156 194;
+  --brand-400: 241 107 162;
+  --brand-500: 236 84 146;
+  --brand-600: 210 47 112;
+  --brand-700: 175 33 90;
+  --brand-800: 141 30 75;
+  --brand-900: 116 29 65;
+
+  --accent-500: 27 155 232;
+
+  --good: 64 196 128;
+  --warn: 232 163 61;
+  --bad: 236 98 86;
+
+  --page: 9 9 10;
+  --surface: 19 19 21;
+  --sunken: 14 14 16;
+  --line: 36 36 40;
+  --line-strong: 62 61 66;
+  --fg: 245 242 235;
+  --fg-2: 192 187 178;
+  --fg-3: 142 138 130;
+  --spot: 212 178 106;
+  --on-spot: 12 11 9;
+}
+
+/* ---------- type ---------- */
+
+.store-display {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-weight: 900;
+  line-height: 0.98;
+  letter-spacing: -0.02em;
+  font-size: clamp(2.6rem, 9vw, 6.2rem);
+}
+
+.store-title {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-weight: 900;
+  line-height: 1.05;
+  font-size: clamp(1.6rem, 4.2vw, 2.6rem);
+}
+
+/* Latin wordmark lines ("NEW IN", the tagline) set wide, like a label. */
+.store-kicker {
+  font-family: var(--font-display), system-ui, sans-serif;
+  font-weight: 900;
+  font-size: 0.74rem;
+  letter-spacing: 0.32em;
+  color: rgb(var(--fg-3));
+}
+
+/* ---------- motion ---------- */
+
+/* Scroll reveal: Reveal adds .is-in when the block enters the screen. */
+.reveal {
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity 700ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 900ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+
+.reveal.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* Without JavaScript nothing should stay hidden. */
+.no-js .reveal {
+  opacity: 1;
+  transform: none;
+}
+
+/* The announcement ticker and the brand strip: one endless line. */
+@keyframes store-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(50%);
+  }
+}
+
+.marquee-track {
+  display: flex;
+  width: max-content;
+  animation: store-marquee var(--marquee-duration, 28s) linear infinite;
+}
+
+.marquee:hover .marquee-track {
+  animation-play-state: paused;
+}
+
+/* Hero: slow push-in on the active slide's picture. */
+@keyframes store-kenburns {
+  from {
+    transform: scale(1.08);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.hero-slide[data-active='true'] .hero-img {
+  animation: store-kenburns 7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes store-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.hero-slide[data-active='true'] .hero-copy > * {
+  animation: store-rise 800ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.hero-slide[data-active='true'] .hero-copy > *:nth-child(2) {
+  animation-delay: 90ms;
+}
+
+.hero-slide[data-active='true'] .hero-copy > *:nth-child(3) {
+  animation-delay: 180ms;
+}
+
+/* The dot under the active slide fills while the slide is shown. */
+@keyframes store-progress {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+.hero-dot[data-active='true'] > span > span {
+  animation: store-progress var(--slide-ms, 6000ms) linear both;
+}
+
+.hero-paused .hero-dot[data-active='true'] > span > span {
+  animation-play-state: paused;
+}
+
+/* Tile picture swaps scale on hover only where a mouse exists. */
+@media (hover: hover) {
+  .tile:hover .tile-img {
+    transform: scale(1.05);
+  }
+  .tile:hover .tile-quick {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.tile-img {
+  transition: transform 900ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Heart: a small pop when an item is saved. */
+@keyframes store-pop {
+  0% {
+    transform: scale(1);
+  }
+  40% {
+    transform: scale(1.3);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.pop {
+  animation: store-pop 360ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* Drawer from the side (RTL: it enters from the left edge). */
+@keyframes store-drawer {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: none;
+  }
+}
+
+.drawer-in {
+  animation: store-drawer 320ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes store-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.drop-in {
+  animation: store-drop 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Free-delivery meter fills smoothly as items are added. */
+.meter > span {
+  transition: width 600ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    opacity: 1;
+    transform: none;
+  }
+  .marquee-track {
+    animation: none;
+  }
+}
+
+/* Snap rails for the hero and the product shelves on phones. */
+.rail {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+
+.rail::-webkit-scrollbar {
+  display: none;
+}
+
+.rail > * {
+  scroll-snap-align: start;
+}
+
+/* The product page's sticky buy bar takes the bottom edge on phones. */
+@media (max-width: 767px) {
+  .store:has(.buy-bar) .wa-float {
+    bottom: 6.25rem;
+  }
+}

@@ -8,11 +8,20 @@ import { IconImage, IconPlus, IconTrash, IconX } from '@/components/ui/Icons';
 import { Sheet } from '@/components/ui/Sheet';
 import { errorMessage } from '@/lib/db/collections';
 import { cloudinaryEnabled } from '@/lib/cloudinary';
-import { createProduct, productImage, updateProduct, type ProductInput } from '@/lib/db/products';
+import {
+  createProduct,
+  GALLERY_IMAGE,
+  productImage,
+  updateProduct,
+  type GalleryInput,
+  type ProductInput,
+} from '@/lib/db/products';
+import { hashString } from '@/lib/db/store';
+import { galleryImagePath } from '@/lib/store/paths';
 import { formatBytes, makeThumbnail } from '@/lib/image';
 import { submitStockAdjust } from '@/lib/offline/operations';
 import { margin, money, percent } from '@/lib/format';
-import type { Category, Product, SizeInput } from '@/lib/types';
+import { MAX_GALLERY, type Category, type Product, type SizeInput } from '@/lib/types';
 
 interface Props {
   open: boolean;
@@ -33,6 +42,9 @@ const EMPTY: ProductInput = {
   lowStockThreshold: 2,
   description: '',
   onStore: true,
+  compareAtPrice: 0,
+  featured: false,
+  storeBadge: '',
 };
 
 /** Ready-made size sets so a full run can be entered in two taps. */
@@ -58,6 +70,10 @@ export function ProductForm({ open, onClose, product }: Props) {
   const [imageRemoved, setImageRemoved] = useState(false);
   const [busy, setBusy] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
+  /** Extra store pictures; `data` marks ones picked in this edit. */
+  const [gallery, setGallery] = useState<GalleryInput[]>([]);
+  const [galleryBusy, setGalleryBusy] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -74,6 +90,9 @@ export function ProductForm({ open, onClose, product }: Props) {
         lowStockThreshold: product.lowStockThreshold,
         description: product.description ?? '',
         onStore: product.onStore,
+        compareAtPrice: product.compareAtPrice ?? 0,
+        featured: product.featured === true,
+        storeBadge: product.storeBadge ?? '',
       });
       setPreview(productImage(product));
     } else {
@@ -83,7 +102,27 @@ export function ProductForm({ open, onClose, product }: Props) {
     setImage(null);
     setThumbBytes(null);
     setImageRemoved(false);
+    setGallery(product?.gallery?.map((g) => ({ ...g })) ?? []);
   }, [open, product]);
+
+  async function addGalleryFiles(files: File[]) {
+    const room = MAX_GALLERY - gallery.length;
+    if (room <= 0) return;
+    setGalleryBusy(true);
+    try {
+      const added: GalleryInput[] = [];
+      for (const file of files.slice(0, room)) {
+        const { dataUrl } = await makeThumbnail(file, GALLERY_IMAGE);
+        added.push({ id: Math.random().toString(36).slice(2, 10), hash: hashString(dataUrl), data: dataUrl });
+      }
+      setGallery((g) => [...g, ...added].slice(0, MAX_GALLERY));
+      if (files.length > room) toast.info(`الحد ${MAX_GALLERY} صور إضافية — اتضافت ${room} بس.`);
+    } catch (err) {
+      toast.error(errorMessage(err, 'تعذّر معالجة الصورة — جرّب صورة أخرى.'));
+    } finally {
+      setGalleryBusy(false);
+    }
+  }
 
   // Preview the actual compressed thumbnail, not the original file — what the
   // seller sees here is exactly what gets stored and shown on every screen.
@@ -138,14 +177,20 @@ export function ProductForm({ open, onClose, product }: Props) {
     try {
       let queuedStock = false;
       let warning: string | null;
+      const kept = new Set(gallery.map((g) => g.id));
+      const input: ProductInput = {
+        ...form,
+        gallery,
+        galleryRemoved: (product?.gallery ?? []).filter((g) => !kept.has(g.id)).map((g) => g.id),
+      };
       if (product) {
-        warning = (await updateProduct(product.id, form, image, imageRemoved, actor)).warning;
+        warning = (await updateProduct(product.id, input, image, imageRemoved, actor)).warning;
         // Quantities travel separately, as differences applied against the
         // server's live stock — see updateProduct for why.
         const adjusted = await submitStockAdjust(product, form.sizes, form.costPrice, actor);
         queuedStock = adjusted?.queued ?? false;
       } else {
-        warning = (await createProduct(form, image, actor)).warning;
+        warning = (await createProduct(input, image, actor)).warning;
       }
 
       if (warning) toast.info(warning);
@@ -400,7 +445,123 @@ export function ProductForm({ open, onClose, product }: Props) {
               className="h-6 w-6 accent-[rgb(var(--fg))]"
             />
           </label>
+
+          {form.onStore !== false ? (
+            <>
+              <div>
+                <label className="label" htmlFor="p-compare">
+                  السعر قبل الخصم (للموقع)
+                </label>
+                <input
+                  id="p-compare"
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  className="field tnum"
+                  value={form.compareAtPrice || ''}
+                  onChange={(e) => patch({ compareAtPrice: Number(e.target.value) || 0 })}
+                  placeholder="فاضي = ما في تخفيض"
+                />
+                <p className="mt-1 text-[0.72rem] text-fg-3">بيظهر مشطوب جنب السعر، ويدخل المنتج قسم التخفيضات.</p>
+              </div>
+              <div>
+                <label className="label" htmlFor="p-badge">
+                  شارة على الصورة
+                </label>
+                <input
+                  id="p-badge"
+                  maxLength={18}
+                  className="field"
+                  value={form.storeBadge ?? ''}
+                  onChange={(e) => patch({ storeBadge: e.target.value })}
+                  placeholder="مثلاً: حصري، أصلي، كمية محدودة"
+                />
+              </div>
+              <label className="flex cursor-pointer items-center gap-3 rounded-card border border-line bg-sunken px-3.5 py-3 sm:col-span-2">
+                <span className="min-w-0 flex-1">
+                  <span className="block font-bold">من مختارات المحل</span>
+                  <span className="block text-[0.78rem] text-fg-3">يظهر في قسم «مختارات المحل» في أول الموقع</span>
+                </span>
+                <input
+                  type="checkbox"
+                  checked={form.featured === true}
+                  onChange={(e) => patch({ featured: e.target.checked })}
+                  className="h-6 w-6 accent-[rgb(var(--fg))]"
+                />
+              </label>
+            </>
+          ) : null}
         </div>
+
+        {/* extra store pictures */}
+        {form.onStore !== false ? (
+          <div>
+            <div className="mb-2 flex items-baseline justify-between gap-2">
+              <p className="label mb-0">صور إضافية للموقع</p>
+              <span className="tnum text-[0.75rem] font-bold text-fg-3">
+                {gallery.length} / {MAX_GALLERY}
+              </span>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {gallery.map((g, i) => (
+                <div key={g.id} className="relative h-24 w-20 overflow-hidden rounded-card border border-line bg-sunken">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={g.data ?? (product ? galleryImagePath(product.id, g) : '')} alt="" className="h-full w-full object-cover" />
+                  <button
+                    type="button"
+                    aria-label={`إزالة الصورة ${i + 1}`}
+                    onClick={() => setGallery((list) => list.filter((x) => x.id !== g.id))}
+                    className="absolute left-1 top-1 flex h-7 w-7 items-center justify-center rounded-full bg-ink-950/70 text-white"
+                  >
+                    <IconX className="h-3.5 w-3.5" />
+                  </button>
+                  {i > 0 ? (
+                    <button
+                      type="button"
+                      aria-label="قدّمها"
+                      onClick={() =>
+                        setGallery((list) => {
+                          const next = [...list];
+                          [next[i - 1], next[i]] = [next[i]!, next[i - 1]!];
+                          return next;
+                        })
+                      }
+                      className="absolute bottom-1 right-1 rounded-[3px] bg-ink-950/70 px-1.5 text-[0.68rem] font-bold text-white"
+                    >
+                      قدّم
+                    </button>
+                  ) : null}
+                </div>
+              ))}
+              {gallery.length < MAX_GALLERY ? (
+                <button
+                  type="button"
+                  disabled={galleryBusy}
+                  onClick={() => galleryRef.current?.click()}
+                  className="flex h-24 w-20 flex-col items-center justify-center gap-1 rounded-card border border-dashed border-line-strong bg-sunken text-[0.7rem] font-bold text-fg-3 transition hover:border-fg hover:text-fg disabled:opacity-60"
+                >
+                  <IconPlus className="h-5 w-5" />
+                  {galleryBusy ? 'بيضغط…' : 'أضف صور'}
+                </button>
+              ) : null}
+            </div>
+            <p className="mt-1.5 text-[0.72rem] text-fg-3">
+              زوايا تانية، المنتج ملبوس، تفاصيل الخامة — بتظهر في صفحة المنتج في الموقع. اختيارية، وتقدر تختار كذا صورة مرة وحدة.
+            </p>
+            <input
+              ref={galleryRef}
+              type="file"
+              accept="image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                const files = Array.from(e.target.files ?? []);
+                e.target.value = '';
+                if (files.length) void addGalleryFiles(files);
+              }}
+            />
+          </div>
+        ) : null}
 
         {/* sizes */}
         <div>

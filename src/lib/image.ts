@@ -59,7 +59,10 @@ async function loadBitmap(file: File): Promise<ImageBitmap | HTMLImageElement> {
   });
 }
 
-export async function makeThumbnail(file: File): Promise<Thumbnail> {
+export async function makeThumbnail(
+  file: File,
+  { maxDim = MAX_DIM, maxBytes = MAX_BYTES }: { maxDim?: number; maxBytes?: number } = {},
+): Promise<Thumbnail> {
   if (!file.type.startsWith('image/')) throw new AppError('الملف المرفوع ليس صورة.');
 
   const source = await loadBitmap(file);
@@ -67,7 +70,7 @@ export async function makeThumbnail(file: File): Promise<Thumbnail> {
   const sourceHeight = 'height' in source ? source.height : 0;
   if (!sourceWidth || !sourceHeight) throw new AppError('تعذّر قراءة أبعاد الصورة.');
 
-  const scale = Math.min(1, MAX_DIM / Math.max(sourceWidth, sourceHeight));
+  const scale = Math.min(1, maxDim / Math.max(sourceWidth, sourceHeight));
   const width = Math.max(1, Math.round(sourceWidth * scale));
   const height = Math.max(1, Math.round(sourceHeight * scale));
 
@@ -86,13 +89,13 @@ export async function makeThumbnail(file: File): Promise<Thumbnail> {
 
   let quality = 0.72;
   let dataUrl = canvas.toDataURL('image/jpeg', quality);
-  while (dataUrlBytes(dataUrl) > MAX_BYTES && quality > 0.35) {
+  while (dataUrlBytes(dataUrl) > maxBytes && quality > 0.35) {
     quality -= 0.1;
     dataUrl = canvas.toDataURL('image/jpeg', quality);
   }
 
   const bytes = dataUrlBytes(dataUrl);
-  if (bytes > MAX_BYTES * 2) {
+  if (bytes > maxBytes * 2) {
     throw new AppError('تعذّر ضغط الصورة بما يكفي — جرّب صورة أبسط.');
   }
 

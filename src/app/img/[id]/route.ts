@@ -12,7 +12,8 @@ import { fetchProduct, fetchThumb } from '@/lib/store/server';
 export const revalidate = 300;
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
-  const product = await fetchProduct(params.id);
+  // Gallery pictures ({productId}_g{photoId}) are always stored here, never on Cloudinary.
+  const product = params.id.includes('_g') ? null : await fetchProduct(params.id);
   // A full-size Cloudinary copy is better than the thumbnail when it exists.
   if (product?.imageUrl) return Response.redirect(product.imageUrl, 302);
 

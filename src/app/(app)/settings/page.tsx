@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useActor } from '@/components/providers/AuthProvider';
 import { useToast } from '@/components/providers/ToastProvider';
 import { BrandMark } from '@/components/layout/Brand';
-import { StoreSettings } from '@/components/store/StoreSettings';
+import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { IconImage, IconX } from '@/components/ui/Icons';
 import { PageHeader, SectionTitle } from '@/components/ui/PageHeader';
@@ -211,7 +211,13 @@ export default function SettingsPage() {
           حفظ الإعدادات
         </Button>
 
-        <StoreSettings />
+        <Link href="/storefront" className="surface press flex items-center gap-3 p-4">
+          <span className="min-w-0 flex-1">
+            <span className="block font-bold">المتجر الإلكتروني</span>
+            <span className="block text-[0.82rem] text-fg-3">الشكل، البانرات، الأقسام، التوصيل ورقم الطلبات — في «واجهة المتجر»</span>
+          </span>
+          <span className="font-bold text-brand-500">افتح</span>
+        </Link>
       </div>
     </>
   );

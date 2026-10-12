@@ -9,6 +9,7 @@ import { deliveryFeeFor, orderWhatsappText, placeOrder } from '@/lib/db/store';
 import { money } from '@/lib/format';
 import { cartSubtotal, clearCart, setCartQty, useCart } from '@/lib/store/cart';
 import type { StoreConfig, StoreOrder } from '@/lib/types';
+import { FreeDeliveryMeter } from './FreeDeliveryMeter';
 
 const DETAILS_KEY = 'mtozero-store-customer-v1';
 
@@ -134,9 +135,14 @@ export function CartCheckout({ config }: { config: StoreConfig }) {
   }
 
   return (
-    <div className="mx-auto grid max-w-6xl gap-8 px-4 pt-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">
+    <div className="mx-auto grid max-w-7xl gap-8 px-4 pt-6 sm:px-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,26rem)]">
       <section>
-        <h1 className="mb-5 text-[2rem]">السلة</h1>
+        <h1 className="store-title mb-5">السلة</h1>
+        {fulfilment === 'delivery' && config.freeDeliveryOver > 0 ? (
+          <div className="mb-5">
+            <FreeDeliveryMeter subtotal={subtotal} freeOver={config.freeDeliveryOver} />
+          </div>
+        ) : null}
         <ul className="surface perf-rows overflow-hidden">
           {items.map((i) => (
             <li key={`${i.productId}-${i.size}`} className="flex gap-3 p-3">

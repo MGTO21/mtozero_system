@@ -107,7 +107,28 @@ export interface Product {
   description?: string;
   /** False hides the product from the online store; absent means shown. */
   onStore: boolean;
+  /** Price before the discount, shown struck through on the store. 0/absent = no sale. */
+  compareAtPrice?: number;
+  /** Pinned to the store's "picks" section and shown first in its shelf. */
+  featured?: boolean;
+  /** Short custom label on the store tile ("حصري", "أصلي"). */
+  storeBadge?: string;
+  /**
+   * Extra pictures for the store's product page. Only ids and hashes live here;
+   * each picture is its own catalogThumbs/{productId}_g{id} document, so this
+   * collection — kept live on every staff device — stays light.
+   */
+  gallery?: ProductPhoto[];
 }
+
+export interface ProductPhoto {
+  id: string;
+  /** Changes with the picture, so cached copies refresh. */
+  hash: string;
+}
+
+/** At most this many extra pictures per product. */
+export const MAX_GALLERY = 5;
 
 /* ---------- online store ---------- */
 
@@ -137,6 +158,69 @@ export interface CatalogItem {
   listed: boolean;
   createdAtMs: number;
   lastSoldAtMs: number;
+  /** Struck-through price before the discount; 0 when the product is not on sale. */
+  compareAtPrice: number;
+  featured: boolean;
+  badge: string;
+  /** Extra pictures after the main one. */
+  gallery: ProductPhoto[];
+}
+
+/** The two looks of the public website. */
+export type StoreLook = 'light' | 'luxe';
+
+/** A block of the store's home page, in the order the owner arranged them. */
+export type HomeSectionType =
+  | 'hero'
+  | 'promise'
+  | 'categories'
+  | 'offers'
+  | 'featured'
+  | 'sale'
+  | 'new'
+  | 'mysize'
+  | 'trending'
+  | 'recent'
+  | 'howto';
+
+export interface HomeSection {
+  type: HomeSectionType;
+  enabled: boolean;
+  /** Heading shown on the site; empty uses the default. */
+  title: string;
+}
+
+export const HOME_SECTION_LABEL: Record<HomeSectionType, { title: string; hint: string }> = {
+  hero: { title: 'البانر الرئيسي', hint: 'صور البانرات المتحركة — أو عنوان كبير لو ما في بانر' },
+  promise: { title: 'شريط الضمانات', hint: 'الدفع عند الاستلام، التوصيل، الاستبدال' },
+  categories: { title: 'الأقسام', hint: 'أحذية وملابس بصورة كبيرة' },
+  offers: { title: 'أكواد الخصم', hint: 'الكوبونات المعلنة من صفحة العروض' },
+  featured: { title: 'مختارات المحل', hint: 'المنتجات المعلّمة «مميز» في المخزون' },
+  sale: { title: 'تخفيضات', hint: 'المنتجات اللي عندها سعر قبل الخصم' },
+  new: { title: 'وصل جديد', hint: 'أحدث المنتجات' },
+  mysize: { title: 'متوفر في مقاسك', hint: 'يظهر للزبون اللي حفظ مقاسو' },
+  trending: { title: 'الناس بتطلب', hint: 'الأكثر مبيعاً مؤخراً' },
+  recent: { title: 'شاهدتها مؤخراً', hint: 'آخر منتجات فتحها الزبون في جهازو' },
+  howto: { title: 'كيف تطلب', hint: 'تلات خطوات للطلب' },
+};
+
+export const DEFAULT_SECTIONS: HomeSection[] = (
+  ['hero', 'promise', 'categories', 'offers', 'featured', 'sale', 'new', 'mysize', 'trending', 'recent', 'howto'] as const
+).map((type) => ({ type, enabled: true, title: '' }));
+
+/** A home-page banner. Its picture lives in storefront/banner_{id}, served at /banner/{id}. */
+export interface StoreBanner {
+  id: string;
+  title: string;
+  subtitle: string;
+  /** Button text; empty hides the button. */
+  cta: string;
+  /** Where the banner leads: a store path such as /shop?c=shoes. */
+  href: string;
+  /** Changes with the picture, so cached images refresh. Empty = no picture yet. */
+  imageHash: string;
+  /** Text colour over the picture. */
+  tone: 'light' | 'dark';
 }
 
 /** Store-wide settings shown to customers: storefront/config. */
@@ -156,6 +240,19 @@ export interface StoreConfig {
   returnPolicy: string;
   /** False pauses ordering (holidays, stock-take) while the site stays up. */
   acceptingOrders: boolean;
+  /** The look visitors get first. */
+  look: StoreLook;
+  /** Lets visitors switch between the two looks. */
+  lookToggle: boolean;
+  /** Rotating messages in the top bar; empty shows the delivery rule. */
+  announcements: string[];
+  sections: HomeSection[];
+  banners: StoreBanner[];
+  /** Products added within this many days carry a "new" tag. 0 = never. */
+  newDays: number;
+  instagram: string;
+  facebook: string;
+  tiktok: string;
 }
 
 export const DEFAULT_STORE: StoreConfig = {
@@ -171,6 +268,15 @@ export const DEFAULT_STORE: StoreConfig = {
   about: 'MTOZERO متجر أحذية وملابس في الأبيض. نختار القطع بعناية ونوصلها لحدي بابك.',
   returnPolicy: 'الاستبدال خلال 3 أيام بالفاتورة، والقطعة بحالتها الأصلية.',
   acceptingOrders: true,
+  look: 'light',
+  lookToggle: true,
+  announcements: [],
+  sections: DEFAULT_SECTIONS,
+  banners: [],
+  newDays: 14,
+  instagram: '',
+  facebook: '',
+  tiktok: '',
 };
 
 export type OrderStatus = 'new' | 'confirmed' | 'out' | 'delivered' | 'cancelled';
