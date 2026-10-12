@@ -60,6 +60,7 @@ export const NAV: NavItem[] = [
   { href: '/settings', label: 'إعدادات المتجر', icon: IconStore, section: 'admin', ownerOnly: true },
 
   { href: '/sync', label: 'عمليات بدون شبكة', icon: IconQueue, section: 'admin', hidden: true },
+  { href: '/migrate', label: 'نقل المتجر', icon: IconStore, section: 'admin', ownerOnly: true, hidden: true },
 ];
 
 export const SECTION_ORDER: NavSection[] = ['daily', 'stock', 'admin'];

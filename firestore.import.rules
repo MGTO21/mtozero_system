@@ -1,0 +1,258 @@
+rules_version = '2';
+
+// Mtozero Shop — Firestore security rules.
+//
+// Model: one shop, a small known set of accounts. Everything requires sign-in.
+// Owners see everything; employees can sell and manage stock but cannot read the
+// activity log, and cannot delete anything.
+//
+// ownerEmail() below MUST stay identical to NEXT_PUBLIC_OWNER_EMAIL in .env.local —
+// it is the only way the very first owner account can be created. Both values are
+// kept in sync by scripts/setup-firebase.mjs; change them together, never alone.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function ownerEmail() {
+      return 'to00bi.com@gmail.com';
+    }
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function profile() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function profileExists() {
+      return exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    // An active member of the shop: signed in, has a profile, not deactivated.
+    function member() {
+      return signedIn() && profileExists() && profile().isActive != false;
+    }
+
+    function isOwner() {
+      return member() && profile().role == 'owner';
+    }
+
+    /* ---------- users ---------- */
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || isOwner());
+
+      // First sign-in self-provisioning. The owner role is only accepted for the
+      // one hard-coded bootstrap address; everyone else lands as an employee.
+      allow create: if signedIn()
+        && request.auth.uid == uid
+        && request.resource.data.uid == uid
+        && request.resource.data.isActive == true
+        && (
+          (request.resource.data.role == 'owner' && request.auth.token.email.lower() == ownerEmail())
+          || (request.resource.data.role == 'employee' && request.resource.data.canSeeProfit == false)
+        );
+
+      // Owners manage the team. An owner creating an employee account writes that
+      // employee's profile document from their own session.
+      allow create, update: if isOwner();
+
+      // Users may fix their own display name/phone, never their own role.
+      allow update: if member()
+        && request.auth.uid == uid
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.canSeeProfit == resource.data.canSeeProfit
+        && request.resource.data.isActive == resource.data.isActive;
+
+      allow delete: if false;
+    }
+
+    /* ---------- products ---------- */
+    match /products/{productId} {
+      allow read: if member();
+      // Employees maintain stock too; every change is written to activityLog.
+      allow create, update: if member();
+      // Products are archived (isArchived), never deleted — sales history depends
+      // on them existing.
+      allow delete: if false;
+    }
+
+    /* ---------- sales ---------- */
+    match /sales/{saleId} {
+      allow read: if member();
+      allow create: if member() && request.resource.data.soldBy == request.auth.uid;
+      // Updates cover debt repayments and returns.
+      //
+      // These guards used to name productId/size/qty/sellPrice/costPrice, which
+      // stopped existing at the top level when a sale became a multi-item invoice.
+      // Reading a missing field denies the whole rule, so every repayment and
+      // every return failed against cart-format sales.
+      //
+      // What stays immutable is who sold it, when, and how many lines it has —
+      // a line can neither be added nor removed after the fact. The 'items' guard
+      // is skipped for sales written before the cart, which have no items array.
+      //
+      // Values inside a line (returnedQty, profit, costPrice) must stay writable
+      // because a return recomputes them. Rules cannot walk an array to verify
+      // each element, so line-level tampering is bounded by the app being the only
+      // writer and by every change landing in activityLog — not by this rule.
+      allow update: if member()
+        && request.resource.data.soldBy == resource.data.soldBy
+        && request.resource.data.createdAt == resource.data.createdAt
+        && (
+          !('items' in resource.data)
+          || request.resource.data.items.size() == resource.data.items.size()
+        );
+      // A sale is reversed with a return, not erased.
+      allow delete: if false;
+    }
+
+    /* ---------- debt repayments ---------- */
+    match /debtPayments/{paymentId} {
+      allow read: if member();
+      allow create: if member() && request.resource.data.receivedBy == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    /* ---------- returns ---------- */
+    match /returns/{returnId} {
+      allow read: if member();
+      allow create: if member() && request.resource.data.createdBy == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    /* ---------- expenses ---------- */
+    match /expenses/{expenseId} {
+      allow read: if member();
+      allow create: if member() && request.resource.data.addedBy == request.auth.uid;
+      allow update: if isOwner();
+      // Deleting an expense changes reported profit.
+      allow delete: if isOwner();
+    }
+
+    /* ---------- shipments ---------- */
+    match /shipments/{shipmentId} {
+      allow read: if member();
+      allow create, update: if member();
+      // Deleting a shipment would orphan the lots that reference it.
+      allow delete: if false;
+    }
+
+    match /shipmentGroups/{groupId} {
+      allow read: if member();
+      allow create, update: if member();
+      allow delete: if isOwner();
+    }
+
+    /* ---------- customers ---------- */
+    match /customers/{customerId} {
+      allow read: if member();
+      allow create: if member();
+      // Anyone selling updates totals and spends credit; the referral chain and the
+      // code itself are fixed at creation so credit cannot be farmed by editing.
+      allow update: if member()
+        && request.resource.data.referralCode == resource.data.referralCode
+        && request.resource.data.phone == resource.data.phone
+        && request.resource.data.referredBy == resource.data.referredBy
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if false;
+    }
+
+    /* ---------- discount codes, offers and gift vouchers ---------- */
+    match /promos/{code} {
+      // Codes the owner marked public are listed on customers' card pages, which
+      // are opened without signing in. Queries must filter on public == true.
+      allow read: if member() || resource.data.public == true;
+      allow create, delete: if isOwner() && request.resource.data.code == code;
+      // The owner edits anything. A sale (any member) may only redeem: one more
+      // use, the buyer added to usedBy, a gift balance spent down — never the
+      // terms of the code itself.
+      allow update: if isOwner()
+        || (member()
+          && request.resource.data.code == resource.data.code
+          && request.resource.data.kind == resource.data.kind
+          && request.resource.data.value == resource.data.value
+          && request.resource.data.minTotal == resource.data.minTotal
+          && request.resource.data.maxDiscount == resource.data.maxDiscount
+          && request.resource.data.maxUses == resource.data.maxUses
+          && request.resource.data.expiresAt == resource.data.expiresAt
+          && request.resource.data.active == resource.data.active
+          && request.resource.data.public == resource.data.public
+          && request.resource.data.uses == resource.data.uses + 1
+          && request.resource.data.balance <= resource.data.balance);
+    }
+
+    /* ---------- customers' public cards ---------- */
+    match /cards/{phone} {
+      // A customer looks up their own card by phone number, without an account.
+      // Only a single, exactly-named card can be fetched: listing is refused, so
+      // the collection cannot be dumped. The card holds a first name, the code
+      // and the balance — nothing else about the customer.
+      allow get: if true;
+      allow list: if false;
+      allow create, update: if member();
+      allow delete: if false;
+    }
+
+    /* ---------- credit gifted to customers ---------- */
+    match /creditGrants/{grantId} {
+      allow read: if member();
+      allow create: if isOwner() && request.resource.data.grantedBy == request.auth.uid;
+      // Money given away: append-only.
+      allow update, delete: if false;
+    }
+
+    /* ---------- referrals ---------- */
+    match /referrals/{referralId} {
+      allow read: if member();
+      allow create: if member();
+      // An awarded referral is a financial record: append-only.
+      allow update, delete: if false;
+    }
+
+    /* ---------- marketing campaigns ---------- */
+    match /campaigns/{campaignId} {
+      allow read: if member();
+      allow create: if member() && request.resource.data.createdBy == request.auth.uid;
+      // Working the send queue only ever appends to sentTo; nothing else moves.
+      allow update: if member()
+        && request.resource.data.message == resource.data.message
+        && request.resource.data.createdBy == resource.data.createdBy
+        && request.resource.data.createdAt == resource.data.createdAt;
+      allow delete: if isOwner();
+    }
+
+    /* ---------- stock counts ---------- */
+    match /stockCounts/{countId} {
+      allow read: if member();
+      allow create: if member() && request.resource.data.countedBy == request.auth.uid;
+      // A count is evidence of what was found on a given day — append only.
+      allow update, delete: if false;
+    }
+
+    /* ---------- shop settings ---------- */
+    match /settings/{docId} {
+      allow read: if member();
+      allow write: if isOwner();
+    }
+
+    /* ---------- activity log ---------- */
+    match /activityLog/{entryId} {
+      // Accountability: only the owner reads it, and nobody can rewrite history.
+      allow read: if isOwner();
+      allow create: if member() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if false;
+    }
+
+    // ---- TEMPORARY: data import into a new project. Lets the owner write any
+    // document so records keep their original ids and authors. Deployed only
+    // for the import (firebase.import.json) and replaced by firestore.rules
+    // straight after. Never leave this published.
+    match /{document=**} {
+      allow read, write: if signedIn() && request.auth.token.email.lower() == ownerEmail();
+    }
+    // Anything not matched above is denied.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
