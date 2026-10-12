@@ -204,8 +204,11 @@ export default function DashboardPage() {
             </div>
           </section>
 
-          <div className="grid gap-5 lg:grid-cols-2">
-            <section>
+          {/* minmax(0,1fr): a grid track otherwise refuses to shrink below its
+              widest content, and one long product name pushed the whole page
+              sideways on a 360px phone. */}
+          <div className="grid grid-cols-[minmax(0,1fr)] gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
+            <section className="min-w-0">
               <SectionTitle>ماذا تطلب في الشحنة القادمة</SectionTitle>
               <div className="surface p-3">
                 {/* Ranked by what actually sells, not just by what is low. */}
@@ -213,7 +216,7 @@ export default function DashboardPage() {
               </div>
             </section>
 
-            <div className="space-y-5">
+            <div className="min-w-0 space-y-5">
               <section>
                 <SectionTitle>الأكثر مبيعاً هذا الشهر</SectionTitle>
                 {best.length === 0 ? (

@@ -133,6 +133,13 @@
   body {
     @apply bg-page text-fg antialiased;
     overscroll-behavior-y: none;
+    /*
+     * Last line of defence on phones: nothing may scroll the page sideways.
+     * `clip` rather than `hidden` so it does not create a scroll container and
+     * the sticky header and sell bar keep working. Layout bugs are still fixed
+     * at their source; this only stops one from shifting the whole screen.
+     */
+    overflow-x: clip;
   }
 
   h1,
