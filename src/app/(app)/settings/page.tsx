@@ -5,6 +5,7 @@ import { useActor } from '@/components/providers/AuthProvider';
 import { useToast } from '@/components/providers/ToastProvider';
 import { BrandMark } from '@/components/layout/Brand';
 import Link from 'next/link';
+import { ConnectionCheck } from '@/components/settings/ConnectionCheck';
 import { Button } from '@/components/ui/Button';
 import { IconImage, IconX } from '@/components/ui/Icons';
 import { PageHeader, SectionTitle } from '@/components/ui/PageHeader';
@@ -218,6 +219,8 @@ export default function SettingsPage() {
           </span>
           <span className="font-bold text-brand-500">افتح</span>
         </Link>
+
+        <ConnectionCheck />
       </div>
     </>
   );

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { useCallback, useEffect, useState, type ComponentType, type ReactNode, type SVGProps } from 'react';
+import { useCallback, useEffect, useState, type ComponentType, type ReactNode, type SVGProps, useMemo } from 'react';
 import { QuickSearch, useQuickSearchHotkey } from '@/components/search/QuickSearch';
 import { useAuth } from '@/components/providers/AuthProvider';
 import { useTheme } from '@/components/providers/ThemeProvider';
@@ -35,7 +35,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   useQuickSearchHotkey(useCallback(() => setSearchOpen(true), []));
   useSyncDriver(profile?.uid, queue.pending.length);
   // Keeps the website's public catalog in step with the stock while the app is open.
-  useCatalogPublisher(Boolean(profile));
+  const publisherActor = useMemo(() => (profile ? { uid: profile.uid, name: profile.name } : undefined), [profile]);
+  useCatalogPublisher(Boolean(profile), publisherActor);
   const { settings, loading: settingsLoading } = useSettings();
   // Only the owner may write storefront/logo; their device keeps it in step.
   useLogoPublisher(Boolean(profile) && isOwner, settings.logoData, settingsLoading);

@@ -116,7 +116,34 @@ function normalize(item: Omit<CatalogItem, 'id'>) {
  * costs no writes at all. It only acts on data confirmed by the server, never on
  * the offline cache, so a stale phone cannot publish stale stock.
  */
-export function useCatalogPublisher(enabled: boolean) {
+/**
+ * Guards against the publisher rewriting the same documents in a loop.
+ *
+ * On 2026-10-15 something made a staff device rewrite unchanged catalog
+ * documents every few seconds: ~19,000 writes in 90 minutes, the whole free
+ * daily quota, after which every save in the shop silently failed until the
+ * quota reset. Two guards, whatever the cause:
+ *   - a document is never written twice with the same content from a device
+ *     (the server copy not matching after a write is reported, not retried);
+ *   - more than PUBLISH_BUDGET writes in an hour stops the publisher for this
+ *     session and leaves one entry in the activity log naming the fields that
+ *     would not match, so the cause can be found.
+ */
+const PUBLISH_BUDGET = 400;
+const lastWritten = new Map<string, string>();
+const recentWrites: number[] = [];
+let halted = false;
+let reported = false;
+
+function mismatchedFields(a: Omit<CatalogItem, 'id'>, b: CatalogItem): string[] {
+  const na = normalize(a) as Record<string, unknown>;
+  const { id: _id, ...rest } = b;
+  void _id;
+  const nb = normalize(rest) as Record<string, unknown>;
+  return Object.keys(na).filter((k) => JSON.stringify(na[k]) !== JSON.stringify(nb[k]));
+}
+
+export function useCatalogPublisher(enabled: boolean, actor?: { uid: string; name: string }) {
   const products = useServerProducts();
   const catalog = useLiveQuery<CatalogItem>(
     () => (enabled ? collection(db(), COL.catalog) : null),
@@ -126,7 +153,7 @@ export function useCatalogPublisher(enabled: boolean) {
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    if (!enabled || products.loading || catalog.loading) return;
+    if (!enabled || halted || products.loading || catalog.loading) return;
     if (products.fromCache || catalog.fromCache || products.error || catalog.error) return;
 
     if (timer.current) clearTimeout(timer.current);
@@ -134,13 +161,24 @@ export function useCatalogPublisher(enabled: boolean) {
       const published = new Map(catalog.data.map((c) => [c.id, c]));
       const batch = writeBatch(db());
       let writes = 0;
+      const repeats: string[] = [];
 
       for (const product of products.data) {
         const next = toCatalog(product);
         const current = published.get(product.id);
         // Never-listed products that still cannot be listed need no document.
         if (!current && !next.listed) continue;
-        if (current && sameCatalog(next, current)) continue;
+        if (current && sameCatalog(next, current)) {
+          lastWritten.delete(product.id);
+          continue;
+        }
+        const json = JSON.stringify(normalize(next));
+        if (lastWritten.get(product.id) === json) {
+          // Already written exactly this; the server copy still reads different.
+          if (current) repeats.push(`${product.name}: ${mismatchedFields(next, current).join('، ')}`);
+          continue;
+        }
+        lastWritten.set(product.id, json);
         batch.set(doc(db(), COL.catalog, product.id), next);
         writes++;
         if (product.thumbData && next.thumbHash !== current?.thumbHash) {
@@ -150,13 +188,32 @@ export function useCatalogPublisher(enabled: boolean) {
         if (writes >= 400) break; // under Firestore's batch limit; the rest goes next round
       }
 
-      if (writes > 0) void batch.commit().catch(() => undefined);
+      const now = Date.now();
+      while (recentWrites.length && now - recentWrites[0]! > 3_600_000) recentWrites.shift();
+      if (recentWrites.length + writes > PUBLISH_BUDGET) {
+        halted = true;
+        console.warn('[catalog] publisher stopped: write budget exceeded', repeats);
+        if (actor && !reported) {
+          reported = true;
+          void logActivity(actor, 'sync_conflict', `توقف نشر الكتالوج تلقائياً — كتابات أكتر من المسموح في الساعة. ${repeats.slice(0, 5).join(' | ')}`);
+        }
+        return;
+      }
+      if (repeats.length && actor && !reported) {
+        reported = true;
+        console.warn('[catalog] documents that do not match after writing', repeats);
+        void logActivity(actor, 'sync_conflict', `الكتالوج: منتجات ما بتتطابق بعد النشر — ${repeats.slice(0, 5).join(' | ')}`);
+      }
+      if (writes > 0) {
+        for (let i = 0; i < writes; i++) recentWrites.push(now);
+        void batch.commit().catch(() => undefined);
+      }
     }, 2500);
 
     return () => {
       if (timer.current) clearTimeout(timer.current);
     };
-  }, [enabled, products.data, products.loading, products.fromCache, products.error, catalog.data, catalog.loading, catalog.fromCache, catalog.error]);
+  }, [enabled, actor, products.data, products.loading, products.fromCache, products.error, catalog.data, catalog.loading, catalog.fromCache, catalog.error]);
 }
 
 /* ---------- the shop logo, in public ---------- */
@@ -167,6 +224,8 @@ export function useCatalogPublisher(enabled: boolean) {
  * owner's device keeps a public copy in storefront/logo — the same "publish
  * from a signed-in device" approach as the catalog, with no server functions.
  */
+let logoWrittenFor: string | null = null;
+
 export function useLogoPublisher(enabled: boolean, logoData: string | null, settingsLoading: boolean) {
   useEffect(() => {
     if (!enabled || settingsLoading || !isFirebaseConfigured) return;
@@ -180,6 +239,9 @@ export function useLogoPublisher(enabled: boolean, logoData: string | null, sett
         const want = logoData ? hashString(logoData) : '';
         const have = snap.exists() ? String(snap.data().hash ?? '') : '';
         if (want === have) return;
+        // Once per logo per session: never a write loop if the server copy lags.
+        if (logoWrittenFor === want) return;
+        logoWrittenFor = want;
         void setDoc(ref, { data: logoData ?? '', hash: want, updatedAt: serverTimestamp() }).catch(() => undefined);
       },
       () => undefined,

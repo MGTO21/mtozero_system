@@ -40,6 +40,8 @@ export function errorMessage(err: unknown, fallback = 'حدث خطأ غير مت
     const code = (err as { code?: string }).code ?? '';
     if (code === 'permission-denied') return 'ليست لديك صلاحية لهذه العملية.';
     if (code === 'unavailable') return 'لا يوجد اتصال بالإنترنت. سيتم المزامنة عند عودة الشبكة.';
+    if (code === 'resource-exhausted')
+      return 'حصة الكتابة اليومية المجانية في Firebase خلصت — التعديلات محفوظة في الجهاز وبتتبعت براها بعد الساعة 9 صباحاً بتوقيت السودان.';
     // Firebase has shipped three different codes for "bad email or password"
     // across SDK versions; all three mean the same thing to the user.
     if (
