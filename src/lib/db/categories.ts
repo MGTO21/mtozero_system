@@ -3,7 +3,7 @@
 import { doc, onSnapshot, serverTimestamp, setDoc } from 'firebase/firestore';
 import { useEffect, useState } from 'react';
 import { db, isFirebaseConfigured } from '@/lib/firebase';
-import { settle } from '@/lib/offline/write';
+import { TimeoutError, withTimeout } from '@/lib/offline/write';
 import { mapCategories } from '@/lib/store/model';
 import { BUILTIN_CATEGORIES, type CategoryDef } from '@/lib/types';
 import { AppError, COL } from './collections';
@@ -44,6 +44,18 @@ export async function saveCategories(list: CategoryDef[], actor: { uid: string; 
     names.add(name);
   }
   const clean = mapCategories({ list: list.map((c) => ({ ...c, name: c.name.trim() })) });
-  await settle(setDoc(doc(db(), COL.storefront, 'categories'), { list: clean, updatedAt: serverTimestamp() }));
+  // Not `settle`: products are about to be moved into these categories, so the
+  // list must be on the server before the screen says "saved". A queued write
+  // that the server later refuses would otherwise look saved, then vanish.
+  try {
+    await withTimeout(setDoc(doc(db(), COL.storefront, 'categories'), { list: clean, updatedAt: serverTimestamp() }), 20000);
+  } catch (err) {
+    const code = (err as { code?: string }).code ?? '';
+    if (err instanceof TimeoutError || code === 'unavailable')
+      throw new AppError('ما قدرنا نوصل السيرفر — التصنيفات ما اتحفظت. اتأكد من الشبكة وجرّب تاني.');
+    if (code === 'permission-denied')
+      throw new AppError('السيرفر رفض الحفظ (صلاحية) — اتأكد إنك داخل بحساب المالك، أو رسّل لنا الرسالة دي.');
+    throw new AppError(`ما اتحفظت التصنيفات: ${code || (err as Error).message || 'خطأ غير معروف'}`);
+  }
   void logActivity(actor, 'edited_settings', `حدّث التصنيفات (${clean.length})`);
 }
