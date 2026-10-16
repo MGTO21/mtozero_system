@@ -16,8 +16,15 @@ export const revalidate = STORE_REVALIDATE;
  * printed in every page's HTML, so it is not a secret; the env var overrides it
  * if the site moves to a domain verified with another token.
  */
-const GOOGLE_SITE_VERIFICATION =
-  process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || 'uEttaV8attgOPLkuTvW_jJxC3w4h99PAUW1hPqUwf4g';
+const GOOGLE_SITE_VERIFICATION = verificationToken(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION) ?? 'uEttaV8attgOPLkuTvW_jJxC3w4h99PAUW1hPqUwf4g';
+
+/** Accepts the bare token or the whole <meta …> tag Search Console shows, as pasted. */
+function verificationToken(raw: string | undefined): string | null {
+  const value = raw?.trim();
+  if (!value) return null;
+  const token = value.match(/content=["']?([A-Za-z0-9_-]{20,})/)?.[1] ?? value;
+  return /^[A-Za-z0-9_-]{20,}$/.test(token) ? token : null;
+}
 
 export async function generateMetadata(): Promise<Metadata> {
   const [config, logo] = await Promise.all([fetchStoreConfig(), fetchLogo()]);
