@@ -11,6 +11,14 @@ import './store.css';
 
 export const revalidate = STORE_REVALIDATE;
 
+/**
+ * Google Search Console ownership token for mtozero-system.vercel.app. It is
+ * printed in every page's HTML, so it is not a secret; the env var overrides it
+ * if the site moves to a domain verified with another token.
+ */
+const GOOGLE_SITE_VERIFICATION =
+  process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || 'uEttaV8attgOPLkuTvW_jJxC3w4h99PAUW1hPqUwf4g';
+
 export async function generateMetadata(): Promise<Metadata> {
   const [config, logo] = await Promise.all([fetchStoreConfig(), fetchLogo()]);
   // Absolute base for share previews: WhatsApp and Facebook need full image URLs.
@@ -41,9 +49,7 @@ export async function generateMetadata(): Promise<Metadata> {
       'الدفع عند الاستلام',
     ],
     robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1 } },
-    ...(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
-      ? { verification: { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION } }
-      : {}),
+    verification: { google: GOOGLE_SITE_VERIFICATION },
     openGraph: {
       siteName: config.shopName,
       locale: 'ar_SD',
