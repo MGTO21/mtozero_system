@@ -11,11 +11,7 @@ import type { CatalogItem, StoreLook } from '@/lib/types';
 import { CartDrawer } from './CartDrawer';
 import { SearchOverlay } from './SearchOverlay';
 
-const LINKS = [
-  { href: '/shop', label: 'كل المنتجات' },
-  { href: '/shop?c=shoes', label: 'أحذية' },
-  { href: '/shop?c=clothing', label: 'ملابس' },
-];
+
 
 /**
  * The store's header: a moving announcement line, the mark, the departments,
@@ -31,6 +27,7 @@ export function StoreHeader({
   items,
   hasSale,
   logoSrc,
+  departments,
 }: {
   announcements: string[];
   lookToggle: boolean;
@@ -39,6 +36,8 @@ export function StoreHeader({
   items: CatalogItem[];
   hasSale: boolean;
   logoSrc: string | null;
+  /** The website's menu: categories with products, in the owner's order. */
+  departments: { id: string; name: string }[];
 }) {
   const cart = useCart();
   const wishlist = useWishlist();
@@ -61,7 +60,11 @@ export function StoreHeader({
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  const links = hasSale ? [...LINKS, { href: '/shop?sale=1', label: 'تخفيضات' }] : LINKS;
+  const links = [
+    { href: '/shop', label: 'كل المنتجات' },
+    ...departments.map((d) => ({ href: `/shop?c=${d.id}`, label: d.name })),
+    ...(hasSale ? [{ href: '/shop?sale=1', label: 'تخفيضات' }] : []),
+  ];
 
   return (
     <>

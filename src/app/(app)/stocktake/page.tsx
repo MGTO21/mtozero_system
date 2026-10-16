@@ -19,6 +19,7 @@ import {
 } from '@/lib/db/stocktake';
 import { submitCount } from '@/lib/offline/operations';
 import { formatDate, money, num } from '@/lib/format';
+import { useCategories } from '@/lib/db/categories';
 import type { Category } from '@/lib/types';
 
 type Scope = 'all' | Category;
@@ -32,6 +33,7 @@ export default function StockTakePage() {
   const { confirm, dialog } = useConfirm();
 
   const [scope, setScope] = useState<Scope>('all');
+  const { categories } = useCategories();
   const [search, setSearch] = useState('');
   const [note, setNote] = useState('');
   const [counted, setCounted] = useState<Record<string, number>>({});
@@ -132,8 +134,7 @@ export default function StockTakePage() {
           {(
             [
               ['all', 'الكل'],
-              ['shoes', 'أحذية'],
-              ['clothing', 'ملابس'],
+              ...categories.filter((c) => products.some((p) => p.category === c.id)).map((c) => [c.id, c.name]),
             ] as [Scope, string][]
           ).map(([key, label]) => (
             <button

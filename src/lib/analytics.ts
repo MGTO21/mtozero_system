@@ -177,10 +177,8 @@ export function inventoryValue(products: Product[]): InventoryValue {
 }
 
 export function inventoryValueByCategory(products: Product[]): Record<Category, InventoryValue> {
-  return {
-    shoes: inventoryValue(products.filter((p) => p.category === 'shoes')),
-    clothing: inventoryValue(products.filter((p) => p.category === 'clothing')),
-  };
+  const ids = [...new Set(products.map((p) => p.category))];
+  return Object.fromEntries(ids.map((id) => [id, inventoryValue(products.filter((p) => p.category === id))]));
 }
 
 /**

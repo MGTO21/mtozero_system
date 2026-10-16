@@ -7,7 +7,7 @@ import { money } from '@/lib/format';
 import { addToCart, productImagePath } from '@/lib/store/cart';
 import { compareSizes } from '@/lib/store/model';
 import { openPanel, rememberViewed, setMySize, toggleWishlist, useMounted, useMySizes, useWishlist } from '@/lib/store/prefs';
-import type { CatalogItem } from '@/lib/types';
+import type { CatalogItem, CategoryDef } from '@/lib/types';
 import { NotifyMe } from './NotifyMe';
 import { SizeGuide } from './SizeGuide';
 
@@ -20,7 +20,17 @@ import { SizeGuide } from './SizeGuide';
  * On a phone, once the main button scrolls away a slim bar keeps "add" under
  * the thumb.
  */
-export function ProductBuy({ item, whatsapp, sizeGuide }: { item: CatalogItem; whatsapp: string; sizeGuide: string }) {
+export function ProductBuy({
+  item,
+  whatsapp,
+  sizeGuide,
+  category,
+}: {
+  item: CatalogItem;
+  whatsapp: string;
+  sizeGuide: string;
+  category: CategoryDef;
+}) {
   const mounted = useMounted();
   const mySizes = useMySizes();
   const wishlist = useWishlist();
@@ -139,7 +149,7 @@ export function ProductBuy({ item, whatsapp, sizeGuide }: { item: CatalogItem; w
         <p className="mt-2 text-[0.8rem] text-fg-3">مقاسك خلصان؟ دوس عليهو ونرسل ليك واتساب لمن يرجع.</p>
       ) : null}
       {notifySize ? <NotifyMe item={item} size={notifySize} onClose={() => setNotifySize(null)} /> : null}
-      {guideOpen ? <SizeGuide category={item.category} text={sizeGuide} onClose={() => setGuideOpen(false)} /> : null}
+      {guideOpen ? <SizeGuide kind={category.sizeKind} name={category.name} text={sizeGuide} onClose={() => setGuideOpen(false)} /> : null}
 
       <div className="mt-5 flex items-end gap-3">
         <div className="w-36">

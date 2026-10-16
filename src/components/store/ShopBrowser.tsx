@@ -6,7 +6,7 @@ import { Pill } from '@/components/ui/DateRange';
 import { IconSearch } from '@/components/ui/Icons';
 import { compareSizes } from '@/lib/store/model';
 import { setMySize, useMounted, useMySizes } from '@/lib/store/prefs';
-import { CATEGORY_LABEL, type CatalogItem, type Category } from '@/lib/types';
+import type { CatalogItem, Category, CategoryDef } from '@/lib/types';
 import { ProductTile } from './ProductTile';
 
 type Sort = 'new' | 'popular' | 'low' | 'high';
@@ -23,12 +23,14 @@ const SORT_LABEL: Record<Sort, string> = {
  * instant — no reload on a slow connection. The choices are mirrored in the
  * address, so "all our 42s" is a link the shop can send a customer.
  */
-export function ShopBrowser({ items, newDays }: { items: CatalogItem[]; newDays: number }) {
+export function ShopBrowser({ items, newDays, categories }: { items: CatalogItem[]; newDays: number; categories: CategoryDef[] }) {
+  const known = (c: string | null): 'all' | Category => (c && categories.some((x) => x.id === c) ? c : 'all');
+  const nameOf = (c: Category) => categories.find((x) => x.id === c)?.name ?? c;
   const params = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
 
-  const [category, setCategory] = useState<'all' | Category>((params.get('c') as Category) || 'all');
+  const [category, setCategory] = useState<'all' | Category>(known(params.get('c')));
   const [size, setSize] = useState<string | null>(params.get('size'));
   const [sort, setSort] = useState<Sort>((params.get('sort') as Sort) || 'new');
   const [q, setQ] = useState(params.get('q') ?? '');
@@ -41,7 +43,7 @@ export function ShopBrowser({ items, newDays }: { items: CatalogItem[]; newDays:
   useEffect(() => {
     if (!mounted || params.get('mine') !== '1' || size) return;
     const c = category === 'all' ? null : category;
-    const mine = c ? mySizes[c] : mySizes.shoes ?? mySizes.clothing;
+    const mine = c ? mySizes[c] : Object.values(mySizes)[0];
     if (mine) setSize(mine);
     // Only on arrival.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -51,8 +53,9 @@ export function ShopBrowser({ items, newDays }: { items: CatalogItem[]; newDays:
   useEffect(() => {
     setQ(params.get('q') ?? '');
     setSale(params.get('sale') === '1');
-    const c = params.get('c') as Category | null;
-    setCategory(c === 'shoes' || c === 'clothing' ? c : 'all');
+    setCategory(known(params.get('c')));
+    // `known` only reads `categories`, which does not change on this page.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params]);
 
   function sync(next: { c?: string; size?: string | null; sort?: string; q?: string; sale?: string | null }) {
@@ -95,7 +98,7 @@ export function ShopBrowser({ items, newDays }: { items: CatalogItem[]; newDays:
   return (
     <div className="mx-auto max-w-7xl px-4 pb-6 pt-6 sm:px-6">
       <h1 className="store-title">
-        {sale ? 'تخفيضات' : featuredOnly ? 'مختارات المحل' : category === 'all' ? 'كل المنتجات' : CATEGORY_LABEL[category]}
+        {sale ? 'تخفيضات' : featuredOnly ? 'مختارات المحل' : category === 'all' ? 'كل المنتجات' : nameOf(category)}
       </h1>
 
       <div className="mt-4 space-y-3">
@@ -115,7 +118,7 @@ export function ShopBrowser({ items, newDays }: { items: CatalogItem[]; newDays:
         </div>
 
         <div className="scroller sm:mx-0 sm:px-0">
-          {(['all', 'shoes', 'clothing'] as const).map((c) => (
+          {(['all', ...categories.filter((x) => !x.hidden && items.some((i) => i.category === x.id)).map((x) => x.id)] as ('all' | Category)[]).map((c) => (
             <Pill
               key={c}
               active={category === c}
@@ -126,7 +129,7 @@ export function ShopBrowser({ items, newDays }: { items: CatalogItem[]; newDays:
               }}
               count={c === 'all' ? items.length : items.filter((i) => i.category === c).length}
             >
-              {c === 'all' ? 'الكل' : CATEGORY_LABEL[c]}
+              {c === 'all' ? 'الكل' : nameOf(c)}
             </Pill>
           ))}
           {items.some((i) => i.compareAtPrice > i.price) ? (
@@ -151,7 +154,7 @@ export function ShopBrowser({ items, newDays }: { items: CatalogItem[]; newDays:
                 <button
                   type="button"
                   onClick={() => {
-                    const mine = mySizes[category as Category]!;
+                    const mine = mySizes[category]!;
                     setSize(mine);
                     sync({ size: mine });
                   }}

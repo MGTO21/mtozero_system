@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { ProductCard } from '@/components/inventory/ProductCard';
+import { CategoryManager } from '@/components/inventory/CategoryManager';
 import { PosterSheet } from '@/components/inventory/PosterSheet';
 import { ProductForm } from '@/components/inventory/ProductForm';
 import { ValuePanel } from '@/components/inventory/ValuePanel';
@@ -18,21 +19,27 @@ import { downloadCsv, stamp } from '@/lib/csv';
 import { errorMessage } from '@/lib/db/collections';
 import { setArchived, totalStock, useProducts } from '@/lib/db/products';
 import { num } from '@/lib/format';
-import { CATEGORY_LABEL, type Category, type Product } from '@/lib/types';
+import { useCategories } from '@/lib/db/categories';
+import { categoryName } from '@/lib/store/model';
+import type { Product } from '@/lib/types';
 
-type Filter = 'all' | Category | 'low' | 'archived';
-
-const FILTERS: { key: Filter; label: string }[] = [
-  { key: 'all', label: 'الكل' },
-  { key: 'shoes', label: 'أحذية' },
-  { key: 'clothing', label: 'ملابس' },
-  { key: 'low', label: 'مخزون منخفض' },
-  { key: 'archived', label: 'المؤرشف' },
-];
+/** Category filters are `cat:{id}` so an owner's id can never collide with "low" or "archived". */
+type Filter = 'all' | `cat:${string}` | 'low' | 'archived';
 
 export default function InventoryPage() {
   const { data: products, loading, error } = useProducts();
-  const { canSeeProfit } = useAuth();
+  const { canSeeProfit, isOwner } = useAuth();
+  const { categories } = useCategories();
+  const [categoriesOpen, setCategoriesOpen] = useState(false);
+  const filters: { key: Filter; label: string }[] = [
+    { key: 'all', label: 'الكل' },
+    // Only departments that have products, so the row stays short.
+    ...categories
+      .filter((c) => products.some((p) => !p.isArchived && p.category === c.id))
+      .map((c) => ({ key: `cat:${c.id}` as Filter, label: c.name })),
+    { key: 'low', label: 'مخزون منخفض' },
+    { key: 'archived', label: 'المؤرشف' },
+  ];
   const actor = useActor();
   const toast = useToast();
   const { confirm, dialog } = useConfirm();
@@ -68,8 +75,7 @@ export default function InventoryPage() {
         return false;
       }
 
-      if (filter === 'shoes' && p.category !== 'shoes') return false;
-      if (filter === 'clothing' && p.category !== 'clothing') return false;
+      if (filter.startsWith('cat:') && p.category !== filter.slice(4)) return false;
       if (filter === 'low' && !p.sizes.some((s) => s.qty <= p.lowStockThreshold)) return false;
 
       if (sizeFilter && !p.sizes.some((s) => s.size === sizeFilter && s.qty > 0)) return false;
@@ -94,7 +100,7 @@ export default function InventoryPage() {
     const rows = productValues(products).map((row) => [
       row.product.name,
       row.product.brand ?? '',
-      CATEGORY_LABEL[row.product.category],
+      categoryName(categories, row.product.category),
       row.product.sku ?? '',
       row.units,
       row.product.sizes
@@ -169,17 +175,24 @@ export default function InventoryPage() {
         title="المخزون"
         subtitle={loading ? undefined : `${num(activeCount)} منتج · ${num(totalPieces)} قطعة`}
         action={
-          <Button
-            variant="ink"
-            size="sm"
-            icon={<IconPlus className="h-4 w-4" />}
-            onClick={() => {
-              setEditing(null);
-              setFormOpen(true);
-            }}
-          >
-            منتج جديد
-          </Button>
+          <div className="flex gap-2">
+            {isOwner ? (
+              <Button variant="secondary" size="sm" onClick={() => setCategoriesOpen(true)}>
+                التصنيفات
+              </Button>
+            ) : null}
+            <Button
+              variant="ink"
+              size="sm"
+              icon={<IconPlus className="h-4 w-4" />}
+              onClick={() => {
+                setEditing(null);
+                setFormOpen(true);
+              }}
+            >
+              منتج جديد
+            </Button>
+          </div>
         }
       />
 
@@ -217,7 +230,7 @@ export default function InventoryPage() {
         </div>
 
         <div className="scroller sm:mx-0 sm:px-0">
-          {FILTERS.map((f) => (
+          {filters.map((f) => (
             <Pill key={f.key} active={filter === f.key} onClick={() => setFilter(f.key)}>
               {f.label}
             </Pill>
@@ -311,6 +324,9 @@ export default function InventoryPage() {
 
       <ProductForm open={formOpen} onClose={() => setFormOpen(false)} product={editing} />
       <PosterSheet product={posterFor} onClose={() => setPosterFor(null)} />
+      {isOwner ? (
+        <CategoryManager open={categoriesOpen} onClose={() => setCategoriesOpen(false)} categories={categories} products={products} />
+      ) : null}
       {dialog}
     </>
   );

@@ -5,7 +5,8 @@ import { useMemo } from 'react';
 import { IconHourglass } from '@/components/ui/Icons';
 import { deadCapital, inventoryValue, inventoryValueByCategory } from '@/lib/analytics';
 import { money, num, percent } from '@/lib/format';
-import { CATEGORY_LABEL, type Product } from '@/lib/types';
+import { useCategories } from '@/lib/db/categories';
+import type { Product } from '@/lib/types';
 
 /**
  * What the stock is worth, at cost and at retail.
@@ -17,6 +18,7 @@ import { CATEGORY_LABEL, type Product } from '@/lib/types';
 export function ValuePanel({ products, compact = false }: { products: Product[]; compact?: boolean }) {
   const total = useMemo(() => inventoryValue(products), [products]);
   const byCategory = useMemo(() => inventoryValueByCategory(products), [products]);
+  const { categories } = useCategories();
   const frozen = useMemo(() => deadCapital(products, 60), [products]);
 
   if (total.units === 0) {
@@ -66,12 +68,12 @@ export function ValuePanel({ products, compact = false }: { products: Product[];
       {!compact ? (
         <>
           <div className="mt-3 space-y-1.5 border-t border-line pt-3 ">
-            {(['shoes', 'clothing'] as const).map((category) => {
+            {categories.map(({ id: category, name }) => {
               const value = byCategory[category];
-              if (value.units === 0) return null;
+              if (!value || value.units === 0) return null;
               return (
                 <div key={category} className="flex items-center gap-2 text-[0.82rem]">
-                  <span className="min-w-0 flex-1 font-bold">{CATEGORY_LABEL[category]}</span>
+                  <span className="min-w-0 flex-1 font-bold">{name}</span>
                   <span className="tnum text-fg-3">{num(value.units)} قطعة</span>
                   <span className="tnum w-24 text-left font-bold">{money(value.costValue)}</span>
                   <span className="tnum w-24 text-left font-black text-brand-500">

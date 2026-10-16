@@ -6,11 +6,10 @@ import { Reveal } from '@/components/store/Reveal';
 import { Shelf } from '@/components/store/Shelf';
 import { IconChevronLeft, IconReturn, IconShip, IconWallet, IconWhatsApp } from '@/components/ui/Icons';
 import { money } from '@/lib/format';
-import { HOME_SECTION_LABEL, type CatalogItem, type Category, type HomeSection, type StoreConfig } from '@/lib/types';
+import { HOME_SECTION_LABEL, type CatalogItem, type CategoryDef, type HomeSection, type StoreConfig } from '@/lib/types';
 import { salePercent } from '@/lib/store/model';
 import { productHdPath } from '@/lib/store/paths';
-import { fetchCatalog, fetchOffers, fetchStoreConfig, STORE_REVALIDATE, type PublicOffer } from '@/lib/store/server';
-import { CATEGORY_LABEL } from '@/lib/types';
+import { fetchCatalog, fetchCategories, fetchOffers, fetchStoreConfig, STORE_REVALIDATE, type PublicOffer } from '@/lib/store/server';
 
 export const revalidate = STORE_REVALIDATE;
 export const metadata = { alternates: { canonical: '/' } };
@@ -21,8 +20,8 @@ export const metadata = { alternates: { canonical: '/' } };
  * section switched on with no products never leaves an empty heading.
  */
 export default async function StoreHome() {
-  const [catalog, config, offers] = await Promise.all([fetchCatalog(), fetchStoreConfig(), fetchOffers()]);
-  const ctx: Ctx = { catalog, config, offers };
+  const [catalog, config, offers, categories] = await Promise.all([fetchCatalog(), fetchStoreConfig(), fetchOffers(), fetchCategories()]);
+  const ctx: Ctx = { catalog, config, offers, categories };
 
   return (
     <>
@@ -39,7 +38,7 @@ export default async function StoreHome() {
   );
 }
 
-type Ctx = { catalog: CatalogItem[]; config: StoreConfig; offers: PublicOffer[] };
+type Ctx = { catalog: CatalogItem[]; config: StoreConfig; offers: PublicOffer[]; categories: CategoryDef[] };
 
 function Section({ section, ctx }: { section: HomeSection; ctx: Ctx }): ReactNode {
   const { catalog, config } = ctx;
@@ -52,7 +51,7 @@ function Section({ section, ctx }: { section: HomeSection; ctx: Ctx }): ReactNod
     case 'promise':
       return <Guarantees config={config} />;
     case 'categories':
-      return <Departments catalog={catalog} />;
+      return <Departments catalog={catalog} categories={ctx.categories} />;
     case 'offers':
       return <Offers offers={ctx.offers} title={title} />;
     case 'featured': {
@@ -151,23 +150,40 @@ function Guarantees({ config }: { config: StoreConfig }) {
   );
 }
 
-function Departments({ catalog }: { catalog: CatalogItem[] }) {
-  const by = (c: Category) => catalog.filter((p) => p.category === c);
+/**
+ * One tile per department that has something in stock, in the owner's order.
+ * Two read as a pair of tall tiles; with more, the grid widens, and an odd
+ * count lets the first tile span the phone's full width so no gap is left.
+ */
+function Departments({ catalog, categories }: { catalog: CatalogItem[]; categories: CategoryDef[] }) {
+  const shown = categories
+    .filter((c) => !c.hidden)
+    .map((c) => ({ c, list: catalog.filter((p) => p.category === c.id) }))
+    .filter((d) => d.list.length > 0);
+  if (shown.length === 0) return null;
+  const many = shown.length > 2;
   return (
-    <section className="mx-auto mt-14 grid max-w-7xl grid-cols-2 gap-3 px-4 sm:mt-20 sm:gap-5 sm:px-6">
-      {(['shoes', 'clothing'] as const).map((c, i) => {
-        const list = by(c);
+    <section
+      className={`mx-auto mt-14 grid max-w-7xl grid-cols-2 gap-3 px-4 sm:mt-20 sm:gap-5 sm:px-6 ${many ? 'lg:grid-cols-3' : ''}`}
+    >
+      {shown.map(({ c, list }, i) => {
         const cover = list.find((p) => p.featured) ?? list[0];
+        const wide = shown.length % 2 === 1 && i === 0;
         return (
-          <Reveal key={c} delay={i * 120}>
-            <Link href={`/shop?c=${c}`} className="tile group relative block aspect-[3/4] overflow-hidden rounded-card bg-sunken sm:aspect-[4/3]">
+          <Reveal key={c.id} delay={(i % 3) * 120} className={wide ? 'col-span-2 lg:col-span-1' : ''}>
+            <Link
+              href={`/shop?c=${c.id}`}
+              className={`tile group relative block overflow-hidden rounded-card bg-sunken ${
+                wide ? 'aspect-[16/10] lg:aspect-[4/3]' : many ? 'aspect-[3/4] lg:aspect-[4/3]' : 'aspect-[3/4] sm:aspect-[4/3]'
+              }`}
+            >
               {cover ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={productHdPath(cover)} alt="" loading="lazy" className="tile-img h-full w-full object-cover" />
               ) : null}
               <span className="absolute inset-x-3 bottom-3 flex items-center justify-between gap-2 rounded-card bg-surface px-4 py-3 sm:inset-x-5 sm:bottom-5">
-                <span>
-                  <span className="block font-display text-[1.25rem] font-black leading-tight sm:text-[1.6rem]">{CATEGORY_LABEL[c]}</span>
+                <span className="min-w-0">
+                  <span className="block truncate font-display text-[1.25rem] font-black leading-tight sm:text-[1.6rem]">{c.name}</span>
                   <span className="tnum text-[0.8rem] font-bold text-fg-3">{list.length} منتج</span>
                 </span>
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-fg text-page transition-transform group-hover:-translate-x-1">

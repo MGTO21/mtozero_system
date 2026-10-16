@@ -1,6 +1,35 @@
 import type { Timestamp } from 'firebase/firestore';
 
-export type Category = 'shoes' | 'clothing';
+/**
+ * A product category id. The owner manages the list (storefront/categories);
+ * 'shoes' and 'clothing' are the two the shop started with and always exist,
+ * so every product and sale written before categories were editable still
+ * resolves.
+ */
+export type Category = string;
+
+/** How a category is sized — drives the size presets and the size guide. */
+export type SizeKind = 'shoes' | 'clothing' | 'none';
+
+export interface CategoryDef {
+  /** Stable id stored on products; never changes once created. */
+  id: string;
+  name: string;
+  sizeKind: SizeKind;
+  /** Hidden from the website's menus (products still sell in the shop). */
+  hidden: boolean;
+}
+
+export const BUILTIN_CATEGORIES: CategoryDef[] = [
+  { id: 'shoes', name: 'أحذية', sizeKind: 'shoes', hidden: false },
+  { id: 'clothing', name: 'ملابس', sizeKind: 'clothing', hidden: false },
+];
+
+export const SIZE_KIND_LABEL: Record<SizeKind, { title: string; hint: string }> = {
+  shoes: { title: 'مقاسات أحذية', hint: 'أرقام زي 36 – 45' },
+  clothing: { title: 'مقاسات ملابس', hint: 'S – XXL أو أرقام البناطلين' },
+  none: { title: 'بدون مقاسات', hint: 'عطور، شنط، إكسسوارات — مقاس واحد' },
+};
 export type Role = 'owner' | 'employee';
 export type PaymentStatus = 'paid' | 'debt' | 'partial';
 export type Channel = 'whatsapp' | 'facebook' | 'in_person' | 'website' | 'other';
@@ -705,7 +734,11 @@ export interface SaleReturn {
   pending?: SyncState;
 }
 
-export const CATEGORY_LABEL: Record<Category, string> = {
+/**
+ * Names of the two built-in categories, for code that has no category list at
+ * hand. Anything else should resolve names through `categoryName`.
+ */
+export const CATEGORY_LABEL: Record<string, string> = {
   shoes: 'أحذية',
   clothing: 'ملابس',
 };

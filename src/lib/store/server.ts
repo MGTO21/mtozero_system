@@ -1,5 +1,5 @@
-import { mapCatalog, mapStoreConfig } from '@/lib/store/model';
-import { DEFAULT_STORE, type CatalogItem, type Promo, type StoreConfig } from '@/lib/types';
+import { mapCatalog, mapCategories, mapStoreConfig } from '@/lib/store/model';
+import { DEFAULT_STORE, type CatalogItem, type CategoryDef, type Promo, type StoreConfig } from '@/lib/types';
 
 /**
  * Server-side reads for the public website, over Firestore's REST API.
@@ -159,4 +159,9 @@ export async function fetchLogo(fresh = false): Promise<{ data: string; hash: st
   const raw = await getDoc('storefront/logo', fresh);
   if (!raw || typeof raw.data !== 'string' || !raw.data) return null;
   return { data: raw.data, hash: String(raw.hash ?? '') };
+}
+
+/** The owner's categories (the two built-ins at least). */
+export async function fetchCategories(): Promise<CategoryDef[]> {
+  return mapCategories(await getDoc('storefront/categories'));
 }

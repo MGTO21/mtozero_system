@@ -1,8 +1,7 @@
 import { money } from '@/lib/format';
 import { compareSizes, salePercent } from '@/lib/store/model';
-import { fetchCatalog, fetchOffers, fetchStoreConfig } from '@/lib/store/server';
+import { fetchCatalog, fetchCategories, fetchOffers, fetchStoreConfig } from '@/lib/store/server';
 import { siteUrl } from '@/lib/store/site';
-import { CATEGORY_LABEL } from '@/lib/types';
 
 export const revalidate = 3600;
 
@@ -15,7 +14,8 @@ export const revalidate = 3600;
  * Built from the public catalog only — the same facts as the product pages.
  */
 export async function GET() {
-  const [config, catalog, offers] = await Promise.all([fetchStoreConfig(), fetchCatalog(), fetchOffers()]);
+  const [config, catalog, offers, categories] = await Promise.all([fetchStoreConfig(), fetchCatalog(), fetchOffers(), fetchCategories()]);
+  const departments = categories.filter((c) => !c.hidden && catalog.some((p) => p.category === c.id));
   const site = siteUrl();
 
   const brands = [...new Set(catalog.map((p) => p.brand?.trim()).filter(Boolean))] as string[];
@@ -45,8 +45,7 @@ export async function GET() {
     '## الأقسام',
     '',
     `- [كل المنتجات](${site}/shop)`,
-    `- [الأحذية](${site}/shop?c=shoes)`,
-    `- [الملابس](${site}/shop?c=clothing)`,
+    ...departments.map((c) => `- [${c.name}](${site}/shop?c=${c.id})`),
   ];
 
   if (offers.length) {
@@ -56,10 +55,10 @@ export async function GET() {
     }
   }
 
-  for (const category of ['shoes', 'clothing'] as const) {
-    const items = catalog.filter((p) => p.category === category);
+  for (const category of departments) {
+    const items = catalog.filter((p) => p.category === category.id);
     if (!items.length) continue;
-    lines.push('', `## ${CATEGORY_LABEL[category]} المتوفرة الآن`, '');
+    lines.push('', `## ${category.name} المتوفرة الآن`, '');
     for (const p of items.slice(0, 150)) {
       const sizes = p.sizes
         .filter((s) => s.state !== 'out')

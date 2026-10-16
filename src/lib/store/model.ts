@@ -3,7 +3,11 @@ import {
   DEFAULT_STORE,
   HOME_SECTION_LABEL,
   MAX_GALLERY,
+  BUILTIN_CATEGORIES,
+  CATEGORY_LABEL,
   type CatalogItem,
+  type CategoryDef,
+  type SizeKind,
   type ProductPhoto,
   type HomeSection,
   type HomeSectionType,
@@ -25,7 +29,7 @@ export function mapCatalog(id: string, raw: Record<string, unknown>): CatalogIte
     id,
     name: String(raw.name ?? ''),
     brand: (raw.brand as string) || undefined,
-    category: raw.category === 'clothing' ? 'clothing' : 'shoes',
+    category: typeof raw.category === 'string' && raw.category ? raw.category : 'shoes',
     price,
     sizes: Array.isArray(raw.sizes) ? (raw.sizes as CatalogItem['sizes']) : [],
     description: (raw.description as string) || undefined,
@@ -180,4 +184,62 @@ export function hashString(text: string): string {
   let h = 5381;
   for (let i = 0; i < text.length; i++) h = ((h << 5) + h + text.charCodeAt(i)) | 0;
   return (h >>> 0).toString(36);
+}
+
+/* ---------- categories ---------- */
+
+const SLUG = /^[a-z0-9][a-z0-9-]{0,30}$/;
+
+/**
+ * The owner's category list, always containing the two built-ins (they can be
+ * renamed or hidden, never lost) and never containing duplicates or ids that
+ * are not URL-safe.
+ */
+export function mapCategories(raw: unknown): CategoryDef[] {
+  const list = Array.isArray((raw as { list?: unknown } | null)?.list) ? ((raw as { list: unknown[] }).list as Record<string, unknown>[]) : [];
+  const out: CategoryDef[] = [];
+  const seen = new Set<string>();
+  for (const r of list) {
+    const id = String(r?.id ?? '');
+    if (!SLUG.test(id) || seen.has(id)) continue;
+    seen.add(id);
+    const builtin = BUILTIN_CATEGORIES.find((b) => b.id === id);
+    const kind = r.sizeKind === 'clothing' || r.sizeKind === 'none' || r.sizeKind === 'shoes' ? (r.sizeKind as SizeKind) : builtin?.sizeKind ?? 'none';
+    out.push({
+      id,
+      name: String(r.name ?? '').trim().slice(0, 40) || builtin?.name || id,
+      sizeKind: kind,
+      hidden: r.hidden === true,
+    });
+    if (out.length >= 40) break;
+  }
+  for (const b of BUILTIN_CATEGORIES) if (!seen.has(b.id)) out.push(b);
+  return out;
+}
+
+export function categoryById(list: CategoryDef[], id: string): CategoryDef {
+  return list.find((c) => c.id === id) ?? { id, name: CATEGORY_LABEL[id] ?? id, sizeKind: id === 'clothing' ? 'clothing' : id === 'shoes' ? 'shoes' : 'none', hidden: false };
+}
+
+export function categoryName(list: CategoryDef[], id: string): string {
+  return categoryById(list, id).name;
+}
+
+/** A URL-safe id for a new category name; Arabic names get a short random id. */
+export function newCategoryId(name: string, taken: string[]): string {
+  const latin = name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 24);
+  // Words the filters already use as values are never category ids.
+  const reserved = [...taken, 'all', 'low', 'archived', 'sale', 'new', 'featured'];
+  let id = latin && SLUG.test(latin) ? latin : `c-${Math.random().toString(36).slice(2, 8)}`;
+  while (reserved.includes(id)) id = `${id.slice(0, 22)}-${Math.random().toString(36).slice(2, 4)}`;
+  return id;
+}
+
+/** The size guide that applies to a category, by its size kind. */
+export function sizeGuideFor(config: Pick<StoreConfig, 'sizeGuideShoes' | 'sizeGuideClothing'>, kind: SizeKind): string {
+  return kind === 'shoes' ? config.sizeGuideShoes : kind === 'clothing' ? config.sizeGuideClothing : '';
 }

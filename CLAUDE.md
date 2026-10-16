@@ -70,6 +70,9 @@ src/
   lib/db/restock.ts       restockRequests (إنشاء عام بشكل صارم، قراءة للموظفين) + التجميع ونص الرسالة
   lib/product-poster.ts   بوستر المنتج للسوشيال (4:5 و9:16) — مقاسات متوفرة فقط، بلا تكلفة أو كميات
   lib/hooks/useOrderAlert.ts  صوت + اهتزاز + إشعار + عدّاد في العنوان عند طلب جديد (يرنّ للزيادة فقط)
+  lib/db/categories.ts    التصنيفات الديناميكية في storefront/categories (المالك يديرها من المخزون ← «التصنيفات»).
+                          `Category` نص حر؛ «shoes» و«clothing» ثابتان دائماً. الاسم عبر `categoryName`/`categoryById`
+                          لا `CATEGORY_LABEL`، والمقاسات الجاهزة ودليل المقاسات حسب `sizeKind` (shoes/clothing/none).
   lib/store/seo.ts        JSON-LD (متجر، موقع+بحث، منتج+عرض، مسار، قائمة) — حقائق عامة فقط
   lib/store/site.ts       `siteUrl()` و`PRIVATE_PATHS` (شاشات الموظفين: noindex + Disallow)
   app/robots.ts sitemap.ts llms.txt/  محركات البحث ومساعدات الذكاء الاصطناعي. الـroot layout افتراضه noindex،

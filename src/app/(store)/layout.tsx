@@ -4,7 +4,7 @@ import { StoreFooter, WhatsAppFloat } from '@/components/store/StoreFooter';
 import { StoreHeader } from '@/components/store/StoreHeader';
 import { money } from '@/lib/format';
 import { deliveryLine } from '@/lib/store/model';
-import { fetchCatalog, fetchLogo, fetchStoreConfig, STORE_REVALIDATE } from '@/lib/store/server';
+import { fetchCatalog, fetchCategories, fetchLogo, fetchStoreConfig, STORE_REVALIDATE } from '@/lib/store/server';
 import { jsonLd, storeGraph } from '@/lib/store/seo';
 import { siteUrl } from '@/lib/store/site';
 import './store.css';
@@ -79,7 +79,10 @@ function lookScript(defaultLook: string, toggle: boolean) {
 
 /** The public website: its own look, header and footer — no staff app shell. */
 export default async function StoreLayout({ children }: { children: ReactNode }) {
-  const [config, catalog, logo] = await Promise.all([fetchStoreConfig(), fetchCatalog(), fetchLogo()]);
+  const [config, catalog, logo, categories] = await Promise.all([fetchStoreConfig(), fetchCatalog(), fetchLogo(), fetchCategories()]);
+  const departments = categories
+    .filter((c) => !c.hidden && catalog.some((p) => p.category === c.id))
+    .map((c) => ({ id: c.id, name: c.name }));
   const logoSrc = logo ? `/brand/logo?v=${logo.hash}` : null;
   const site = siteUrl();
   // Who the shop is, for search engines and AI assistants: name, place, how to
@@ -104,9 +107,10 @@ export default async function StoreLayout({ children }: { children: ReactNode })
         items={index}
         hasSale={catalog.some((p) => p.compareAtPrice > p.price)}
         logoSrc={logoSrc}
+        departments={departments}
       />
       <main className="flex-1">{children}</main>
-      <StoreFooter config={config} logoSrc={logoSrc} />
+      <StoreFooter config={config} logoSrc={logoSrc} departments={departments} />
       <WhatsAppFloat number={config.whatsapp} />
     </div>
   );

@@ -84,7 +84,7 @@ export function mapProduct(id: string, raw: Record<string, unknown>): Product {
   return {
     id,
     name: String(raw.name ?? ''),
-    category: raw.category === 'clothing' ? 'clothing' : 'shoes',
+    category: typeof raw.category === 'string' && raw.category ? raw.category : 'shoes',
     brand: (raw.brand as string) || undefined,
     costPrice: fallbackCost,
     sellPrice: Number(raw.sellPrice ?? 0),

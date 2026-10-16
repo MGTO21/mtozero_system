@@ -92,11 +92,13 @@ export function rememberViewed(id: string) {
 export type MySizes = Partial<Record<Category, string>>;
 const NO_SIZES: MySizes = {};
 
+/** One saved size per category the visitor shopped in. */
 const mySizes = localStore<MySizes>('mtozero-store-mysize-v1', NO_SIZES, (r) => {
   const o = (r ?? {}) as Record<string, unknown>;
   const out: MySizes = {};
-  if (typeof o.shoes === 'string' && o.shoes.length <= 12) out.shoes = o.shoes;
-  if (typeof o.clothing === 'string' && o.clothing.length <= 12) out.clothing = o.clothing;
+  for (const [k, v] of Object.entries(o).slice(0, 40)) {
+    if (/^[a-z0-9-]{1,32}$/.test(k) && typeof v === 'string' && v.length <= 12) out[k] = v;
+  }
   return out;
 });
 

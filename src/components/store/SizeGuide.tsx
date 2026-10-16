@@ -1,6 +1,6 @@
 'use client';
 
-import type { Category } from '@/lib/types';
+import type { SizeKind } from '@/lib/types';
 import { StoreSheet } from './StoreSheet';
 
 /**
@@ -8,7 +8,7 @@ import { StoreSheet } from './StoreSheet';
  * "42 = 27 سم". Split on the first "=" into two columns; any other line is
  * shown as a note.
  */
-export function SizeGuide({ category, text, onClose }: { category: Category; text: string; onClose: () => void }) {
+export function SizeGuide({ kind, name, text, onClose }: { kind: SizeKind; name: string; text: string; onClose: () => void }) {
   const lines = text
     .split('\n')
     .map((l) => l.trim())
@@ -19,8 +19,8 @@ export function SizeGuide({ category, text, onClose }: { category: Category; tex
   const notes = lines.filter((l) => !l.includes('='));
 
   return (
-    <StoreSheet title={category === 'shoes' ? 'دليل مقاسات الأحذية' : 'دليل مقاسات الملابس'} onClose={onClose}>
-      {category === 'shoes' ? (
+    <StoreSheet title={`دليل مقاسات ${name}`} onClose={onClose}>
+      {kind === 'shoes' ? (
         <p className="mb-4 text-[0.88rem] leading-relaxed text-fg-2">
           قيس رجلك من الكعب لأطول إصبع وإنت واقف، وقارن بالجدول. لو بين مقاسين، خُد الأكبر.
         </p>
@@ -32,7 +32,7 @@ export function SizeGuide({ category, text, onClose }: { category: Category; tex
           <thead className="bg-sunken text-[0.8rem] text-fg-2">
             <tr>
               <th className="px-4 py-2.5 text-right font-bold">المقاس</th>
-              <th className="px-4 py-2.5 text-right font-bold">{category === 'shoes' ? 'طول الرجل' : 'القياس'}</th>
+              <th className="px-4 py-2.5 text-right font-bold">{kind === 'shoes' ? 'طول الرجل' : 'القياس'}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-line">

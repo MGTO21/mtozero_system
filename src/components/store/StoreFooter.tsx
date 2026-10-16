@@ -4,7 +4,15 @@ import { IconFacebook, IconInstagram, IconTikTok, IconWhatsApp } from '@/compone
 import { socialUrl } from '@/lib/store/model';
 import type { StoreConfig } from '@/lib/types';
 
-export function StoreFooter({ config, logoSrc }: { config: StoreConfig; logoSrc: string | null }) {
+export function StoreFooter({
+  config,
+  logoSrc,
+  departments,
+}: {
+  config: StoreConfig;
+  logoSrc: string | null;
+  departments: { id: string; name: string }[];
+}) {
   const socials = (
     [
       ['instagram', 'انستغرام', IconInstagram],
@@ -41,16 +49,13 @@ export function StoreFooter({ config, logoSrc }: { config: StoreConfig; logoSrc:
         <div>
           <p className="ledger-head">تسوّق</p>
           <ul className="space-y-2 text-[0.92rem] font-bold text-fg-2">
-            <li>
-              <Link href="/shop?c=shoes" className="hover:text-fg">
-                أحذية
-              </Link>
-            </li>
-            <li>
-              <Link href="/shop?c=clothing" className="hover:text-fg">
-                ملابس
-              </Link>
-            </li>
+            {departments.map((d) => (
+              <li key={d.id}>
+                <Link href={`/shop?c=${d.id}`} className="hover:text-fg">
+                  {d.name}
+                </Link>
+              </li>
+            ))}
             <li>
               <Link href="/wishlist" className="hover:text-fg">
                 المفضلة

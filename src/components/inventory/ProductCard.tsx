@@ -5,7 +5,9 @@ import { IconButton } from '@/components/ui/Button';
 import { IconArchive, IconEdit, IconImage, IconRestore, IconShare, IconTag } from '@/components/ui/Icons';
 import { productImage, totalStock } from '@/lib/db/products';
 import { margin, money, num, percent } from '@/lib/format';
-import { CATEGORY_LABEL, type Product } from '@/lib/types';
+import { useCategories } from '@/lib/db/categories';
+import { categoryName } from '@/lib/store/model';
+import type { Product } from '@/lib/types';
 import { SizeGrid } from './SizeGrid';
 
 interface Props {
@@ -23,6 +25,7 @@ export function ProductCard({ product, canSeeProfit, onEdit, onArchive, onPoster
   const stock = totalStock(product);
   const marginPct = margin(product.costPrice, product.sellPrice);
   const thumb = productImage(product);
+  const { categories } = useCategories();
 
   return (
     <article
@@ -70,7 +73,7 @@ export function ProductCard({ product, canSeeProfit, onEdit, onArchive, onPoster
           </div>
 
           <p className="mt-0.5 truncate text-[0.75rem] font-semibold text-fg-3">
-            {CATEGORY_LABEL[product.category]}
+            {categoryName(categories, product.category)}
             {product.brand ? ` · ${product.brand}` : ''}
             {product.sku ? ` · ${product.sku}` : ''}
           </p>

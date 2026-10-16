@@ -6,12 +6,11 @@ import { ProductGallery } from '@/components/store/ProductGallery';
 import { PersonalShelf } from '@/components/store/PersonalShelf';
 import { Shelf } from '@/components/store/Shelf';
 import { money } from '@/lib/format';
-import { isNewArrival, salePercent } from '@/lib/store/model';
+import { categoryById, isNewArrival, salePercent, sizeGuideFor } from '@/lib/store/model';
 import { jsonLd, productGraph, productSummary } from '@/lib/store/seo';
 import { siteUrl } from '@/lib/store/site';
 import { productHdPath, productPictures } from '@/lib/store/paths';
-import { fetchCatalog, fetchProduct, fetchStoreConfig, STORE_REVALIDATE } from '@/lib/store/server';
-import { CATEGORY_LABEL } from '@/lib/types';
+import { fetchCatalog, fetchProduct, fetchStoreConfig, STORE_REVALIDATE, fetchCategories } from '@/lib/store/server';
 
 export const revalidate = STORE_REVALIDATE;
 
@@ -19,15 +18,15 @@ type Props = { params: { id: string } };
 
 /** Name, price and picture in the link preview when a product is shared. */
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const [item, config] = await Promise.all([fetchProduct(params.id), fetchStoreConfig()]);
+  const [item, config, categories] = await Promise.all([fetchProduct(params.id), fetchStoreConfig(), fetchCategories()]);
   if (!item || !item.listed) return { title: 'المنتج غير موجود', robots: { index: false } };
   // Price first: it is what people search with ("سعر اير فورس").
-  const description = `${money(item.price)} — ${item.description?.slice(0, 120) || productSummary(item, config)}`;
+  const description = `${money(item.price)} — ${item.description?.slice(0, 120) || productSummary(item, config, categoryById(categories, item.category).name)}`;
   const image = productHdPath(item);
   const images = productPictures(item).slice(0, 4).map((url) => ({ url }));
   return {
     // "Nike Air Force — أحذية" reads as an answer in a result list.
-    title: `${item.name}${item.brand ? ` ${item.brand}` : ''} — ${CATEGORY_LABEL[item.category]}`,
+    title: `${item.name}${item.brand ? ` ${item.brand}` : ''} — ${categoryById(categories, item.category).name}`,
     description,
     alternates: { canonical: `/p/${item.id}` },
     openGraph: { title: item.name, description, images },
@@ -36,8 +35,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function ProductPage({ params }: Props) {
-  const [item, config, catalog] = await Promise.all([fetchProduct(params.id), fetchStoreConfig(), fetchCatalog()]);
+  const [item, config, catalog, categories] = await Promise.all([fetchProduct(params.id), fetchStoreConfig(), fetchCatalog(), fetchCategories()]);
   if (!item || !item.listed) notFound();
+  const category = categoryById(categories, item.category);
 
   // Same department, closest in price first: "ممكن يعجبك" should be affordable alternatives.
   const related = catalog
@@ -49,14 +49,14 @@ export default async function ProductPage({ params }: Props) {
 
   return (
     <div className="mx-auto max-w-7xl px-4 pt-5 sm:px-6">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(productGraph(item, config, siteUrl())) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(productGraph(item, config, siteUrl(), category.name)) }} />
       <nav aria-label="مسار الصفحة" className="mb-4 text-[0.84rem] font-bold text-fg-3">
         <Link href="/shop" className="hover:text-fg">
           المنتجات
         </Link>{' '}
         /{' '}
         <Link href={`/shop?c=${item.category}`} className="hover:text-fg">
-          {CATEGORY_LABEL[item.category]}
+          {category.name}
         </Link>
       </nav>
 
@@ -92,7 +92,8 @@ export default async function ProductPage({ params }: Props) {
             <ProductBuy
               item={item}
               whatsapp={config.whatsapp}
-              sizeGuide={item.category === 'shoes' ? config.sizeGuideShoes : config.sizeGuideClothing}
+              sizeGuide={sizeGuideFor(config, category.sizeKind)}
+              category={category}
             />
           </div>
 
@@ -101,7 +102,7 @@ export default async function ProductPage({ params }: Props) {
               customers and search engines nothing to go on. */}
           <div className="mt-7 border-t border-line pt-5">
             <h2 className="ledger-head !text-[0.82rem]">عن المنتج</h2>
-            <p className="whitespace-pre-line leading-relaxed text-fg-2">{item.description || productSummary(item, config)}</p>
+            <p className="whitespace-pre-line leading-relaxed text-fg-2">{item.description || productSummary(item, config, category.name)}</p>
           </div>
 
           <ul className="mt-7 space-y-2.5 border-t border-line pt-5 text-[0.92rem] text-fg-2">

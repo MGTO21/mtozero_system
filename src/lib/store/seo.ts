@@ -1,4 +1,4 @@
-import { CATEGORY_LABEL, type CatalogItem, type StoreConfig } from '@/lib/types';
+import type { CatalogItem, StoreConfig } from '@/lib/types';
 import { compareSizes } from './model';
 import { productPictures } from './paths';
 
@@ -60,20 +60,20 @@ export function storeGraph(config: StoreConfig, logo: { hash: string } | null, s
 }
 
 /** A sentence describing the product, for pages that have no written description. */
-export function productSummary(item: CatalogItem, config: StoreConfig): string {
+export function productSummary(item: CatalogItem, config: StoreConfig, categoryName: string): string {
   const sizes = item.sizes
     .filter((s) => s.state !== 'out')
     .map((s) => s.size)
     .sort(compareSizes);
   const parts = [
-    `${item.name}${item.brand ? ` من ${item.brand}` : ''} — ${CATEGORY_LABEL[item.category]} في ${config.shopName}، الأبيض.`,
+    `${item.name}${item.brand ? ` من ${item.brand}` : ''} — ${categoryName} في ${config.shopName}، الأبيض.`,
     sizes.length ? `المقاسات المتوفرة: ${sizes.join('، ')}.` : '',
     'الدفع عند الاستلام والتوصيل لحدي الباب.',
   ];
   return parts.filter(Boolean).join(' ');
 }
 
-export function productGraph(item: CatalogItem, config: StoreConfig, site: string) {
+export function productGraph(item: CatalogItem, config: StoreConfig, site: string, categoryName: string) {
   const url = `${site}/p/${item.id}`;
   const inStock = item.sizes.some((s) => s.state !== 'out');
   // A year ahead: prices here change rarely, and Google wants an end date on offers.
@@ -107,10 +107,10 @@ export function productGraph(item: CatalogItem, config: StoreConfig, site: strin
     '@type': 'Product',
     '@id': `${url}#product`,
     name: item.name,
-    description: item.description || productSummary(item, config),
+    description: item.description || productSummary(item, config, categoryName),
     image: productPictures(item).map((p) => abs(site, p)),
     url,
-    category: CATEGORY_LABEL[item.category],
+    category: categoryName,
     ...(item.brand ? { brand: { '@type': 'Brand', name: item.brand } } : {}),
     size: item.sizes.filter((s) => s.state !== 'out').map((s) => s.size),
     offers: offer,
@@ -120,7 +120,7 @@ export function productGraph(item: CatalogItem, config: StoreConfig, site: strin
     '@type': 'BreadcrumbList',
     itemListElement: [
       { '@type': 'ListItem', position: 1, name: config.shopName, item: `${site}/` },
-      { '@type': 'ListItem', position: 2, name: CATEGORY_LABEL[item.category], item: `${site}/shop?c=${item.category}` },
+      { '@type': 'ListItem', position: 2, name: categoryName, item: `${site}/shop?c=${item.category}` },
       { '@type': 'ListItem', position: 3, name: item.name, item: url },
     ],
   };

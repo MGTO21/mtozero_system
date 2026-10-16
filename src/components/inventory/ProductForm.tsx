@@ -21,7 +21,9 @@ import { galleryImagePath } from '@/lib/store/paths';
 import { formatBytes, makeThumbnail } from '@/lib/image';
 import { submitStockAdjust } from '@/lib/offline/operations';
 import { margin, money, percent } from '@/lib/format';
-import { MAX_GALLERY, type Category, type Product, type SizeInput } from '@/lib/types';
+import { MAX_GALLERY, type Product, type SizeInput, type SizeKind } from '@/lib/types';
+import { useCategories } from '@/lib/db/categories';
+import { categoryById } from '@/lib/store/model';
 
 interface Props {
   open: boolean;
@@ -48,7 +50,7 @@ const EMPTY: ProductInput = {
 };
 
 /** Ready-made size sets so a full run can be entered in two taps. */
-const SIZE_PRESETS: Record<Category, { label: string; sizes: string[] }[]> = {
+const SIZE_PRESETS: Record<SizeKind, { label: string; sizes: string[] }[]> = {
   shoes: [
     { label: '39 – 44', sizes: ['39', '40', '41', '42', '43', '44'] },
     { label: '36 – 41', sizes: ['36', '37', '38', '39', '40', '41'] },
@@ -57,12 +59,15 @@ const SIZE_PRESETS: Record<Category, { label: string; sizes: string[] }[]> = {
   clothing: [
     { label: 'S – XXL', sizes: ['S', 'M', 'L', 'XL', 'XXL'] },
     { label: 'مقاسات حرة', sizes: ['فري سايز'] },
+    { label: 'بناطلين 28 – 36', sizes: ['28', '30', '32', '34', '36'] },
   ],
+  none: [{ label: 'مقاس واحد', sizes: ['واحد'] }],
 };
 
 export function ProductForm({ open, onClose, product }: Props) {
   const actor = useActor();
   const toast = useToast();
+  const { categories } = useCategories();
   const [form, setForm] = useState<ProductInput>(EMPTY);
   const [image, setImage] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -298,18 +303,19 @@ export function ProductForm({ open, onClose, product }: Props) {
 
           <div>
             <label className="label">الفئة</label>
-            <div className="grid grid-cols-2 gap-2">
-              {(['shoes', 'clothing'] as Category[]).map((c) => (
+            <div className="flex flex-wrap gap-2">
+              {categories.map((c) => (
                 <button
-                  key={c}
+                  key={c.id}
                   type="button"
-                  onClick={() => patch({ category: c })}
-                  className={`h-11 rounded-card border text-[0.9rem] font-bold transition
-                    ${form.category === c
-                      ? 'border-brand-500 bg-brand-500/12 text-brand-500'
+                  aria-pressed={form.category === c.id}
+                  onClick={() => patch({ category: c.id })}
+                  className={`h-11 min-w-[5.5rem] flex-1 rounded-card border px-3 text-[0.9rem] font-bold transition
+                    ${form.category === c.id
+                      ? 'border-fg bg-fg text-page'
                       : 'border-line-strong bg-surface text-fg-2'}`}
                 >
-                  {c === 'shoes' ? 'أحذية' : 'ملابس'}
+                  {c.name}
                 </button>
               ))}
             </div>
@@ -578,7 +584,7 @@ export function ProductForm({ open, onClose, product }: Props) {
           </div>
 
           <div className="mb-2.5 flex flex-wrap gap-1.5">
-            {SIZE_PRESETS[form.category].map((preset) => (
+            {SIZE_PRESETS[categoryById(categories, form.category).sizeKind].map((preset) => (
               <button
                 key={preset.label}
                 type="button"

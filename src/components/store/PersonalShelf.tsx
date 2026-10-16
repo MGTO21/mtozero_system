@@ -37,7 +37,8 @@ export function PersonalShelf({
       const mine = mySizes[i.category];
       return mine && i.sizes.some((s) => s.size === mine && s.state !== 'out');
     });
-    const sizes = [mySizes.shoes && `حذاء ${mySizes.shoes}`, mySizes.clothing && `ملابس ${mySizes.clothing}`].filter(Boolean).join(' · ');
+    // Saved sizes by category; the numbers alone read clearly enough (42 · L).
+    const sizes = [...new Set(Object.values(mySizes).filter(Boolean))].join(' · ');
     return { list: fits.slice(0, 8), note: sizes ? `حسب مقاسك المحفوظ: ${sizes}` : undefined, href: '/shop?mine=1' };
   }, [kind, items, recent, wishlist, mySizes]);
 

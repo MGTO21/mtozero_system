@@ -21,7 +21,9 @@ import { submitSale } from '@/lib/offline/operations';
 import { CartList } from '@/components/sell/CartList';
 import { useSettings } from '@/lib/db/settings';
 import { money, num, whatsappNumber } from '@/lib/format';
-import { CATEGORY_LABEL, CHANNEL_LABEL, type Channel, type PaymentStatus, type Product } from '@/lib/types';
+import { CHANNEL_LABEL, type Channel, type PaymentStatus, type Product } from '@/lib/types';
+import { useCategories } from '@/lib/db/categories';
+import { categoryName } from '@/lib/store/model';
 
 export default function SellPage() {
   return (
@@ -252,6 +254,7 @@ function QuickSale() {
   }
 
   const [category, setCategory] = useState<'all' | Product['category']>('all');
+  const { categories } = useCategories();
   const online = useOnlineStatus();
   const shown = useMemo(
     () => (category === 'all' ? filtered : filtered.filter((p) => p.category === category)),
@@ -298,16 +301,18 @@ function QuickSale() {
               <Pill active={category === 'all'} onClick={() => setCategory('all')} count={filtered.length}>
                 الكل
               </Pill>
-              {(['shoes', 'clothing'] as const).map((c) => (
-                <Pill
-                  key={c}
-                  active={category === c}
-                  onClick={() => setCategory(c)}
-                  count={filtered.filter((p) => p.category === c).length}
-                >
-                  {CATEGORY_LABEL[c]}
-                </Pill>
-              ))}
+              {categories
+                .filter((c) => filtered.some((p) => p.category === c.id))
+                .map((c) => (
+                  <Pill
+                    key={c.id}
+                    active={category === c.id}
+                    onClick={() => setCategory(c.id)}
+                    count={filtered.filter((p) => p.category === c.id).length}
+                  >
+                    {c.name}
+                  </Pill>
+                ))}
             </div>
           </div>
 
@@ -366,7 +371,7 @@ function QuickSale() {
             <div className="min-w-0 flex-1">
               <h1 className="truncate text-[1.35rem] leading-tight">{product.name}</h1>
               <p className="tnum text-[0.84rem] font-bold text-fg-3">
-                {num(totalStock(product))} قطعة · {CATEGORY_LABEL[product.category]}
+                {num(totalStock(product))} قطعة · {categoryName(categories, product.category)}
               </p>
             </div>
             <Button variant="secondary" size="sm" onClick={clearPicker} icon={<IconChevronLeft className="h-4 w-4 rotate-180" />}>
