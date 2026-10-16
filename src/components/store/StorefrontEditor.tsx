@@ -384,6 +384,44 @@ export function StorefrontEditor() {
             </div>
           </section>
         ) : null}
+
+        {tab === 'orders' ? (
+          <section className="surface p-4">
+            <SectionTitle>دليل المقاسات</SectionTitle>
+            <p className="mb-3 text-[0.84rem] text-fg-2">
+              بيظهر في صفحة كل منتج جنب المقاسات، وبيقلل أسئلة «المقاس دا بيجيني؟». كل سطر مقاس: <span dir="ltr" className="font-bold">42 = 27 سم</span>.
+              فاضي = يختفي الزرار.
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div>
+                <label className="label" htmlFor="sg-shoes">
+                  الأحذية
+                </label>
+                <textarea
+                  id="sg-shoes"
+                  rows={8}
+                  dir="auto"
+                  className="field tnum resize-y"
+                  value={form.sizeGuideShoes}
+                  onChange={(e) => patch({ sizeGuideShoes: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="label" htmlFor="sg-clothing">
+                  الملابس
+                </label>
+                <textarea
+                  id="sg-clothing"
+                  rows={8}
+                  dir="auto"
+                  className="field tnum resize-y"
+                  value={form.sizeGuideClothing}
+                  onChange={(e) => patch({ sizeGuideClothing: e.target.value })}
+                />
+              </div>
+            </div>
+          </section>
+        ) : null}
       </div>
 
       {/* Save bar: always reachable, and says when there is something unsaved. */}

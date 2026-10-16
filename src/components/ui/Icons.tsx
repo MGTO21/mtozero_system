@@ -448,3 +448,10 @@ export const IconTikTok = (p: IconProps) => (
     <path d="M13.2 2.5h3.1c.3 2.4 1.9 4.1 4.3 4.3v3.2c-1.6 0-3-.5-4.3-1.3v6.7a6 6 0 1 1-6-6c.3 0 .7 0 1 .1v3.3a2.8 2.8 0 1 0 1.9 2.6V2.5Z" />
   </Solid>
 );
+
+/** Order notifications: a bell with its clapper cut out. */
+export const IconBell = (p: IconProps) => (
+  <Solid {...p}>
+    <path d="M12 2.5a1.6 1.6 0 0 1 1.6 1.6v.6a6.4 6.4 0 0 1 4.8 6.2v3.6l1.7 2.6a1 1 0 0 1-.8 1.5H4.7a1 1 0 0 1-.8-1.5l1.7-2.6v-3.6a6.4 6.4 0 0 1 4.8-6.2v-.6A1.6 1.6 0 0 1 12 2.5Z M9.4 19.6h5.2a2.6 2.6 0 0 1-5.2 0Z" />
+  </Solid>
+);

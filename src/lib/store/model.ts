@@ -114,6 +114,8 @@ export function mapStoreConfig(raw: Record<string, unknown> | null | undefined):
     instagram: str(r.instagram, ''),
     facebook: str(r.facebook, ''),
     tiktok: str(r.tiktok, ''),
+    sizeGuideShoes: str(r.sizeGuideShoes, DEFAULT_STORE.sizeGuideShoes).slice(0, 1200),
+    sizeGuideClothing: str(r.sizeGuideClothing, DEFAULT_STORE.sizeGuideClothing).slice(0, 1200),
   };
 }
 

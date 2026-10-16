@@ -8,6 +8,8 @@ import { addToCart, productImagePath } from '@/lib/store/cart';
 import { compareSizes } from '@/lib/store/model';
 import { openPanel, rememberViewed, setMySize, toggleWishlist, useMounted, useMySizes, useWishlist } from '@/lib/store/prefs';
 import type { CatalogItem } from '@/lib/types';
+import { NotifyMe } from './NotifyMe';
+import { SizeGuide } from './SizeGuide';
 
 /**
  * Size, quantity, add to basket. Sold-out sizes stay visible but struck through
@@ -18,7 +20,7 @@ import type { CatalogItem } from '@/lib/types';
  * On a phone, once the main button scrolls away a slim bar keeps "add" under
  * the thumb.
  */
-export function ProductBuy({ item, whatsapp }: { item: CatalogItem; whatsapp: string }) {
+export function ProductBuy({ item, whatsapp, sizeGuide }: { item: CatalogItem; whatsapp: string; sizeGuide: string }) {
   const mounted = useMounted();
   const mySizes = useMySizes();
   const wishlist = useWishlist();
@@ -30,6 +32,8 @@ export function ProductBuy({ item, whatsapp }: { item: CatalogItem; whatsapp: st
   const [needSize, setNeedSize] = useState(false);
   const [shared, setShared] = useState(false);
   const [barVisible, setBarVisible] = useState(false);
+  const [notifySize, setNotifySize] = useState<string | null>(null);
+  const [guideOpen, setGuideOpen] = useState(false);
   const mainButtons = useRef<HTMLDivElement>(null);
   const chosen = item.sizes.find((s) => s.size === size);
   const saved = mounted && wishlist.includes(item.id);
@@ -93,9 +97,16 @@ export function ProductBuy({ item, whatsapp }: { item: CatalogItem; whatsapp: st
 
   return (
     <div>
-      <div id="size-picker" className="flex items-baseline justify-between">
-        <p className="label !mb-2">المقاس</p>
-        {needSize && !size ? <p className="text-[0.82rem] font-bold text-bad">اختار مقاسك أول</p> : null}
+      <div id="size-picker" className="flex items-baseline justify-between gap-3">
+        <p className="label !mb-2">
+          المقاس
+          {needSize && !size ? <span className="mr-2 text-bad">— اختار مقاسك أول</span> : null}
+        </p>
+        {sizeGuide.trim() ? (
+          <button type="button" onClick={() => setGuideOpen(true)} className="pb-2 text-[0.84rem] font-bold text-fg-2 underline underline-offset-4">
+            دليل المقاسات
+          </button>
+        ) : null}
       </div>
       <div className="flex flex-wrap gap-2">
         {sizes.map((s) => {
@@ -104,14 +115,19 @@ export function ProductBuy({ item, whatsapp }: { item: CatalogItem; whatsapp: st
             <button
               key={s.size}
               type="button"
-              disabled={out}
               aria-pressed={size === s.size}
+              aria-label={out ? `مقاس ${s.size} خلص — نبّهني لما يتوفر` : `مقاس ${s.size}`}
               onClick={() => {
+                // A sold-out size is not a dead end: it asks to be told when it is back.
+                if (out) {
+                  setNotifySize(s.size);
+                  return;
+                }
                 setSize(s.size);
                 setNeedSize(false);
               }}
               className={`press tnum relative h-12 min-w-[3.25rem] rounded-card border-[1.5px] px-2 font-display text-[1.05rem] font-black transition-colors
-                ${out ? 'cursor-not-allowed border-dashed border-line-strong text-fg-3 line-through' : size === s.size ? 'border-fg bg-fg text-page' : 'border-line-strong bg-surface text-fg hover:border-fg'}`}
+                ${out ? 'border-dashed border-line-strong text-fg-3 line-through hover:border-fg-3' : size === s.size ? 'border-fg bg-fg text-page' : 'border-line-strong bg-surface text-fg hover:border-fg'}`}
             >
               {s.size}
             </button>
@@ -119,6 +135,11 @@ export function ProductBuy({ item, whatsapp }: { item: CatalogItem; whatsapp: st
         })}
       </div>
       {chosen?.state === 'last' ? <p className="mt-2 text-[0.88rem] font-bold text-warn">آخر قطع من المقاس دا — اطلبو قبل يخلص</p> : null}
+      {sizes.some((s) => s.state === 'out') ? (
+        <p className="mt-2 text-[0.8rem] text-fg-3">مقاسك خلصان؟ دوس عليهو ونرسل ليك واتساب لمن يرجع.</p>
+      ) : null}
+      {notifySize ? <NotifyMe item={item} size={notifySize} onClose={() => setNotifySize(null)} /> : null}
+      {guideOpen ? <SizeGuide category={item.category} text={sizeGuide} onClose={() => setGuideOpen(false)} /> : null}
 
       <div className="mt-5 flex items-end gap-3">
         <div className="w-36">

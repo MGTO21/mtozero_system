@@ -74,6 +74,8 @@ function Section({ section, ctx }: { section: HomeSection; ctx: Ctx }): ReactNod
       return <PersonalShelf kind="recent" title={title} items={catalog} newDays={nd} />;
     case 'howto':
       return <HowTo config={config} title={title} />;
+    case 'brands':
+      return <Brands catalog={catalog} />;
   }
 }
 
@@ -226,6 +228,43 @@ function HowTo({ config, title }: { config: StoreConfig; title: string }) {
           </Reveal>
         ))}
       </ol>
+    </section>
+  );
+}
+
+/**
+ * The brands on the shelf as one slow, endless line of big type — each name
+ * opens its products. Hidden with fewer than three brands: a "strip" of two
+ * names repeating reads as a glitch, not a statement.
+ */
+function Brands({ catalog }: { catalog: CatalogItem[] }) {
+  const count = new Map<string, number>();
+  for (const p of catalog) if (p.brand) count.set(p.brand.trim(), (count.get(p.brand.trim()) ?? 0) + 1);
+  const brands = [...count.entries()].sort((a, b) => b[1] - a[1]).map(([b]) => b);
+  if (brands.length < 3) return null;
+
+  const line = (copy: number) =>
+    brands.map((b) => (
+    <Link
+      key={b}
+      href={`/shop?q=${encodeURIComponent(b)}`}
+      tabIndex={copy > 0 ? -1 : undefined}
+      className="flex shrink-0 items-center gap-8 px-8 font-display text-[clamp(1.6rem,4vw,2.8rem)] font-black uppercase leading-none text-fg-3 transition-colors hover:text-fg"
+    >
+      {b}
+      <span aria-hidden="true" className="h-2 w-2 rounded-full bg-brand-500" />
+    </Link>
+    ));
+  return (
+    <section aria-label="الماركات" className="marquee mt-16 overflow-hidden border-y border-line py-6 sm:mt-20">
+      <div className="marquee-track" style={{ '--marquee-duration': `${Math.max(20, brands.length * 6)}s` } as React.CSSProperties}>
+        {/* Two identical halves (each the list twice) so the 50% shift loops without a seam. */}
+        {[0, 1, 2, 3].map((k) => (
+          <div key={k} className="flex shrink-0" aria-hidden={k > 0}>
+            {line(k)}
+          </div>
+        ))}
+      </div>
     </section>
   );
 }

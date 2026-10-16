@@ -17,6 +17,7 @@ export const COL = {
   creditGrants: 'creditGrants',
   catalog: 'catalog',
   catalogThumbs: 'catalogThumbs',
+  restockRequests: 'restockRequests',
   storefront: 'storefront',
   orders: 'orders',
   settings: 'settings',

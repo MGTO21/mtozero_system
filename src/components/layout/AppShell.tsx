@@ -18,8 +18,9 @@ import { ROLE_LABEL } from '@/lib/types';
 import { Brand } from './Brand';
 import { MOBILE_TABS, NAV, SECTION_LABEL, SECTION_ORDER, navItemFor, visibleNav } from './nav';
 import { SyncPill, useQueueSummary, useSyncDriver } from './SyncStatus';
-import { useCatalogPublisher, useLogoPublisher, useNewOrderCount } from '@/lib/db/store';
+import { useCatalogPublisher, useLogoPublisher, useNewOrderState } from '@/lib/db/store';
 import { useSettings } from '@/lib/db/settings';
+import { useOrderAlert } from '@/lib/hooks/useOrderAlert';
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { profile, loading, firebaseUser, profileError, isOwner, signOut } = useAuth();
@@ -38,7 +39,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const { settings, loading: settingsLoading } = useSettings();
   // Only the owner may write storefront/logo; their device keeps it in step.
   useLogoPublisher(Boolean(profile) && isOwner, settings.logoData, settingsLoading);
-  const newOrders = useNewOrderCount();
+  const { count: newOrders, loading: ordersLoading } = useNewOrderState();
+  useOrderAlert(newOrders, Boolean(profile) && !ordersLoading, pathname);
 
   useEffect(() => {
     if (!loading && !firebaseUser) router.replace('/login');

@@ -1,13 +1,13 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useActor } from '@/components/providers/AuthProvider';
 import { useToast } from '@/components/providers/ToastProvider';
 import { Button } from '@/components/ui/Button';
 import { useConfirm } from '@/components/ui/Confirm';
 import { Pill } from '@/components/ui/DateRange';
 import { EmptyState, ErrorBlock, SkeletonRows, Stamp } from '@/components/ui/Feedback';
-import { IconAlert, IconBag, IconPhone, IconWhatsApp } from '@/components/ui/Icons';
+import { IconAlert, IconBag, IconBell, IconPhone, IconWhatsApp } from '@/components/ui/Icons';
 import { PageHeader } from '@/components/ui/PageHeader';
 import { Sheet } from '@/components/ui/Sheet';
 import { errorMessage } from '@/lib/db/collections';
@@ -15,6 +15,7 @@ import { useProducts } from '@/lib/db/products';
 import { useSettings } from '@/lib/db/settings';
 import { deliverOrder, setOrderStatus, useOrders } from '@/lib/db/store';
 import { formatDateTime, money, num, relativeTime } from '@/lib/format';
+import { enableOrderNotifications } from '@/lib/hooks/useOrderAlert';
 import { ORDER_STATUS_LABEL, type OrderStatus, type Product, type StoreOrder } from '@/lib/types';
 
 type Filter = 'open' | OrderStatus | 'all';
@@ -53,7 +54,11 @@ export default function OrdersPage() {
 
   return (
     <>
-      <PageHeader title="طلبات الموقع" subtitle="الطلبات اللي جات من المتجر الإلكتروني" />
+      <PageHeader
+        title="طلبات الموقع"
+        subtitle="الطلبات اللي جات من المتجر الإلكتروني"
+        action={<NotifyToggle />}
+      />
 
       <div className="scroller mb-4 sm:mx-0 sm:px-0">
         {(['open', 'new', 'confirmed', 'out', 'delivered', 'cancelled', 'all'] as Filter[]).map((f) => (
@@ -326,5 +331,35 @@ function OrderSheet({ order, products, onClose }: { order: StoreOrder | null; pr
       ) : null}
       {dialog}
     </Sheet>
+  );
+}
+
+/**
+ * Turns on system notifications for new orders on this device. Shown only
+ * while the browser has not been asked yet; the chime and the badge work
+ * without it.
+ */
+function NotifyToggle() {
+  const toast = useToast();
+  const [state, setState] = useState<NotificationPermission | 'unsupported' | null>(null);
+  useEffect(() => {
+    setState(typeof Notification === 'undefined' ? 'unsupported' : Notification.permission);
+  }, []);
+  if (state !== 'default') return null;
+  return (
+    <Button
+      variant="secondary"
+      size="sm"
+      icon={<IconBell className="h-4 w-4" />}
+      onClick={() =>
+        void enableOrderNotifications().then((r) => {
+          setState(r);
+          if (r === 'granted') toast.success('حيوصلك إشعار مع كل طلب جديد');
+          else toast.info('الإشعارات مقفولة — الصوت والعدّاد شغّالين');
+        })
+      }
+    >
+      نبّهني بالطلبات
+    </Button>
   );
 }

@@ -189,7 +189,8 @@ export type HomeSectionType =
   | 'mysize'
   | 'trending'
   | 'recent'
-  | 'howto';
+  | 'howto'
+  | 'brands';
 
 export interface HomeSection {
   type: HomeSectionType;
@@ -210,10 +211,11 @@ export const HOME_SECTION_LABEL: Record<HomeSectionType, { title: string; hint: 
   trending: { title: 'الناس بتطلب', hint: 'الأكثر مبيعاً مؤخراً' },
   recent: { title: 'شاهدتها مؤخراً', hint: 'آخر منتجات فتحها الزبون في جهازو' },
   howto: { title: 'كيف تطلب', hint: 'تلات خطوات للطلب' },
+  brands: { title: 'الماركات', hint: 'شريط متحرك بأسماء الماركات المتوفرة — كل اسم بيفتح منتجاتها' },
 };
 
 export const DEFAULT_SECTIONS: HomeSection[] = (
-  ['hero', 'promise', 'categories', 'offers', 'featured', 'sale', 'new', 'mysize', 'trending', 'recent', 'howto'] as const
+  ['hero', 'promise', 'categories', 'brands', 'offers', 'featured', 'sale', 'new', 'mysize', 'trending', 'recent', 'howto'] as const
 ).map((type) => ({ type, enabled: true, title: '' }));
 
 /** A home-page banner. Its picture lives in storefront/banner_{id}, served at /banner/{id}. */
@@ -261,6 +263,9 @@ export interface StoreConfig {
   instagram: string;
   facebook: string;
   tiktok: string;
+  /** Size guide lines shown on product pages, one row per line ("42 = 27 سم"). */
+  sizeGuideShoes: string;
+  sizeGuideClothing: string;
 }
 
 export const DEFAULT_STORE: StoreConfig = {
@@ -285,7 +290,37 @@ export const DEFAULT_STORE: StoreConfig = {
   instagram: '',
   facebook: '',
   tiktok: '',
+  sizeGuideShoes: [
+    '39 = 25 سم',
+    '40 = 25.5 سم',
+    '41 = 26 سم',
+    '42 = 27 سم',
+    '43 = 27.5 سم',
+    '44 = 28.5 سم',
+    '45 = 29 سم',
+  ].join('\n'),
+  sizeGuideClothing: [
+    'S = صدر 88–94 سم',
+    'M = صدر 94–100 سم',
+    'L = صدر 100–106 سم',
+    'XL = صدر 106–112 سم',
+    'XXL = صدر 112–118 سم',
+  ].join('\n'),
 };
+
+/** A visitor asked to be told when a sold-out size is back: restockRequests/{id}. */
+export interface RestockRequest {
+  id: string;
+  productId: string;
+  productName: string;
+  size: string;
+  name: string;
+  phone: string;
+  status: 'open' | 'notified';
+  createdAt: Timestamp | null;
+  notifiedAt?: Timestamp | null;
+  notifiedByName?: string;
+}
 
 export type OrderStatus = 'new' | 'confirmed' | 'out' | 'delivered' | 'cancelled';
 

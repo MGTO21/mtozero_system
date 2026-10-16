@@ -341,3 +341,32 @@
     bottom: 6.25rem;
   }
 }
+
+/*
+ * Product shelves: a swipe rail on phones, a real grid from 640px up. Kept as
+ * its own class because .rail's display:flex (this file loads after Tailwind)
+ * would otherwise beat `sm:grid`, leaving desktop tiles sized by their pictures.
+ */
+.shelf-rail {
+  display: flex;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+  overscroll-behavior-x: contain;
+}
+
+.shelf-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.shelf-rail > * {
+  scroll-snap-align: start;
+}
+
+@media (min-width: 640px) {
+  .shelf-rail {
+    display: grid;
+    overflow: visible;
+    scroll-snap-type: none;
+  }
+}

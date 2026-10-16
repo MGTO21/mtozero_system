@@ -86,7 +86,11 @@ export default async function ProductPage({ params }: Props) {
           </p>
 
           <div className="mt-6">
-            <ProductBuy item={item} whatsapp={config.whatsapp} />
+            <ProductBuy
+              item={item}
+              whatsapp={config.whatsapp}
+              sizeGuide={item.category === 'shoes' ? config.sizeGuideShoes : config.sizeGuideClothing}
+            />
           </div>
 
           {item.description ? (

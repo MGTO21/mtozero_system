@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { ProductCard } from '@/components/inventory/ProductCard';
+import { PosterSheet } from '@/components/inventory/PosterSheet';
 import { ProductForm } from '@/components/inventory/ProductForm';
 import { ValuePanel } from '@/components/inventory/ValuePanel';
 import { useActor, useAuth } from '@/components/providers/AuthProvider';
@@ -41,6 +42,7 @@ export default function InventoryPage() {
   const [sizeFilter, setSizeFilter] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState<Product | null>(null);
+  const [posterFor, setPosterFor] = useState<Product | null>(null);
 
   /** Every size that exists anywhere, for the "who has size 42?" quick filter. */
   const allSizes = useMemo(() => {
@@ -301,12 +303,14 @@ export default function InventoryPage() {
                 setFormOpen(true);
               }}
               onArchive={(prod) => void onArchive(prod)}
+              onPoster={setPosterFor}
             />
           ))}
         </div>
       )}
 
       <ProductForm open={formOpen} onClose={() => setFormOpen(false)} product={editing} />
+      <PosterSheet product={posterFor} onClose={() => setPosterFor(null)} />
       {dialog}
     </>
   );

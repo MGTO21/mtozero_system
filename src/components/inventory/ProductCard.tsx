@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { IconButton } from '@/components/ui/Button';
-import { IconArchive, IconEdit, IconImage, IconRestore, IconTag } from '@/components/ui/Icons';
+import { IconArchive, IconEdit, IconImage, IconRestore, IconShare, IconTag } from '@/components/ui/Icons';
 import { productImage, totalStock } from '@/lib/db/products';
 import { margin, money, num, percent } from '@/lib/format';
 import { CATEGORY_LABEL, type Product } from '@/lib/types';
@@ -13,11 +13,13 @@ interface Props {
   canSeeProfit: boolean;
   onEdit: (p: Product) => void;
   onArchive: (p: Product) => void;
+  /** Opens the social-media poster for this product. */
+  onPoster?: (p: Product) => void;
   /** Size the current filter is matching, highlighted so the answer is instant. */
   highlightSize?: string | null;
 }
 
-export function ProductCard({ product, canSeeProfit, onEdit, onArchive, highlightSize }: Props) {
+export function ProductCard({ product, canSeeProfit, onEdit, onArchive, onPoster, highlightSize }: Props) {
   const stock = totalStock(product);
   const marginPct = margin(product.costPrice, product.sellPrice);
   const thumb = productImage(product);
@@ -50,6 +52,11 @@ export function ProductCard({ product, canSeeProfit, onEdit, onArchive, highligh
         <div className="min-w-0 flex-1">
           <div className="flex items-start gap-1.5">
             <h3 className="min-w-0 flex-1 truncate text-[1.02rem] leading-snug">{product.name}</h3>
+            {onPoster && !product.isArchived && stock > 0 ? (
+              <IconButton label="بوستر للسوشيال" onClick={() => onPoster(product)} className="-mt-1 h-8 w-8">
+                <IconShare className="h-4 w-4" />
+              </IconButton>
+            ) : null}
             <IconButton label="تعديل" onClick={() => onEdit(product)} className="-mt-1 h-8 w-8">
               <IconEdit className="h-4 w-4" />
             </IconButton>

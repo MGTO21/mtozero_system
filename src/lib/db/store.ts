@@ -409,6 +409,16 @@ export function useNewOrderCount(): number {
   return useMemo(() => state.data.length, [state.data]);
 }
 
+/** The same count with its loading state — the order alert waits for the first real number. */
+export function useNewOrderState(): { count: number; loading: boolean } {
+  const state = useLiveQuery<StoreOrder>(
+    () => query(collection(db(), COL.orders), where('status', '==', 'new')),
+    [],
+    mapOrder,
+  );
+  return { count: state.data.length, loading: state.loading };
+}
+
 export async function setOrderStatus(
   order: StoreOrder,
   status: OrderStatus,
