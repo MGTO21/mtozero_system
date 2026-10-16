@@ -25,6 +25,9 @@ const plex = IBM_Plex_Sans_Arabic({
 });
 
 const BASE_METADATA: Metadata = {
+  // The staff app and its screens stay out of search results; the public store
+  // layout overrides this with index: true.
+  robots: { index: false, follow: false },
   title: 'Mtozero Shop — إدارة المخزون والمبيعات',
   description: 'نظام إدارة مخزون ومبيعات متجر Mtozero Shop — الأبيض، شمال كردفان.',
   manifest: '/manifest.json',

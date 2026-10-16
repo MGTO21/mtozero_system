@@ -13,6 +13,7 @@ import { fetchCatalog, fetchOffers, fetchStoreConfig, STORE_REVALIDATE, type Pub
 import { CATEGORY_LABEL } from '@/lib/types';
 
 export const revalidate = STORE_REVALIDATE;
+export const metadata = { alternates: { canonical: '/' } };
 
 /**
  * The storefront, assembled from the blocks the owner arranged in

@@ -7,6 +7,8 @@ import { PersonalShelf } from '@/components/store/PersonalShelf';
 import { Shelf } from '@/components/store/Shelf';
 import { money } from '@/lib/format';
 import { isNewArrival, salePercent } from '@/lib/store/model';
+import { jsonLd, productGraph, productSummary } from '@/lib/store/seo';
+import { siteUrl } from '@/lib/store/site';
 import { productHdPath, productPictures } from '@/lib/store/paths';
 import { fetchCatalog, fetchProduct, fetchStoreConfig, STORE_REVALIDATE } from '@/lib/store/server';
 import { CATEGORY_LABEL } from '@/lib/types';
@@ -17,17 +19,17 @@ type Props = { params: { id: string } };
 
 /** Name, price and picture in the link preview when a product is shared. */
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const item = await fetchProduct(params.id);
-  if (!item) return { title: 'المنتج غير موجود' };
-  const description = `${money(item.price)} · المقاسات: ${item.sizes
-    .filter((s) => s.state !== 'out')
-    .map((s) => s.size)
-    .join('، ')} · الدفع عند الاستلام`;
+  const [item, config] = await Promise.all([fetchProduct(params.id), fetchStoreConfig()]);
+  if (!item || !item.listed) return { title: 'المنتج غير موجود', robots: { index: false } };
+  // Price first: it is what people search with ("سعر اير فورس").
+  const description = `${money(item.price)} — ${item.description?.slice(0, 120) || productSummary(item, config)}`;
   const image = productHdPath(item);
   const images = productPictures(item).slice(0, 4).map((url) => ({ url }));
   return {
-    title: item.name,
+    // "Nike Air Force — أحذية" reads as an answer in a result list.
+    title: `${item.name}${item.brand ? ` ${item.brand}` : ''} — ${CATEGORY_LABEL[item.category]}`,
     description,
+    alternates: { canonical: `/p/${item.id}` },
     openGraph: { title: item.name, description, images },
     twitter: { card: 'summary_large_image', title: item.name, description, images: [image] },
   };
@@ -47,7 +49,8 @@ export default async function ProductPage({ params }: Props) {
 
   return (
     <div className="mx-auto max-w-7xl px-4 pt-5 sm:px-6">
-      <nav className="mb-4 text-[0.84rem] font-bold text-fg-3">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(productGraph(item, config, siteUrl())) }} />
+      <nav aria-label="مسار الصفحة" className="mb-4 text-[0.84rem] font-bold text-fg-3">
         <Link href="/shop" className="hover:text-fg">
           المنتجات
         </Link>{' '}
@@ -93,12 +96,13 @@ export default async function ProductPage({ params }: Props) {
             />
           </div>
 
-          {item.description ? (
-            <div className="mt-7 border-t border-line pt-5">
-              <p className="ledger-head">عن المنتج</p>
-              <p className="whitespace-pre-line leading-relaxed text-fg-2">{item.description}</p>
-            </div>
-          ) : null}
+          {/* Always a few words about the product: the owner's description, or one
+              written from the facts — a page with only a name and a price gives
+              customers and search engines nothing to go on. */}
+          <div className="mt-7 border-t border-line pt-5">
+            <h2 className="ledger-head !text-[0.82rem]">عن المنتج</h2>
+            <p className="whitespace-pre-line leading-relaxed text-fg-2">{item.description || productSummary(item, config)}</p>
+          </div>
 
           <ul className="mt-7 space-y-2.5 border-t border-line pt-5 text-[0.92rem] text-fg-2">
             <li>

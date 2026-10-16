@@ -5,6 +5,8 @@ import { StoreHeader } from '@/components/store/StoreHeader';
 import { money } from '@/lib/format';
 import { deliveryLine } from '@/lib/store/model';
 import { fetchCatalog, fetchLogo, fetchStoreConfig, STORE_REVALIDATE } from '@/lib/store/server';
+import { jsonLd, storeGraph } from '@/lib/store/seo';
+import { siteUrl } from '@/lib/store/site';
 import './store.css';
 
 export const revalidate = STORE_REVALIDATE;
@@ -12,9 +14,7 @@ export const revalidate = STORE_REVALIDATE;
 export async function generateMetadata(): Promise<Metadata> {
   const [config, logo] = await Promise.all([fetchStoreConfig(), fetchLogo()]);
   // Absolute base for share previews: WhatsApp and Facebook need full image URLs.
-  const site =
-    process.env.NEXT_PUBLIC_SITE_URL ??
-    (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : 'http://localhost:3000');
+  const site = siteUrl();
   // Link previews and search results show the shop logo — the same one as the invoices.
   const image = logo
     ? { url: `/brand/og?v=${logo.hash}`, width: 1200, height: 630, alt: config.shopName }
@@ -24,7 +24,26 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     metadataBase: new URL(site),
     title: { default: `${config.shopName} — ${config.heroTitle}`, template: `%s — ${config.shopName}` },
-    description: config.heroSubtitle,
+    description: `${config.heroSubtitle} ${config.address}.`,
+    applicationName: config.shopName,
+    keywords: [
+      config.shopName,
+      'أحذية',
+      'ملابس',
+      'جزم رياضية',
+      'سنيكرز',
+      'نايكي',
+      'اديدس',
+      'الأبيض',
+      'شمال كردفان',
+      'السودان',
+      'تسوق أونلاين',
+      'الدفع عند الاستلام',
+    ],
+    robots: { index: true, follow: true, googleBot: { index: true, follow: true, 'max-image-preview': 'large', 'max-snippet': -1 } },
+    ...(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
+      ? { verification: { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION } }
+      : {}),
     openGraph: {
       siteName: config.shopName,
       locale: 'ar_SD',
@@ -49,21 +68,10 @@ function lookScript(defaultLook: string, toggle: boolean) {
 export default async function StoreLayout({ children }: { children: ReactNode }) {
   const [config, catalog, logo] = await Promise.all([fetchStoreConfig(), fetchCatalog(), fetchLogo()]);
   const logoSrc = logo ? `/brand/logo?v=${logo.hash}` : null;
-  const site = process.env.NEXT_PUBLIC_SITE_URL ?? (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : '');
-  // Tells search engines which picture is the shop's logo.
-  const orgLd =
-    logo && site
-      ? JSON.stringify({
-          '@context': 'https://schema.org',
-          '@type': 'Store',
-          name: config.shopName,
-          url: site,
-          logo: `${site}/brand/icon/512?v=${logo.hash}`,
-          image: `${site}/brand/og?v=${logo.hash}`,
-          address: config.address,
-          ...(config.whatsapp ? { telephone: `+${config.whatsapp}` } : {}),
-        }).replace(/</g, '\\u003c')
-      : null;
+  const site = siteUrl();
+  // Who the shop is, for search engines and AI assistants: name, place, how to
+  // order and pay, the logo, and site search.
+  const ld = jsonLd(storeGraph(config, logo, site));
   const announcements = config.announcements.length > 0 ? config.announcements : [deliveryLine(config, money)];
   // The header's instant search needs names and pictures only — not descriptions.
   const index = catalog.map(({ description: _d, ...rest }) => {
@@ -74,7 +82,7 @@ export default async function StoreLayout({ children }: { children: ReactNode })
   return (
     <div id="store-root" className="store app-height flex flex-col" data-look={config.look} suppressHydrationWarning>
       <script dangerouslySetInnerHTML={{ __html: lookScript(config.look, config.lookToggle) }} />
-      {orgLd ? <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: orgLd }} /> : null}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: ld }} />
       <StoreHeader
         announcements={announcements}
         lookToggle={config.lookToggle}

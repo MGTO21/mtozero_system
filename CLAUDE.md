@@ -70,6 +70,10 @@ src/
   lib/db/restock.ts       restockRequests (إنشاء عام بشكل صارم، قراءة للموظفين) + التجميع ونص الرسالة
   lib/product-poster.ts   بوستر المنتج للسوشيال (4:5 و9:16) — مقاسات متوفرة فقط، بلا تكلفة أو كميات
   lib/hooks/useOrderAlert.ts  صوت + اهتزاز + إشعار + عدّاد في العنوان عند طلب جديد (يرنّ للزيادة فقط)
+  lib/store/seo.ts        JSON-LD (متجر، موقع+بحث، منتج+عرض، مسار، قائمة) — حقائق عامة فقط
+  lib/store/site.ts       `siteUrl()` و`PRIVATE_PATHS` (شاشات الموظفين: noindex + Disallow)
+  app/robots.ts sitemap.ts llms.txt/  محركات البحث ومساعدات الذكاء الاصطناعي. الـroot layout افتراضه noindex،
+                          و(store) يفتحه — أي صفحة موظفين جديدة تُضاف لـ`PRIVATE_PATHS`.
 
 > **الموقع ديناميكي بالكامل من `storefront/config`**: الأقسام (`sections`) مرتّبة ومفعّلة من لوحة الإدارة،
 > والبانرات صورها في مستندات `storefront/banner_{id}` منفصلة (لا داخل config). أي حقل جديد في الإعدادات
