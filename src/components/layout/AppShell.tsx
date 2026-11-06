@@ -33,19 +33,25 @@ export function AppShell({ children }: { children: ReactNode }) {
   const queue = useQueueSummary(profile?.uid);
 
   useQuickSearchHotkey(useCallback(() => setSearchOpen(true), []));
-  useSyncDriver(profile?.uid, queue.pending.length);
+  // Background writers wait for Firebase to confirm the session: an offline start
+  // runs from the cached profile, and replaying the queue before the server knows
+  // who is signed in would only collect permission refusals.
+  const signedIn = Boolean(profile && firebaseUser);
+  useSyncDriver(signedIn ? profile?.uid : undefined, queue.pending.length);
   // Keeps the website's public catalog in step with the stock while the app is open.
   const publisherActor = useMemo(() => (profile ? { uid: profile.uid, name: profile.name } : undefined), [profile]);
-  useCatalogPublisher(Boolean(profile), publisherActor);
+  useCatalogPublisher(signedIn, publisherActor);
   const { settings, loading: settingsLoading } = useSettings();
   // Only the owner may write storefront/logo; their device keeps it in step.
-  useLogoPublisher(Boolean(profile) && isOwner, settings.logoData, settingsLoading);
+  useLogoPublisher(signedIn && isOwner, settings.logoData, settingsLoading);
   const { count: newOrders, loading: ordersLoading } = useNewOrderState();
   useOrderAlert(newOrders, Boolean(profile) && !ordersLoading, pathname);
 
+  // A cached profile with no Firebase user yet is the offline start, not a
+  // signed-out device — Firebase reports the session once it gets a signal.
   useEffect(() => {
-    if (!loading && !firebaseUser) router.replace('/login');
-  }, [loading, firebaseUser, router]);
+    if (!loading && !firebaseUser && !profile) router.replace('/login');
+  }, [loading, firebaseUser, profile, router]);
 
   // Employees are redirected out of owner-only routes even by direct URL.
   useEffect(() => {

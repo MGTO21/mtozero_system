@@ -36,6 +36,9 @@ const ROUTES = [
   '/settings',
   '/sync',
   '/offers',
+  '/orders',
+  '/storefront',
+  '/waiting',
   '/invoice',
   '/card',
 ];

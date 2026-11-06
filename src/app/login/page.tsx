@@ -10,7 +10,7 @@ import { errorMessage } from '@/lib/db/collections';
 import { isFirebaseConfigured } from '@/lib/firebase';
 
 export default function LoginPage() {
-  const { firebaseUser, loading, signIn } = useAuth();
+  const { firebaseUser, profile, loading, signIn } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -18,8 +18,8 @@ export default function LoginPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!loading && firebaseUser) router.replace('/dashboard');
-  }, [loading, firebaseUser, router]);
+    if (!loading && (firebaseUser || profile)) router.replace('/dashboard');
+  }, [loading, firebaseUser, profile, router]);
 
   if (!isFirebaseConfigured) return <SetupNotice />;
 

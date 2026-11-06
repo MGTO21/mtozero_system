@@ -1,9 +1,7 @@
 'use client';
 
 import {
-  browserLocalPersistence,
   onAuthStateChanged,
-  setPersistence,
   signInWithEmailAndPassword,
   signOut as fbSignOut,
   type User as FirebaseUser,
@@ -36,6 +34,39 @@ const AuthContext = createContext<AuthState | null>(null);
  */
 const OWNER_EMAIL = (process.env.NEXT_PUBLIC_OWNER_EMAIL ?? '').trim().toLowerCase();
 
+/**
+ * The last profile this device saw, so the app can open at once with no signal.
+ * Firebase only reports the stored session after its start-up checks, which on a
+ * weak connection can take a long time; the shop cannot wait on that to sell.
+ * It is a display hint only — firestore.rules still judge every write.
+ */
+const PROFILE_CACHE_KEY = 'mtozero:lastProfile';
+/** How long start-up waits for Firebase before opening from the cached profile. */
+const OFFLINE_START_MS = 2500;
+
+function readCachedProfile(): AppUser | null {
+  try {
+    const raw = localStorage.getItem(PROFILE_CACHE_KEY);
+    const parsed = raw ? (JSON.parse(raw) as AppUser) : null;
+    return parsed?.uid ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeCachedProfile(value: AppUser | null) {
+  try {
+    if (value) {
+      const { uid, name, email, role, canSeeProfit, isActive } = value;
+      localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify({ uid, name, email, role, canSeeProfit, isActive }));
+    } else {
+      localStorage.removeItem(PROFILE_CACHE_KEY);
+    }
+  } catch {
+    // Storage blocked: the app simply waits for Firebase as before.
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [firebaseUser, setFirebaseUser] = useState<FirebaseUser | null>(null);
   const [profile, setProfile] = useState<AppUser | null>(null);
@@ -48,27 +79,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
     const instance = auth();
-    void setPersistence(instance, browserLocalPersistence);
 
     let unsubProfile: (() => void) | null = null;
+    let authResolved = false;
 
-    const unsubAuth = onAuthStateChanged(instance, async (fbUser) => {
+    // Weak or no signal: open from the last profile instead of a loading screen.
+    const offlineStart = window.setTimeout(() => {
+      if (authResolved) return;
+      const cached = readCachedProfile();
+      if (!cached) return;
+      setProfile(cached);
+      setLoading(false);
+    }, OFFLINE_START_MS);
+
+    const unsubAuth = onAuthStateChanged(instance, (fbUser) => {
+      authResolved = true;
+      window.clearTimeout(offlineStart);
       unsubProfile?.();
       unsubProfile = null;
       setFirebaseUser(fbUser);
       setProfileError(null);
 
       if (!fbUser) {
+        writeCachedProfile(null);
         setProfile(null);
         setLoading(false);
         return;
       }
 
+      // Cached profile of this same account opens the app now; the snapshot
+      // below replaces it with the live one.
+      const cached = readCachedProfile();
+      if (cached?.uid === fbUser.uid) {
+        setProfile(cached);
+        setLoading(false);
+      }
+
       const ref = doc(db(), 'users', fbUser.uid);
-      try {
-        const snap = await getDoc(ref);
-        if (!snap.exists()) {
-          // Self-heal: create the profile on first sign-in.
+      // Self-heal: create the profile on first sign-in. Runs beside the
+      // subscription, never in front of it — it needs the server.
+      void (async () => {
+        try {
+          const snap = await getDoc(ref);
+          if (snap.exists()) return;
           const email = (fbUser.email ?? '').toLowerCase();
           const role: Role = OWNER_EMAIL && email === OWNER_EMAIL ? 'owner' : 'employee';
           await setDoc(ref, {
@@ -80,18 +133,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             isActive: true,
             createdAt: serverTimestamp(),
           });
+        } catch (err) {
+          // No connection is not an account problem: the self-heal waits for a signal.
+          if (!isNetworkError(err)) {
+            setProfileError(
+              err instanceof Error && err.message.includes('permission')
+                ? 'حسابك غير مُصرَّح له. اطلب من المالك إضافتك للنظام.'
+                : 'تعذّر تحميل بيانات حسابك.',
+            );
+            setLoading(false);
+          }
         }
-      } catch (err) {
-        // No connection is not an account problem: the cached profile below
-        // carries the session, and the self-heal simply waits for a signal.
-        if (!isNetworkError(err)) {
-          setProfileError(
-            err instanceof Error && err.message.includes('permission')
-              ? 'حسابك غير مُصرَّح له. اطلب من المالك إضافتك للنظام.'
-              : 'تعذّر تحميل بيانات حسابك.',
-          );
-        }
-      }
+      })();
 
       // Live subscription so a role change by the owner applies without re-login.
       unsubProfile = onSnapshot(
@@ -102,15 +155,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             // "Not in the offline cache" is not "does not exist" — wait for the
             // server before telling someone their account is gone.
             if (snap.metadata.fromCache) return;
+            writeCachedProfile(null);
             setProfile(null);
             setProfileError('لا يوجد ملف مستخدم لهذا الحساب. تواصل مع المالك.');
           } else {
             const data = snap.data() as AppUser;
             if (data.isActive === false) {
+              writeCachedProfile(null);
               setProfile(null);
               setProfileError('تم إيقاف هذا الحساب. تواصل مع المالك.');
             } else {
-              setProfile({ ...data, uid: snap.id });
+              const next = { ...data, uid: snap.id };
+              writeCachedProfile(next);
+              setProfile(next);
               setProfileError(null);
             }
           }
@@ -125,6 +182,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => {
+      window.clearTimeout(offlineStart);
       unsubProfile?.();
       unsubAuth();
     };

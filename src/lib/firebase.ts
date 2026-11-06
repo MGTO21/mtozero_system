@@ -1,5 +1,5 @@
 import { getApp, getApps, initializeApp, type FirebaseApp, type FirebaseOptions } from 'firebase/app';
-import { getAuth, type Auth } from 'firebase/auth';
+import { browserLocalPersistence, getAuth, indexedDBLocalPersistence, initializeAuth, type Auth } from 'firebase/auth';
 import {
   getFirestore,
   initializeFirestore,
@@ -66,8 +66,27 @@ export function db(): Firestore {
   return cachedDb;
 }
 
+/**
+ * Auth without a popup/redirect resolver. `getAuth()` adds one, and with it every
+ * start-up loads Google's gapi script and an iframe from the auth domain before
+ * reporting the signed-in user — on a phone that is "connected" with no real
+ * internet that waits out network timeouts and the app never leaves its loading
+ * screen. Sign-in here is email/password only, so the resolver is dead weight.
+ * localStorage comes first because that is where existing sessions live.
+ */
 export function auth(): Auth {
-  cachedAuth ??= getAuth(app());
+  if (cachedAuth) return cachedAuth;
+  const instance = app();
+  if (typeof window === 'undefined') {
+    cachedAuth = getAuth(instance);
+    return cachedAuth;
+  }
+  try {
+    cachedAuth = initializeAuth(instance, { persistence: [browserLocalPersistence, indexedDBLocalPersistence] });
+  } catch {
+    // Already initialized (Fast Refresh) — reuse it.
+    cachedAuth = getAuth(instance);
+  }
   return cachedAuth;
 }
 
