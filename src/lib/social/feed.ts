@@ -6,10 +6,18 @@ import { recentPosts } from './admin';
 import { buildCaption, nextTemplateIndex } from './captions';
 import { HISTORY_DAYS, pickProduct, type SocialKind, type SocialPick, type SocialPost } from './pick';
 
-/** Shared-secret check for the Make.com routes. Constant time; no key configured means locked. */
+/**
+ * Shared-secret check for the Make.com routes. Constant time; no key configured means locked.
+ * Tolerates what a dashboard paste tends to add: surrounding whitespace, quotes,
+ * or the whole `SOCIAL_FEED_KEY=…` line pasted as the value.
+ */
 export function authorized(req: Request): boolean {
-  const expected = process.env.SOCIAL_FEED_KEY ?? '';
-  const given = req.headers.get('x-social-key') ?? '';
+  const expected = (process.env.SOCIAL_FEED_KEY ?? '')
+    .trim()
+    .replace(/^SOCIAL_FEED_KEY\s*=\s*/, '')
+    .replace(/^["']|["']$/g, '')
+    .trim();
+  const given = (req.headers.get('x-social-key') ?? '').trim();
   if (!expected || !given) return false;
   const a = Buffer.from(given);
   const b = Buffer.from(expected);
