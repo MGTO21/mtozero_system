@@ -24,6 +24,7 @@ import { margin, money, percent } from '@/lib/format';
 import { MAX_GALLERY, type Product, type SizeInput, type SizeKind } from '@/lib/types';
 import { useCategories } from '@/lib/db/categories';
 import { categoryById } from '@/lib/store/model';
+import { SocialSettings } from './SocialSettings';
 
 interface Props {
   open: boolean;
@@ -47,6 +48,7 @@ const EMPTY: ProductInput = {
   compareAtPrice: 0,
   featured: false,
   storeBadge: '',
+  socialExclude: false,
 };
 
 /** Ready-made size sets so a full run can be entered in two taps. */
@@ -98,6 +100,7 @@ export function ProductForm({ open, onClose, product }: Props) {
         compareAtPrice: product.compareAtPrice ?? 0,
         featured: product.featured === true,
         storeBadge: product.storeBadge ?? '',
+        socialExclude: product.socialExclude === true,
       });
       setPreview(productImage(product));
     } else {
@@ -495,6 +498,12 @@ export function ProductForm({ open, onClose, product }: Props) {
                   className="h-6 w-6 accent-[rgb(var(--fg))]"
                 />
               </label>
+              <SocialSettings
+                product={product}
+                exclude={form.socialExclude === true}
+                onExclude={(socialExclude) => patch({ socialExclude })}
+                pictureChanged={Boolean(image)}
+              />
             </>
           ) : null}
         </div>

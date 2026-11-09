@@ -142,6 +142,8 @@ export interface Product {
   featured?: boolean;
   /** Short custom label on the store tile ("حصري", "أصلي"). */
   storeBadge?: string;
+  /** Never picked for the daily Facebook post (see /api/social). */
+  socialExclude?: boolean;
   /**
    * Extra pictures for the store's product page. Only ids and hashes live here;
    * each picture is its own catalogThumbs/{productId}_g{id} document, so this
@@ -201,6 +203,8 @@ export interface CatalogItem {
   gallery: ProductPhoto[];
   /** Sharp copy of the main picture; empty for products photographed before it existed. */
   hdHash: string;
+  /** The owner kept this product out of the daily Facebook post. Absent = allowed. */
+  socialExclude?: boolean;
 }
 
 /** The two looks of the public website. */

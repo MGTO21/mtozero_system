@@ -97,6 +97,15 @@ src/
 > أي حقل جديد في الكتالوج يمر على `toCatalog` — لا تضف تكلفة أو كمية أو مورد.
 ```
 
+> **منشور فيسبوك اليومي** (`lib/social/`, `app/api/social/*`, شاشة `/social`): Make.com ينادي
+> `next-product` الساعة 8 مساءً (هيدر `x-social-key` = `SOCIAL_FEED_KEY`)، ينشر الصورة والكابشن، ثم `posted`.
+> الاختيار في `pick.ts` نقي ويقرأ الكتالوج العام فقط (جديد ← آخر مقاسات ← من المحل، بلا عائلتين متتاليتين).
+> الكابشنات قوالب سودانية مكتوبة يدوياً في `captions.ts` — لا ادعاء ندرة غير صحيح. الصورة `card/[id]` تُرسم
+> بـ `@napi-rs/canvas` (Skia يشكّل العربي؛ Satori لا) بخطوط `assets/fonts`، وكل نص عربي يُلف بـ RLI…PDI
+> لأن Skia يتجاهل `ctx.direction`. `socialPosts` يكتبها السيرفر فقط بحساب خدمة (`FIREBASE_SERVICE_ACCOUNT`،
+> JWT بـ node:crypto عبر REST في `admin.ts`)؛ القواعد: قراءة للموظفين، كتابة ممنوعة. `socialExclude` على المنتج
+> يمر على `toCatalog` فقط لما يكون true.
+
 ## قواعد معمارية غير قابلة للتفاوض
 
 1. **كل عملية بيع تمر عبر `recordSale` في `src/lib/db/sales.ts` داخل Firestore transaction.**

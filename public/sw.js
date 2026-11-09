@@ -39,6 +39,7 @@ const ROUTES = [
   '/orders',
   '/storefront',
   '/waiting',
+  '/social',
   '/invoice',
   '/card',
 ];
@@ -151,6 +152,8 @@ self.addEventListener('fetch', (event) => {
   // offline behaviour and would break under a cache layer.
   if (isFirebaseTraffic(url)) return;
   if (url.origin !== self.location.origin) return;
+  // Server endpoints answer live; a cached copy would only ever be wrong.
+  if (url.pathname.startsWith('/api/')) return;
 
   // In-app navigation data. Not cached — its key changes with router state. When
   // it fails, Next falls back to a full page load, which the branch below serves

@@ -41,4 +41,6 @@ export const PRIVATE_PATHS = [
   '/wishlist',
   '/card',
   '/offline',
+  '/social',
+  '/api/',
 ];

@@ -62,6 +62,7 @@ async function getDoc(path: string, fresh = false): Promise<Record<string, unkno
 async function runQuery(
   collectionId: string,
   filters: { field: string; value: boolean }[],
+  fresh = false,
 ): Promise<{ id: string; data: Record<string, unknown> }[]> {
   if (!PROJECT) return [];
   const where =
@@ -80,7 +81,7 @@ async function runQuery(
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ structuredQuery: { from: [{ collectionId }], where } }),
-      next: { revalidate: STORE_REVALIDATE },
+      ...(fresh ? { cache: 'no-store' as const } : { next: { revalidate: STORE_REVALIDATE } }),
     });
     if (!res.ok) return [];
     const rows = (await res.json()) as { document?: { name: string; fields?: Record<string, RestValue> } }[];
@@ -92,15 +93,15 @@ async function runQuery(
   }
 }
 
-/** Everything currently for sale, newest first. */
-export async function fetchCatalog(): Promise<CatalogItem[]> {
-  const rows = await runQuery('catalog', [{ field: 'listed', value: true }]);
+/** Everything currently for sale, newest first. `fresh` skips the page cache (the social feed). */
+export async function fetchCatalog(fresh = false): Promise<CatalogItem[]> {
+  const rows = await runQuery('catalog', [{ field: 'listed', value: true }], fresh);
   return rows.map((r) => mapCatalog(r.id, r.data)).sort((a, b) => b.createdAtMs - a.createdAtMs);
 }
 
-export async function fetchProduct(id: string): Promise<CatalogItem | null> {
+export async function fetchProduct(id: string, fresh = false): Promise<CatalogItem | null> {
   if (!/^[A-Za-z0-9_-]{1,64}$/.test(id)) return null;
-  const raw = await getDoc(`catalog/${id}`);
+  const raw = await getDoc(`catalog/${id}`, fresh);
   return raw ? mapCatalog(id, raw) : null;
 }
 

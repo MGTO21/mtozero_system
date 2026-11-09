@@ -104,6 +104,7 @@ export function mapProduct(id: string, raw: Record<string, unknown>): Product {
     compareAtPrice: Number(raw.compareAtPrice ?? 0) || undefined,
     featured: raw.featured === true,
     storeBadge: (raw.storeBadge as string) || undefined,
+    socialExclude: raw.socialExclude === true,
     gallery: mapGallery(raw.gallery),
     hdHash: (raw.hdHash as string) || undefined,
   };
@@ -171,6 +172,7 @@ export interface ProductInput {
   compareAtPrice?: number;
   featured?: boolean;
   storeBadge?: string;
+  socialExclude?: boolean;
   /**
    * Extra store pictures, in order. `data` is set on pictures picked in this
    * edit (already compressed); kept ones carry only id and hash.
@@ -318,6 +320,7 @@ export async function createProduct(
     compareAtPrice: input.compareAtPrice && input.compareAtPrice > input.sellPrice ? Math.round(input.compareAtPrice) : null,
     featured: input.featured === true,
     storeBadge: input.storeBadge?.trim().slice(0, 18) || null,
+    socialExclude: input.socialExclude === true,
     thumbData: null as string | null,
     hdHash: null as string | null,
     imageUrl: null as string | null,
@@ -387,6 +390,7 @@ export async function updateProduct(
     compareAtPrice: input.compareAtPrice && input.compareAtPrice > input.sellPrice ? Math.round(input.compareAtPrice) : null,
     featured: input.featured === true,
     storeBadge: input.storeBadge?.trim().slice(0, 18) || null,
+    socialExclude: input.socialExclude === true,
     updatedAt: serverTimestamp(),
   };
 

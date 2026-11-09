@@ -12,6 +12,7 @@
     "firebase:check": "node scripts/check-firebase.mjs"
   },
   "dependencies": {
+    "@napi-rs/canvas": "0.1.65",
     "firebase": "^11.1.0",
     "next": "14.2.21",
     "react": "^18.3.1",

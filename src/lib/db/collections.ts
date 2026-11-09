@@ -20,6 +20,7 @@ export const COL = {
   restockRequests: 'restockRequests',
   storefront: 'storefront',
   orders: 'orders',
+  socialPosts: 'socialPosts',
   settings: 'settings',
 } as const;
 

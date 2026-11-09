@@ -320,6 +320,14 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
+    /* ---------- daily Facebook post history ---------- */
+    match /socialPosts/{postId} {
+      // Written only by the server (/api/social/posted, service account), which
+      // these rules do not govern. Staff may see what went out; nobody else.
+      allow read: if member();
+      allow write: if false;
+    }
+
     // Anything not matched above is denied.
     match /{document=**} {
       allow read, write: if false;

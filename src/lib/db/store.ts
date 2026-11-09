@@ -75,6 +75,8 @@ export function toCatalog(p: Product): Omit<CatalogItem, 'id'> {
     badge: (p.storeBadge ?? '').trim().slice(0, 18),
     gallery: (p.gallery ?? []).map((g) => ({ id: g.id, hash: g.hash })),
     hdHash: p.hdHash ?? '',
+    // Only written when set, so adding the flag did not rewrite every catalog document.
+    ...(p.socialExclude ? { socialExclude: true } : {}),
   };
 }
 
@@ -102,6 +104,7 @@ function normalize(item: Omit<CatalogItem, 'id'>) {
     badge: item.badge,
     gallery: item.gallery,
     hdHash: item.hdHash,
+    socialExclude: item.socialExclude === true,
   };
 }
 

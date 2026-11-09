@@ -11,6 +11,14 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_BUILD_ID: BUILD_ID,
   },
+  experimental: {
+    // Native Skia binary for the social card: loaded from node_modules at run
+    // time, not bundled. The card's fonts are read from disk, so they are traced in.
+    serverComponentsExternalPackages: ['@napi-rs/canvas'],
+    outputFileTracingIncludes: {
+      '/api/social/card/[id]': ['./assets/fonts/**/*'],
+    },
+  },
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: 'firebasestorage.googleapis.com' },

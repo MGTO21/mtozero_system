@@ -53,6 +53,7 @@ export const NAV: NavItem[] = [
   { href: '/campaigns', label: 'حملات واتساب', icon: IconMegaphone, section: 'daily', ownerOnly: true },
   { href: '/offers', label: 'العروض والكوبونات', icon: IconCoupon, section: 'daily', ownerOnly: true },
   { href: '/storefront', label: 'واجهة المتجر', icon: IconImage, section: 'daily', ownerOnly: true },
+  { href: '/social', label: 'منشورات فيسبوك', icon: IconMegaphone, section: 'daily', ownerOnly: true },
 
   { href: '/inventory', label: 'المخزون', icon: IconBoxes, section: 'stock' },
   { href: '/shipments', label: 'الشحنات', icon: IconShip, section: 'stock' },
