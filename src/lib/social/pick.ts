@@ -54,6 +54,14 @@ function hasPicture(item: CatalogItem): boolean {
   return Boolean(item.imageUrl || item.hdHash || item.thumbHash);
 }
 
+/** Has a picture big enough for the 1080px post; the bare thumbnail comes out soft. */
+export function hasSharpPicture(item: Pick<CatalogItem, 'imageUrl' | 'hdHash'>): boolean {
+  return Boolean(item.imageUrl || item.hdHash);
+}
+
+/** Within each tier, a product with a sharp picture goes out before one without. */
+const sharpFirst = (a: CatalogItem, b: CatalogItem) => Number(hasSharpPicture(b)) - Number(hasSharpPicture(a));
+
 /**
  * Products that differ only by colour, size or a number ("قميص كاروهات أزرق",
  * "قميص كاروهات 2") share a family, so a run of near-identical stock cannot fill
@@ -108,13 +116,13 @@ export function pickProduct(catalog: CatalogItem[], posts: SocialPost[], now = D
   // 1. New arrivals never posted. Oldest first, so none ages out of the window unposted.
   const fresh = candidates
     .filter((c) => c.createdAtMs > 0 && now - c.createdAtMs < NEW_DAYS * DAY && !lastPost.has(c.id))
-    .sort((a, b) => a.createdAtMs - b.createdAtMs || byId(a, b));
+    .sort((a, b) => sharpFirst(a, b) || a.createdAtMs - b.createdAtMs || byId(a, b));
   if (fresh[0]) return done(fresh[0], 'new');
 
   // 2. Down to the last pieces. The ones that are selling first.
   const last = candidates
     .filter((c) => (inStockSizes(c).length === 1 || lastSizes(c).length > 0) && !postedWithin(c, LAST_REPEAT_DAYS))
-    .sort((a, b) => b.lastSoldAtMs - a.lastSoldAtMs || byId(a, b));
+    .sort((a, b) => sharpFirst(a, b) || b.lastSoldAtMs - a.lastSoldAtMs || byId(a, b));
   if (last[0]) return done(last[0], 'last');
 
   // 3. Spotlight: the owner's picks, then what sells, then what waited longest.
@@ -122,6 +130,7 @@ export function pickProduct(catalog: CatalogItem[], posts: SocialPost[], now = D
     .filter((c) => !postedWithin(c, SPOTLIGHT_REPEAT_DAYS))
     .sort(
       (a, b) =>
+        sharpFirst(a, b) ||
         Number(b.featured) - Number(a.featured) ||
         b.lastSoldAtMs - a.lastSoldAtMs ||
         (lastPost.get(a.id) ?? 0) - (lastPost.get(b.id) ?? 0) ||
