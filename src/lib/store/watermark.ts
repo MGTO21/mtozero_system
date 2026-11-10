@@ -44,7 +44,7 @@ export async function watermark(bytes: Buffer): Promise<Buffer> {
   ctx.drawImage(photo, 0, 0, w, h);
 
   // Sized from the shorter side so portrait and landscape pictures match.
-  const unit = Math.max(14, Math.round(Math.min(w, h) * 0.05));
+  const unit = Math.max(12, Math.round(Math.min(w, h) * 0.036));
   const pad = Math.round(unit * 0.45);
   const margin = Math.round(unit * 0.6);
   ctx.font = `${unit}px "${FONT}"`;
