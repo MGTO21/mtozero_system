@@ -17,6 +17,8 @@ const nextConfig = {
     serverComponentsExternalPackages: ['@napi-rs/canvas'],
     outputFileTracingIncludes: {
       '/api/social/card/[id]': ['./assets/fonts/**/*'],
+      // Product pictures carry the shop's mark (lib/store/watermark.ts).
+      '/img/[id]': ['./assets/fonts/Tajawal-ExtraBold.ttf'],
     },
   },
   images: {

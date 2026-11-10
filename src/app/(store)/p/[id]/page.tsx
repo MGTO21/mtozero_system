@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ProductBuy } from '@/components/store/ProductBuy';
 import { ProductGallery } from '@/components/store/ProductGallery';
+import { ProductShare } from '@/components/store/ProductShare';
 import { PersonalShelf } from '@/components/store/PersonalShelf';
 import { Shelf } from '@/components/store/Shelf';
 import { money } from '@/lib/format';
@@ -95,6 +96,7 @@ export default async function ProductPage({ params }: Props) {
               sizeGuide={sizeGuideFor(config, category.sizeKind)}
               category={category}
             />
+            <ProductShare name={item.name} path={`/p/${item.id}`} imagePath={productHdPath(item)} />
           </div>
 
           {/* Always a few words about the product: the owner's description, or one
