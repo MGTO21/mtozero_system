@@ -100,7 +100,9 @@ src/
 > **منشور فيسبوك اليومي** (`lib/social/`, `app/api/social/*`, شاشة `/social`): Make.com ينادي
 > `next-product` الساعة 8 مساءً (هيدر `x-social-key` = `SOCIAL_FEED_KEY`)، ينشر الصورة والكابشن، ثم `posted`.
 > الاختيار في `pick.ts` نقي ويقرأ الكتالوج العام فقط (جديد ← آخر مقاسات ← من المحل، بلا عائلتين متتاليتين).
-> الكابشنات قوالب سودانية مكتوبة يدوياً في `captions.ts` — لا ادعاء ندرة غير صحيح. الصورة `card/[id]` تُرسم
+> الكابشن يُركَّب من بنك المالك `caption-bank.ts` (نصه حرفي — لا تعدّله) عبر `compose.ts`: اختيار ثابت من
+> productId + يوم الخرطوم، بلا قالب من آخر 6 ولا سؤال من آخر 4؛ القوالب التي تدّعي ما لا يثبته الكتالوج في
+> `SKIPPED_TEMPLATES`. `/posted` يحفظ templateId/questionIndex/hashtagIndex. اختبار: `npm test`. الصورة `card/[id]` تُرسم
 > بـ `@napi-rs/canvas` (Skia يشكّل العربي؛ Satori لا) بخطوط `assets/fonts`، وكل نص عربي يُلف بـ RLI…PDI
 > لأن Skia يتجاهل `ctx.direction`. `socialPosts` يكتبها السيرفر فقط بحساب خدمة (`FIREBASE_SERVICE_ACCOUNT`،
 > JWT بـ node:crypto عبر REST في `admin.ts`)؛ القواعد: قراءة للموظفين، كتابة ممنوعة. `socialExclude` على المنتج

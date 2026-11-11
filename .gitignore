@@ -31,3 +31,6 @@ backups/
 
 # scratch file used by scripts/setup-firebase.mjs
 firebase-config.txt
+
+research_notes/
+reports/

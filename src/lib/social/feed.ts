@@ -1,9 +1,10 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
-import { fetchCatalog } from '@/lib/store/server';
+import { categoryById } from '@/lib/store/model';
+import { fetchCatalog, fetchCategories } from '@/lib/store/server';
 import { siteUrl } from '@/lib/store/site';
-import type { CatalogItem } from '@/lib/types';
+import type { CatalogItem, CategoryDef } from '@/lib/types';
 import { recentPosts } from './admin';
-import { buildCaption, nextTemplateIndex } from './captions';
+import { composeCaption, khartoumDay, type CaptionMeta } from './compose';
 import { HISTORY_DAYS, pickProduct, type SocialKind, type SocialPick, type SocialPost } from './pick';
 
 /**
@@ -48,6 +49,8 @@ export interface NextProduct {
   caption: string;
   imageUrl: string;
   productUrl: string;
+  /** Which bank entries made the caption. Make may echo it back to /posted; it does not have to. */
+  captionMeta: CaptionMeta;
 }
 
 export async function loadHistory(now = Date.now()): Promise<SocialPost[]> {
@@ -59,24 +62,39 @@ export async function liveCatalog(): Promise<CatalogItem[]> {
   return fetchCatalog(true);
 }
 
-export function describe(pick: SocialPick, posts: SocialPost[]): NextProduct {
+/** The caption for a pick, the same on every call that day. */
+export function captionFor(pick: SocialPick, posts: SocialPost[], categories: CategoryDef[], now = Date.now()) {
+  const { item, kind, sizes } = pick;
+  return composeCaption({
+    kind,
+    item,
+    sizes,
+    categoryName: categoryById(categories, item.category).name,
+    productUrl: `${siteUrl()}/p/${item.id}`,
+    history: posts,
+    day: khartoumDay(now),
+  });
+}
+
+export function describe(pick: SocialPick, posts: SocialPost[], categories: CategoryDef[], now = Date.now()): NextProduct {
   const site = siteUrl();
   const { item, kind, sizes } = pick;
-  const productUrl = `${site}/p/${item.id}`;
+  const { caption, meta } = captionFor(pick, posts, categories, now);
   return {
     productId: item.id,
     kind,
     name: item.name,
     price: item.price,
     sizes,
-    caption: buildCaption(kind, item, sizes, nextTemplateIndex(kind, posts), productUrl),
+    caption,
     imageUrl: `${site}/api/social/card/${item.id}?kind=${kind}&v=${cardVersion(item, kind, sizes)}`,
-    productUrl,
+    productUrl: `${site}/p/${item.id}`,
+    captionMeta: meta,
   };
 }
 
 export async function nextProduct(now = Date.now()): Promise<NextProduct | null> {
-  const [catalog, posts] = await Promise.all([liveCatalog(), loadHistory(now)]);
+  const [catalog, posts, categories] = await Promise.all([liveCatalog(), loadHistory(now), fetchCategories()]);
   const pick = pickProduct(catalog, posts, now);
-  return pick ? describe(pick, posts) : null;
+  return pick ? describe(pick, posts, categories, now) : null;
 }

@@ -99,6 +99,14 @@ export default function SocialPage() {
                   <p className="truncate font-bold">{product?.name ?? 'منتج محذوف من المخزون'}</p>
                   <p className="text-[0.8rem] text-fg-3" title={formatDateTime(post.postedAt)}>
                     {relativeTime(post.postedAt)}
+                    {post.templateId ? (
+                      <>
+                        {' · '}
+                        <span dir="ltr" className="tnum" title="قالب الكابشن من بنك الكابشنات">
+                          {post.templateId}
+                        </span>
+                      </>
+                    ) : null}
                   </p>
                 </div>
                 <Stamp tone={post.kind === 'last' ? 'warn' : post.kind === 'new' ? 'good' : 'muted'}>

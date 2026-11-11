@@ -16,6 +16,8 @@ export interface SocialPostRow {
   productId: string;
   kind: SocialKind;
   fbPostId: string;
+  /** Caption bank template ("new-3"); empty for posts before the bank. */
+  templateId: string;
   postedAt: Date | null;
 }
 
@@ -32,6 +34,7 @@ function mapPost(id: string, raw: Record<string, unknown>): SocialPostRow {
     productId: String(raw.productId ?? ''),
     kind,
     fbPostId: String(raw.fbPostId ?? ''),
+    templateId: typeof raw.templateId === 'string' ? raw.templateId : '',
     postedAt: (raw.postedAt as Timestamp | undefined)?.toDate?.() ?? null,
   };
 }

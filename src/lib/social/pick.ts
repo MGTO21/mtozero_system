@@ -17,7 +17,12 @@ export interface SocialPost {
   productId: string;
   kind: SocialKind;
   fbPostId: string;
-  templateIndex: number;
+  /** Caption bank template id ("new-3"); empty for posts made before the bank. */
+  templateId: string;
+  /** Index into the bank's questions, -1 when none was used. */
+  questionIndex: number;
+  /** Index into the bank's hashtag lines, -1 when none was used. */
+  hashtagIndex: number;
   /** familyKey of the product's name when it went out — it may be gone from the catalog since. */
   family: string;
   postedAtMs: number;
