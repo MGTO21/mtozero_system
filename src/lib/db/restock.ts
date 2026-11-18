@@ -1,10 +1,10 @@
 'use client';
 
-import { collection, doc, limit, orderBy, query, serverTimestamp, setDoc, Timestamp, writeBatch } from 'firebase/firestore';
+import { collection, doc, limit, orderBy, query, serverTimestamp, Timestamp, writeBatch } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { whatsappNumber } from '@/lib/format';
 import { useLiveQuery } from '@/lib/hooks/useFirestore';
-import { settle, withTimeout } from '@/lib/offline/write';
+import { settle } from '@/lib/offline/write';
 import type { RestockRequest } from '@/lib/types';
 import { AppError, COL } from './collections';
 import { logActivity } from './activity';
@@ -42,23 +42,29 @@ export async function requestRestock(input: {
 }): Promise<void> {
   const phone = whatsappNumber(input.phone);
   if (!phone || phone.length < 12) throw new AppError('اكتب رقم واتساب صحيح عشان نرسل ليك.');
-  const ref = doc(collection(db(), COL.restockRequests));
-  try {
-    await withTimeout(
-      setDoc(ref, {
-        productId: input.productId,
-        productName: input.productName.slice(0, 120),
-        size: input.size.slice(0, 12),
-        name: input.name.trim().slice(0, 60),
-        phone,
-        status: 'open',
-        createdAt: serverTimestamp(),
-      }),
-      15000,
-    );
-  } catch {
-    throw new AppError('ما قدرنا نسجّل طلبك — اتأكد من الشبكة وجرّب تاني.');
+  // Through the server (/api/restock), with retries: the server derives the
+  // document id, so a retry never stores the request twice.
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 20000);
+    try {
+      const res = await fetch('/api/restock', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ productId: input.productId, size: input.size, name: input.name, phone }),
+        signal: controller.signal,
+      });
+      if (res.ok) return;
+      const body = (await res.json().catch(() => ({}))) as { error?: string };
+      if (res.status === 400 || res.status === 422) throw new AppError(body.error ?? 'راجع البيانات.');
+    } catch (err) {
+      if (err instanceof AppError) throw err;
+    } finally {
+      clearTimeout(timer);
+    }
+    if (attempt < 3) await new Promise((r) => setTimeout(r, 1500 * attempt));
   }
+  throw new AppError('الشبكة ضعيفة وما قدرنا نسجّل طلبك — جرّب تاني أو كلمنا واتساب.');
 }
 
 export function useRestockRequests() {

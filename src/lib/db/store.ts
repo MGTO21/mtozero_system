@@ -19,7 +19,7 @@ import { db, isFirebaseConfigured } from '@/lib/firebase';
 import { whatsappNumber } from '@/lib/format';
 import { useLiveQuery } from '@/lib/hooks/useFirestore';
 import { submitSale } from '@/lib/offline/operations';
-import { settle, withTimeout } from '@/lib/offline/write';
+import { settle } from '@/lib/offline/write';
 import {
   DEFAULT_STORE,
   ORDER_STATUS_LABEL,
