@@ -92,6 +92,12 @@ src/
 > صورة معاينة الروابط (`/brand/og`)، `/favicon.ico` و`/manifest.json`. `Brand` يأخذ `src`، و`LiveBrand`
 > للشاشات خارج التطبيق. مسارات الصور على **edge** (نسخة Node من ImageResponse تتعطّل على Windows). شكل المتجر لا يتأثر بثيم الموظف: `.store` تعيد تعريف كل المتغيرات.
 >
+> **المتجر لا يحمّل Firebase SDK أبداً** (قسّم حجمه للنص): `AuthProvider` في `StaffAuth` داخل layouts
+> الموظفين/الدخول/الفاتورة فقط لا في الـroot، والطلب و«نبّهني» يمرّان بالسيرفر (`/api/orders`، `/api/restock`،
+> كود المتصفح في `lib/store/order-client.ts` بلا Firebase، والتحقق المشترك في `order-model.ts`). أي import من
+> `lib/db/*` أو `firebase/*` (غير `import type`) داخل `components/store` أو `lib/format` يرجّع ~115KB لكل زائر —
+> افحص بـ `next build` (الرئيسية ≈109KB). `/img` يرجّع WebP لمن يقبله و`?w=640` للشبكة، والرابط بـ`?v=` يُخزَّن 30 يوماً.
+>
 > **المتجر لا يقرأ `products` أبداً** — فيها التكلفة والدفعات. يقرأ `catalog/{id}` (اسم، سعر،
 > حالة المقاس فقط) الذي يبنيه `useCatalogPublisher` من أي جهاز موظف مفتوح، ويكتب الفرق فقط.
 > أي حقل جديد في الكتالوج يمر على `toCatalog` — لا تضف تكلفة أو كمية أو مورد.
