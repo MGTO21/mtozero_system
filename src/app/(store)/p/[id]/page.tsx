@@ -15,19 +15,46 @@ import { fetchCatalog, fetchProduct, fetchStoreConfig, STORE_REVALIDATE, fetchCa
 
 export const revalidate = STORE_REVALIDATE;
 
+/**
+ * No product is built ahead of time, but declaring the list makes each product
+ * page render once on its first visit and then come from Vercel's cache for a
+ * minute (ISR). Without it Next renders the page on every single request —
+ * about a second of server work before the customer sees anything.
+ */
+export const dynamicParams = true;
+export function generateStaticParams(): { id: string }[] {
+  return [];
+}
+
 type Props = { params: { id: string } };
+
+/** Folds Arabic letter variants so "اديدس" and "أديداس" compare equal enough. */
+function normalizeName(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[أإآ]/g, 'ا')
+    .replace(/ى/g, 'ي')
+    .replace(/ة/g, 'ه')
+    .replace(/[^\p{L}\p{N}]/gu, '')
+    .replace(/ا/g, '');
+}
 
 /** Name, price and picture in the link preview when a product is shared. */
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const [item, config, categories] = await Promise.all([fetchProduct(params.id), fetchStoreConfig(), fetchCategories()]);
   if (!item || !item.listed) return { title: 'المنتج غير موجود', robots: { index: false } };
   // Price first: it is what people search with ("سعر اير فورس").
-  const description = `${money(item.price)} — ${item.description?.slice(0, 120) || productSummary(item, config, categoryById(categories, item.category).name)}`;
+  // One line: the owner's descriptions have line breaks, which search results
+  // and link previews show badly.
+  const about = (item.description || productSummary(item, config, categoryById(categories, item.category).name)).replace(/\s+/g, ' ').trim();
+  const description = `${money(item.price)} — ${about.length > 150 ? `${about.slice(0, 149).trimEnd()}…` : about}`;
+  // "أديداس LA72 أبيض" already names the brand; do not say it twice.
+  const brand = item.brand && !normalizeName(item.name).includes(normalizeName(item.brand)) ? ` ${item.brand}` : '';
   const image = productHdPath(item);
   const images = productPictures(item).slice(0, 4).map((url) => ({ url }));
   return {
     // "Nike Air Force — أحذية" reads as an answer in a result list.
-    title: `${item.name}${item.brand ? ` ${item.brand}` : ''} — ${categoryById(categories, item.category).name}`,
+    title: `${item.name}${brand} — ${categoryById(categories, item.category).name}`,
     description,
     alternates: { canonical: `/p/${item.id}` },
     openGraph: { title: item.name, description, images },

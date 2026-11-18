@@ -1,4 +1,4 @@
-import { Timestamp } from 'firebase/firestore';
+import type { Timestamp } from 'firebase/firestore';
 
 /**
  * Money is displayed with Western digits (the shop reads numbers fastest that way)
@@ -27,10 +27,15 @@ export function margin(costPrice: number, sellPrice: number): number {
   return ((sellPrice - costPrice) / sellPrice) * 100;
 }
 
+/**
+ * Duck-typed on purpose: `instanceof Timestamp` needs the Firestore runtime, and
+ * this module (money, dates) is used by every store page — importing it pulled
+ * the whole Firestore SDK into the public website.
+ */
 export function toDate(value: Timestamp | Date | null | undefined): Date | null {
   if (!value) return null;
-  if (value instanceof Timestamp) return value.toDate();
   if (value instanceof Date) return value;
+  if (typeof (value as Timestamp).toDate === 'function') return (value as Timestamp).toDate();
   return null;
 }
 

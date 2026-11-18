@@ -41,7 +41,9 @@ export function Shelf({
       <div className="shelf-rail gap-3 px-4 sm:grid-cols-3 sm:gap-x-5 sm:gap-y-9 sm:px-0 lg:grid-cols-4">
         {items.map((item, i) => (
           <div key={item.id} className={`w-[44vw] max-w-[15rem] shrink-0 sm:w-auto sm:max-w-none ${hideBeyondFullRows(i, items.length)}`}>
-            <ProductTile item={item} newDays={newDays} priority={i < 2} />
+            {/* Shelves sit below the hero: loading them lazily leaves the
+                connection to the picture the customer sees first. */}
+            <ProductTile item={item} newDays={newDays} priority={false} />
           </div>
         ))}
       </div>

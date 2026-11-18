@@ -3,7 +3,6 @@ import { Cairo, IBM_Plex_Sans_Arabic } from 'next/font/google';
 import type { ReactNode } from 'react';
 import './globals.css';
 import { fetchLogo } from '@/lib/store/server';
-import { AuthProvider } from '@/components/providers/AuthProvider';
 import { ThemeProvider } from '@/components/providers/ThemeProvider';
 import { ToastProvider } from '@/components/providers/ToastProvider';
 import { ServiceWorkerRegistrar } from '@/components/pwa/ServiceWorkerRegistrar';
@@ -97,7 +96,9 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body className="font-sans">
         <ThemeProvider>
           <ToastProvider>
-            <AuthProvider>{children}</AuthProvider>
+            {/* Auth lives in the staff, login and invoice layouts (StaffAuth): the
+                public store must not download the Firebase SDK. */}
+            {children}
           </ToastProvider>
         </ThemeProvider>
         <ServiceWorkerRegistrar />

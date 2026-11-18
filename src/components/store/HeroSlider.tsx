@@ -78,6 +78,7 @@ export function HeroSlider({ banners }: { banners: StoreBanner[] }) {
                 src={bannerImagePath(b)}
                 alt=""
                 loading={i === 0 ? 'eager' : 'lazy'}
+                fetchPriority={i === 0 ? 'high' : 'low'}
                 className="hero-img absolute inset-0 h-full w-full object-cover"
               />
               {b.title || b.subtitle || b.cta ? (

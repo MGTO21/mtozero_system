@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { errorMessage } from '@/lib/db/collections';
-import { requestRestock } from '@/lib/db/restock';
+import { requestRestock } from '@/lib/store/order-client';
 import type { CatalogItem } from '@/lib/types';
 import { StoreSheet } from './StoreSheet';
 
@@ -34,7 +34,7 @@ export function NotifyMe({ item, size, onClose }: { item: CatalogItem; size: str
     setBusy(true);
     setError(null);
     try {
-      await requestRestock({ productId: item.id, productName: item.name, size, name, phone });
+      await requestRestock({ productId: item.id, size, name, phone });
       try {
         const saved = JSON.parse(window.localStorage.getItem(DETAILS_KEY) ?? '{}') as Record<string, string>;
         window.localStorage.setItem(DETAILS_KEY, JSON.stringify({ ...saved, name: name || saved.name || '', phone }));

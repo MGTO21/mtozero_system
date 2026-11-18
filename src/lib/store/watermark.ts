@@ -34,13 +34,22 @@ async function logoImage(): Promise<Image | null> {
 
 export const WATERMARK_TEXT = 'MTOZERO';
 
-/** Returns the picture as JPEG with the mark in the bottom-left corner. */
-export async function watermark(bytes: Buffer): Promise<Buffer> {
+export interface MarkOptions {
+  /** Scale down to at most this width (never up). */
+  maxWidth?: number;
+  format?: 'jpeg' | 'webp';
+}
+
+/** Returns the picture, optionally narrower, with the mark in the bottom-left corner. */
+export async function watermark(bytes: Buffer, options: MarkOptions = {}): Promise<Buffer> {
   registerFont();
   const [photo, logo] = await Promise.all([loadImage(bytes), logoImage()]);
-  const { width: w, height: h } = photo;
+  const scale = options.maxWidth && photo.width > options.maxWidth ? options.maxWidth / photo.width : 1;
+  const w = Math.round(photo.width * scale);
+  const h = Math.round(photo.height * scale);
   const canvas = createCanvas(w, h);
   const ctx = canvas.getContext('2d');
+  ctx.imageSmoothingQuality = 'high';
   ctx.drawImage(photo, 0, 0, w, h);
 
   // Sized from the shorter side so portrait and landscape pictures match.
@@ -76,5 +85,5 @@ export async function watermark(bytes: Buffer): Promise<Buffer> {
   ctx.textAlign = 'left';
   ctx.fillText(WATERMARK_TEXT, x + pad + logoSize + gap, y + boxH / 2 + unit * 0.06);
 
-  return canvas.toBuffer('image/jpeg', 88);
+  return options.format === 'webp' ? canvas.toBuffer('image/webp', 82) : canvas.toBuffer('image/jpeg', 86);
 }

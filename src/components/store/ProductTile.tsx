@@ -53,7 +53,9 @@ export function ProductTile({
             src={productImagePath(item.id, item.thumbHash, item.imageUrl)}
             srcSet={productSrcSet(item)}
             sizes="(min-width: 1024px) 22vw, (min-width: 640px) 30vw, 44vw"
-            alt=""
+            // The link is hidden from screen readers (the name link below speaks),
+            // so the name here serves search engines' image results only.
+            alt={item.name}
             loading={priority ? 'eager' : 'lazy'}
             decoding="async"
             className="tile-img h-full w-full object-cover"
@@ -62,7 +64,7 @@ export function ProductTile({
           {item.gallery[0] ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={galleryImagePath(item.id, item.gallery[0])}
+              src={`${galleryImagePath(item.id, item.gallery[0])}&w=640`}
               alt=""
               loading="lazy"
               decoding="async"

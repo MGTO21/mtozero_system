@@ -39,7 +39,9 @@ export function ProductGallery({ pictures, alt, children }: { pictures: string[]
               src={src}
               alt={i === 0 ? alt : `${alt} — صورة ${i + 1}`}
               loading={i === 0 ? 'eager' : 'lazy'}
-              decoding="async"
+              // The first picture is what the customer waits for (the page's LCP).
+              fetchPriority={i === 0 ? 'high' : 'low'}
+              decoding={i === 0 ? 'sync' : 'async'}
               className="h-full w-full shrink-0 object-cover"
             />
           ))}

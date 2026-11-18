@@ -35,7 +35,10 @@ export function productHdPath(item: Pictured): string {
  */
 export function productSrcSet(item: Pictured): string | undefined {
   if (item.imageUrl || !item.hdHash) return undefined;
-  return `${productImagePath(item.id, item.thumbHash, null)} 360w, ${productHdPath(item)} 1100w`;
+  // A tile is about 165 px wide on a phone, 330-500 real pixels on a sharp
+  // screen: the 640 copy covers that without pulling the full 1100.
+  const hd = productHdPath(item);
+  return `${productImagePath(item.id, item.thumbHash, null)} 360w, ${hd}&w=640 640w, ${hd} 1100w`;
 }
 
 /** Main picture first, then the gallery — what the product page shows. */
