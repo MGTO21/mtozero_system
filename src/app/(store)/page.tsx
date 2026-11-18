@@ -10,6 +10,7 @@ import { money } from '@/lib/format';
 import { HOME_SECTION_LABEL, type CatalogItem, type CategoryDef, type HomeSection, type StoreConfig } from '@/lib/types';
 import { salePercent } from '@/lib/store/model';
 import { productHdPath } from '@/lib/store/paths';
+import { faqGraph, jsonLd, storeFaq } from '@/lib/store/seo';
 import { fetchCatalog, fetchCategories, fetchOffers, fetchStoreConfig, STORE_REVALIDATE, type PublicOffer } from '@/lib/store/server';
 
 export const revalidate = STORE_REVALIDATE;
@@ -93,7 +94,38 @@ function Section({ section, ctx }: { section: HomeSection; ctx: Ctx }): ReactNod
       return <HowTo config={config} title={title} />;
     case 'brands':
       return <Brands catalog={catalog} />;
+    case 'faq':
+      return <Faq config={config} catalog={catalog} title={title} />;
   }
+}
+
+/**
+ * Questions and answers built from the store settings. Native <details>: no
+ * script, readable by search engines whether open or closed.
+ */
+function Faq({ config, catalog, title }: { config: StoreConfig; catalog: CatalogItem[]; title: string }) {
+  const faq = storeFaq(config, catalog);
+  return (
+    <section className="mx-auto mt-20 max-w-3xl px-4 sm:mt-28 sm:px-6">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(faqGraph(faq)) }} />
+      <Reveal>
+        <h2 className="store-title">{title}</h2>
+      </Reveal>
+      <div className="mt-6 divide-y divide-line overflow-hidden rounded-card border border-line bg-surface">
+        {faq.map((f) => (
+          <details key={f.q} className="group px-5 py-4">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 font-display text-[1.05rem] font-black">
+              {f.q}
+              <span aria-hidden="true" className="text-fg-3 transition-transform group-open:rotate-45">
+                +
+              </span>
+            </summary>
+            <p className="mt-2 leading-relaxed text-fg-2">{f.a}</p>
+          </details>
+        ))}
+      </div>
+    </section>
+  );
 }
 
 /** Without banners: the statement in huge type beside three real products. */

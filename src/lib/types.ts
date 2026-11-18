@@ -223,7 +223,8 @@ export type HomeSectionType =
   | 'trending'
   | 'recent'
   | 'howto'
-  | 'brands';
+  | 'brands'
+  | 'faq';
 
 export interface HomeSection {
   type: HomeSectionType;
@@ -245,10 +246,11 @@ export const HOME_SECTION_LABEL: Record<HomeSectionType, { title: string; hint: 
   recent: { title: 'شاهدتها مؤخراً', hint: 'آخر منتجات فتحها الزبون في جهازو' },
   howto: { title: 'كيف تطلب', hint: 'تلات خطوات للطلب' },
   brands: { title: 'الماركات', hint: 'شريط متحرك بأسماء الماركات المتوفرة — كل اسم بيفتح منتجاتها' },
+  faq: { title: 'أسئلة بتتكرر', hint: 'وين المحل، التوصيل، الدفع، الاستبدال — من إعدادات المتجر. بيساعد جوجل والذكاء الاصطناعي' },
 };
 
 export const DEFAULT_SECTIONS: HomeSection[] = (
-  ['hero', 'promise', 'categories', 'brands', 'offers', 'featured', 'sale', 'new', 'mysize', 'trending', 'recent', 'howto'] as const
+  ['hero', 'promise', 'categories', 'brands', 'offers', 'featured', 'sale', 'new', 'mysize', 'trending', 'recent', 'howto', 'faq'] as const
 ).map((type) => ({ type, enabled: true, title: '' }));
 
 /** A home-page banner. Its picture lives in storefront/banner_{id}, served at /banner/{id}. */

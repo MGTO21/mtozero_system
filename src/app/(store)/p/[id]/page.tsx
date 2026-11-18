@@ -54,7 +54,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const images = productPictures(item).slice(0, 4).map((url) => ({ url }));
   return {
     // "Nike Air Force — أحذية" reads as an answer in a result list.
-    title: `${item.name}${brand} — ${categoryById(categories, item.category).name}`,
+    // The city in the title: "سامبا الأبيض" is a search a local shop can win.
+    title: `${item.name}${brand} — ${categoryById(categories, item.category).name} في الأبيض`,
     description,
     alternates: { canonical: `/p/${item.id}` },
     openGraph: { title: item.name, description, images },

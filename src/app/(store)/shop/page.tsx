@@ -4,7 +4,7 @@ import { ShopBrowser } from '@/components/store/ShopBrowser';
 import { itemListGraph, jsonLd } from '@/lib/store/seo';
 import { siteUrl } from '@/lib/store/site';
 import { fetchCatalog, fetchCategories, fetchStoreConfig, STORE_REVALIDATE } from '@/lib/store/server';
-import type { CategoryDef } from '@/lib/types';
+import type { CatalogItem, CategoryDef } from '@/lib/types';
 
 export const revalidate = STORE_REVALIDATE;
 
@@ -14,7 +14,7 @@ type Props = { searchParams: { c?: string; q?: string; sale?: string } };
 const TITLES: Record<string, { title: string; description: string }> = {
   shoes: {
     title: 'أحذية رياضية وسنيكرز في الأبيض',
-    description: 'أحذية رياضية وسنيكرز بمقاسات من 36 لحدي 45 — اير فورس، سامبا، باندا وغيرها. اختار مقاسك واطلب، والدفع عند الاستلام.',
+    description: 'أحذية رياضية وسنيكرز رجالي ونسائي بمقاسات كاملة. اختار مقاسك واطلب، والدفع عند الاستلام والتوصيل لحدي الباب.',
   },
   clothing: {
     title: 'ملابس — تيشيرتات وبناطلين جينز',
@@ -41,10 +41,31 @@ function titleFor(category: CategoryDef | null): { title: string; description: s
   );
 }
 
+const BRAND_WORDS = /^(نايكي|نيكي|اديدس|أديداس|اديداس|بوما|nike|adidas|puma)$/i;
+
+/**
+ * The models people type into Google ("سامبا", "نايكي SB", "كامبوس"), most
+ * stocked first — taken from what is on the shelf now, so the description never
+ * names a shoe that sold out months ago.
+ */
+function modelsOf(items: CatalogItem[], limit = 4): string[] {
+  const count = new Map<string, number>();
+  for (const item of items) {
+    const words = item.name.trim().split(/\s+/);
+    const model = BRAND_WORDS.test(words[0] ?? '') && words[1] ? `${words[0]} ${words[1]}` : (words[0] ?? '');
+    if (model.length >= 2) count.set(model, (count.get(model) ?? 0) + 1);
+  }
+  return [...count.entries()].sort((a, b) => b[1] - a[1]).slice(0, limit).map(([m]) => m);
+}
+
 /** A title per department, so "أحذية رياضية الأبيض" lands on the shoes, not on a generic list. */
 export async function generateMetadata({ searchParams }: Props): Promise<Metadata> {
-  const c = categoryOf(await fetchCategories(), searchParams.c);
-  const { title, description } = searchParams.sale === '1' ? { title: 'تخفيضات', description: ALL.description } : titleFor(c);
+  const [categories, catalog] = await Promise.all([fetchCategories(), fetchCatalog()]);
+  const c = categoryOf(categories, searchParams.c);
+  const base = searchParams.sale === '1' ? { title: 'تخفيضات', description: ALL.description } : titleFor(c);
+  const models = modelsOf(c ? catalog.filter((p) => p.category === c.id) : catalog);
+  const title = base.title;
+  const description = models.length ? `${base.description} المتوفر هسع: ${models.join('، ')}.` : base.description;
   // Search and filter variations are not separate pages; only the departments are.
   const filtered = Boolean(searchParams.q || searchParams.sale);
   return {

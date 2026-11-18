@@ -128,6 +128,74 @@ export function productGraph(item: CatalogItem, config: StoreConfig, site: strin
   return { '@context': 'https://schema.org', '@graph': [product, breadcrumb] };
 }
 
+const pounds = (n: number) => `${Math.round(n).toLocaleString('en-US')} جنيه`;
+
+/**
+ * The questions people actually ask before buying here, answered from the
+ * store settings and the live catalog — never invented. Shown on the home page
+ * and sent as FAQPage data: it is what search engines quote and what AI
+ * assistants repeat when someone asks "where can I buy sneakers in El Obeid?".
+ */
+export function storeFaq(config: StoreConfig, catalog: CatalogItem[]): { q: string; a: string }[] {
+  const shoeSizes = catalog
+    .filter((p) => p.category === 'shoes')
+    .flatMap((p) => p.sizes.filter((s) => s.state !== 'out').map((s) => Number(s.size)))
+    .filter((n) => Number.isFinite(n) && n > 20 && n < 60);
+  // "اديدس" and "أديداس" are one brand typed two ways: count them together and
+  // show the spelling used most.
+  const fold = (s: string) => s.toLowerCase().replace(/[أإآ]/g, 'ا').replace(/ا/g, '').replace(/\s+/g, '');
+  const brandCount = new Map<string, { n: number; spellings: Map<string, number> }>();
+  for (const p of catalog) {
+    const name = p.brand?.trim();
+    if (!name) continue;
+    const entry = brandCount.get(fold(name)) ?? { n: 0, spellings: new Map<string, number>() };
+    entry.n++;
+    entry.spellings.set(name, (entry.spellings.get(name) ?? 0) + 1);
+    brandCount.set(fold(name), entry);
+  }
+  const brands = [...brandCount.values()]
+    .sort((a, b) => b.n - a.n)
+    .map((e) => [...e.spellings.entries()].sort((a, b) => b[1] - a[1])[0]![0])
+    .slice(0, 6);
+
+  const delivery =
+    config.deliveryFee > 0
+      ? `بنوصّل داخل الأبيض بـ ${pounds(config.deliveryFee)}${config.freeDeliveryOver > 0 ? `، والتوصيل مجاني للطلبات فوق ${pounds(config.freeDeliveryOver)}` : ''}.`
+      : 'بنوصّل داخل الأبيض مجاناً.';
+
+  const faq = [
+    {
+      q: `وين محل ${config.shopName}؟`,
+      a: `${config.shopName} محل أحذية وملابس في ${config.address}، السودان.${config.pickupEnabled ? ' تقدر تستلم طلبك من المحل مجاناً.' : ''}`,
+    },
+    { q: 'بتوصلوا لحدي البيت؟ وبكم؟', a: `${delivery} الطلب بيوصلك لحدي الباب.` },
+    { q: 'الدفع كيف؟', a: 'الدفع عند الاستلام كاش — ما بتدفع إلا لمن تشوف القطعة وتتأكد منها.' },
+    {
+      q: 'كيف أطلب؟',
+      a: `اختار المنتج والمقاس من ${config.shopName} أونلاين وأكّد الطلب، وبيوصلنا واتساب بكل التفاصيل.${config.whatsapp ? ` أو كلمنا واتساب مباشرة على +${config.whatsapp}.` : ''}`,
+    },
+    { q: 'لو المقاس ما جا مظبوط، ممكن أستبدل؟', a: config.returnPolicy },
+  ];
+  if (shoeSizes.length) {
+    faq.push({
+      q: 'الأحذية مقاساتها كم؟',
+      a: `المقاسات المتوفرة هسع من ${Math.min(...shoeSizes)} لحدي ${Math.max(...shoeSizes)} — وكل منتج مكتوب فيهو مقاساته المتوفرة بالظبط.`,
+    });
+  }
+  if (brands.length) {
+    faq.push({ q: 'شنو الماركات الموجودة عندكم؟', a: `من الماركات المتوفرة: ${brands.join('، ')}.` });
+  }
+  return faq;
+}
+
+export function faqGraph(faq: { q: string; a: string }[]) {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'FAQPage',
+    mainEntity: faq.map((f) => ({ '@type': 'Question', name: f.q, acceptedAnswer: { '@type': 'Answer', text: f.a } })),
+  };
+}
+
 /** The products on a listing page, so a category reads as a list of things for sale. */
 export function itemListGraph(items: CatalogItem[], site: string, name: string) {
   return {
