@@ -42,7 +42,7 @@ function normalizeName(text: string): string {
 /** Name, price and picture in the link preview when a product is shared. */
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const [item, config, categories] = await Promise.all([fetchProduct(params.id), fetchStoreConfig(), fetchCategories()]);
-  if (!item || !item.listed) return { title: 'المنتج غير موجود', robots: { index: false } };
+  if (!item || !(item.listed || item.soldOut)) return { title: 'المنتج غير موجود', robots: { index: false } };
   // Price first: it is what people search with ("سعر اير فورس").
   // One line: the owner's descriptions have line breaks, which search results
   // and link previews show badly.
@@ -65,8 +65,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ProductPage({ params }: Props) {
   const [item, config, catalog, categories] = await Promise.all([fetchProduct(params.id), fetchStoreConfig(), fetchCatalog(), fetchCategories()]);
-  if (!item || !item.listed) notFound();
+  // A sold-out product keeps its page (and its place in Google) until it is back.
+  if (!item || !(item.listed || item.soldOut)) notFound();
   const category = categoryById(categories, item.category);
+  const soldOut = !item.listed;
 
   // Same department, closest in price first: "ممكن يعجبك" should be affordable alternatives.
   const related = catalog
@@ -98,7 +100,9 @@ export default async function ProductPage({ params }: Props) {
             {item.badge ? (
               <span className="rounded-[3px] bg-spot px-2.5 py-1 font-display text-[0.86rem] font-black text-on-spot">{item.badge}</span>
             ) : null}
-            {fresh ? (
+            {soldOut ? (
+              <span className="rounded-[3px] bg-fg px-2.5 py-1 font-display text-[0.86rem] font-black text-page">خلص</span>
+            ) : fresh ? (
               <span className="rounded-[3px] bg-surface px-2.5 py-1 font-display text-[0.86rem] font-black">وصل جديد</span>
             ) : null}
           </div>
@@ -118,6 +122,11 @@ export default async function ProductPage({ params }: Props) {
           </p>
 
           <div className="mt-6">
+            {soldOut ? (
+              <p className="mb-4 rounded-card bg-sunken px-4 py-3 text-[0.95rem] font-bold leading-relaxed">
+                الموديل ده خلص هسع. اضغط على مقاسك ونرسل ليك واتساب أول ما يرجع — أو شوف البدائل تحت.
+              </p>
+            ) : null}
             <ProductBuy
               item={item}
               whatsapp={config.whatsapp}

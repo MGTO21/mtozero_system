@@ -77,6 +77,10 @@ export function toCatalog(p: Product): Omit<CatalogItem, 'id'> {
     hdHash: p.hdHash ?? '',
     // Only written when set, so adding the flag did not rewrite every catalog document.
     ...(p.socialExclude ? { socialExclude: true } : {}),
+    // Shown on the store but every size sold: the product page stays up (marked
+    // out of stock, with «نبّهني») instead of turning into a 404 that loses its
+    // place in Google until the next delivery.
+    ...(!p.isArchived && p.onStore !== false && hasPicture && totalStock(p) <= 0 ? { soldOut: true } : {}),
   };
 }
 
@@ -105,6 +109,7 @@ function normalize(item: Omit<CatalogItem, 'id'>) {
     gallery: item.gallery,
     hdHash: item.hdHash,
     socialExclude: item.socialExclude === true,
+    soldOut: item.soldOut === true,
   };
 }
 

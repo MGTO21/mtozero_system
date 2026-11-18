@@ -44,6 +44,7 @@ export function mapCatalog(id: string, raw: Record<string, unknown>): CatalogIte
     gallery: mapGallery(raw.gallery),
     hdHash: typeof raw.hdHash === 'string' ? raw.hdHash : '',
     socialExclude: raw.socialExclude === true,
+    soldOut: raw.soldOut === true,
   };
 }
 

@@ -205,6 +205,8 @@ export interface CatalogItem {
   hdHash: string;
   /** The owner kept this product out of the daily Facebook post. Absent = allowed. */
   socialExclude?: boolean;
+  /** On the store, but every size sold out: its page stays up, marked out of stock. */
+  soldOut?: boolean;
 }
 
 /** The two looks of the public website. */
