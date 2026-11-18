@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { HeroSlider } from '@/components/store/HeroSlider';
@@ -12,7 +13,23 @@ import { productHdPath } from '@/lib/store/paths';
 import { fetchCatalog, fetchCategories, fetchOffers, fetchStoreConfig, STORE_REVALIDATE, type PublicOffer } from '@/lib/store/server';
 
 export const revalidate = STORE_REVALIDATE;
-export const metadata = { alternates: { canonical: '/' } };
+/** A category cover is tile-sized: ask /img for the 640 px copy (only our own pictures take ?w). */
+function tileWidth(src: string): string {
+  return src.startsWith('/img/') ? `${src}&w=640` : src;
+}
+
+/**
+ * The home page's title says what people search for — shoes and clothes in
+ * El Obeid, delivered, pay on delivery — instead of the brand slogan
+ * ("لبس يشبهك"), which nobody types into Google.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const config = await fetchStoreConfig();
+  return {
+    title: { absolute: `${config.shopName} | أحذية وملابس في الأبيض — توصيل والدفع عند الاستلام` },
+    alternates: { canonical: '/' },
+  };
+}
 
 /**
  * The storefront, assembled from the blocks the owner arranged in
@@ -179,7 +196,7 @@ function Departments({ catalog, categories }: { catalog: CatalogItem[]; categori
             >
               {cover ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={productHdPath(cover)} alt="" loading="lazy" className="tile-img h-full w-full object-cover" />
+                <img src={tileWidth(productHdPath(cover))} alt={c.name} loading="lazy" className="tile-img h-full w-full object-cover" />
               ) : null}
               <span className="absolute inset-x-3 bottom-3 flex items-center justify-between gap-2 rounded-card bg-surface px-4 py-3 sm:inset-x-5 sm:bottom-5">
                 <span className="min-w-0">
