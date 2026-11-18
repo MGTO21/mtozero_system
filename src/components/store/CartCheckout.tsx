@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 import { Button, Stepper } from '@/components/ui/Button';
 import { IconTrash, IconWhatsApp } from '@/components/ui/Icons';
 import { errorMessage } from '@/lib/db/collections';
-import { deliveryFeeFor, orderWhatsappText, placeOrder } from '@/lib/db/store';
+import { deliveryFeeFor, OrderNotSentError, orderWhatsappText, placeOrder } from '@/lib/db/store';
 import { money } from '@/lib/format';
 import { cartSubtotal, clearCart, setCartQty, useCart } from '@/lib/store/cart';
 import type { StoreConfig, StoreOrder } from '@/lib/types';
@@ -27,6 +27,8 @@ export function CartCheckout({ config }: { config: StoreConfig }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [placed, setPlaced] = useState<StoreOrder | null>(null);
+  /** An order that never reached the server — still sendable over WhatsApp. */
+  const [unsent, setUnsent] = useState<StoreOrder | null>(null);
 
   // Returning customers do not type their details twice.
   useEffect(() => {
@@ -45,8 +47,11 @@ export function CartCheckout({ config }: { config: StoreConfig }) {
   const patch = (p: Partial<typeof form>) => setForm((f) => ({ ...f, ...p }));
 
   async function submit() {
+    if (busy) return;
     setBusy(true);
     setError(null);
+    const retryOf = unsent?.id;
+    setUnsent(null);
     try {
       const order = await placeOrder(
         {
@@ -56,6 +61,7 @@ export function CartCheckout({ config }: { config: StoreConfig }) {
           customer: { name: form.name, phone: form.phone, area: form.area, address: form.address, notes: form.notes },
         },
         config,
+        retryOf,
       );
       try {
         window.localStorage.setItem(
@@ -76,6 +82,7 @@ export function CartCheckout({ config }: { config: StoreConfig }) {
       // The confirmation screen stays behind it with a button to send again.
       if (config.whatsapp) window.location.assign(waUrl);
     } catch (err) {
+      if (err instanceof OrderNotSentError) setUnsent(err.draft);
       setError(errorMessage(err, 'ما قدرنا نرسل الطلب.'));
     } finally {
       setBusy(false);
@@ -239,6 +246,21 @@ export function CartCheckout({ config }: { config: StoreConfig }) {
           </dl>
 
           {error ? <p className="rounded-card bg-bad/10 px-3 py-2 text-[0.9rem] font-bold text-bad">{error}</p> : null}
+          {unsent && config.whatsapp ? (
+            <div className="space-y-2 rounded-card border border-good/40 bg-good/5 p-3">
+              <p className="text-[0.88rem] font-bold">ما تشيل هم — أرسل طلبك واتساب مباشرة، وبنسجّلو ليك من الرسالة.</p>
+              <a
+                href={`https://wa.me/${config.whatsapp}?text=${encodeURIComponent(orderWhatsappText(unsent, ''))}`}
+                className="press inline-flex h-12 w-full items-center justify-center gap-2 rounded-card bg-good font-display font-black text-white"
+              >
+                <IconWhatsApp className="h-5 w-5" />
+                أرسل الطلب واتساب
+              </a>
+              <button type="button" onClick={() => void submit()} className="block w-full text-center text-[0.85rem] font-bold text-fg-2 underline">
+                أو جرّب ترسلو من الموقع تاني
+              </button>
+            </div>
+          ) : null}
           {!config.acceptingOrders ? (
             <p className="rounded-card bg-warn/10 px-3 py-2 text-[0.9rem] font-bold text-warn">الطلبات متوقفة مؤقتاً — تواصل معانا واتساب.</p>
           ) : null}

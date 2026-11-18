@@ -143,9 +143,18 @@ export function parseDateKey(key: string): Date | null {
 }
 
 /** Normalizes 09xxxxxxxx / +2499xxxxxxxx into a wa.me-compatible number. */
+/**
+ * Arabic-Indic (٠-٩) and Persian (۰-۹) digits to ASCII. Arabic phone keyboards
+ * type these by default; stripping them as "not digits" turned a valid number
+ * into nothing and the website refused the order.
+ */
+export function asciiDigits(text: string): string {
+  return text.replace(/[٠-٩۰-۹]/g, (d) => String((d.charCodeAt(0) & 0xf) % 10));
+}
+
 export function whatsappNumber(phone: string | undefined | null): string | null {
   if (!phone) return null;
-  const digits = phone.replace(/\D/g, '');
+  const digits = asciiDigits(phone).replace(/\D/g, '');
   if (!digits) return null;
   if (digits.startsWith('249')) return digits;
   if (digits.startsWith('0')) return `249${digits.slice(1)}`;

@@ -128,6 +128,45 @@ export async function recentPosts(sinceMs: number): Promise<SocialPost[]> {
   });
 }
 
+type Encoded =
+  | { nullValue: null }
+  | { booleanValue: boolean }
+  | { integerValue: string }
+  | { doubleValue: number }
+  | { stringValue: string }
+  | { timestampValue: string }
+  | { arrayValue: { values: Encoded[] } }
+  | { mapValue: { fields: Record<string, Encoded> } };
+
+/** Plain JS → Firestore REST value. A Date becomes a timestamp. */
+function encode(value: unknown): Encoded {
+  if (value === null || value === undefined) return { nullValue: null };
+  if (value instanceof Date) return { timestampValue: value.toISOString() };
+  if (typeof value === 'boolean') return { booleanValue: value };
+  if (typeof value === 'number') return Number.isInteger(value) ? { integerValue: String(value) } : { doubleValue: value };
+  if (typeof value === 'string') return { stringValue: value };
+  if (Array.isArray(value)) return { arrayValue: { values: value.map(encode) } };
+  return { mapValue: { fields: encodeFields(value as Record<string, unknown>) } };
+}
+
+function encodeFields(data: Record<string, unknown>): Record<string, Encoded> {
+  return Object.fromEntries(Object.entries(data).map(([k, v]) => [k, encode(v)]));
+}
+
+/**
+ * Creates collection/{id}, or reports that it already exists. The caller picks
+ * the id, so a retried request lands on the same document instead of a copy.
+ */
+export async function createDocument(collection: string, id: string, data: Record<string, unknown>): Promise<'created' | 'exists'> {
+  const res = await authed(`/${collection}?documentId=${encodeURIComponent(id)}`, {
+    method: 'POST',
+    body: JSON.stringify({ fields: encodeFields(data) }),
+  });
+  if (res.status === 409) return 'exists';
+  if (!res.ok) throw new Error(`${collection} create failed: ${res.status} ${(await res.text()).slice(0, 200)}`);
+  return 'created';
+}
+
 /** Records a post that went out. Returns the new document id. */
 export async function recordPost(post: Omit<SocialPost, 'postedAtMs'>): Promise<string> {
   const res = await authed('/socialPosts', {

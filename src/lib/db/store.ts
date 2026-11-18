@@ -33,6 +33,7 @@ import {
 } from '@/lib/types';
 import { makeThumbnail } from '@/lib/image';
 import { hashString, mapCatalog, mapStoreConfig, safeHref } from '@/lib/store/model';
+import { cleanCustomer, deliveryFeeFor, newOrderId, type OrderRequest } from '@/lib/store/order-model';
 import { AppError, COL } from './collections';
 import { logActivity } from './activity';
 import { totalStock, useServerProducts } from './products';
@@ -327,11 +328,7 @@ export async function clearBannerImage(bannerId: string): Promise<void> {
 }
 
 /** Delivery charge for a basket, by the store's rule. */
-export function deliveryFeeFor(config: StoreConfig, subtotal: number, fulfilment: 'delivery' | 'pickup'): number {
-  if (fulfilment === 'pickup') return 0;
-  if (config.freeDeliveryOver > 0 && subtotal >= config.freeDeliveryOver) return 0;
-  return config.deliveryFee;
-}
+export { deliveryFeeFor } from '@/lib/store/order-model';
 
 /* ---------- orders ---------- */
 
@@ -370,47 +367,92 @@ export interface OrderInput {
 }
 
 /**
- * Places an order from the website. The visitor is not signed in; the rules
- * accept a new order only in a strict shape. Prices are what the customer saw —
- * the shop confirms against current stock and prices before delivering.
+ * The order could not reach the server at all (no network, request kept timing
+ * out). It carries the order as the customer filled it, so the cart can still
+ * hand it to the shop over WhatsApp — a sale is never lost to a weak connection.
  */
-export async function placeOrder(input: OrderInput, config: StoreConfig): Promise<StoreOrder> {
+export class OrderNotSentError extends AppError {
+  constructor(public readonly draft: StoreOrder) {
+    super('الشبكة ضعيفة وما قدرنا نحفظ الطلب في الموقع.');
+    this.name = 'OrderNotSentError';
+  }
+}
+
+const ATTEMPT_TIMEOUT_MS = 20000;
+const ATTEMPTS = 3;
+
+/**
+ * Places an order from the website through /api/orders (see that route for
+ * why). Checks the form here first so the customer hears about a missing name
+ * at once, then sends with retries — the same order id every time, so the
+ * server never stores the order twice.
+ */
+export async function placeOrder(input: OrderInput, config: StoreConfig, retryOf?: string): Promise<StoreOrder> {
   if (!config.acceptingOrders) throw new AppError('الطلبات متوقفة مؤقتاً — تواصل معنا واتساب.');
   if (input.items.length === 0) throw new AppError('السلة فاضية.');
-  if (input.customer.name.trim().length < 2) throw new AppError('اكتب اسمك.');
-  const phone = whatsappNumber(input.customer.phone);
-  if (!phone || phone.length < 12) throw new AppError('اكتب رقم هاتف صحيح عشان نتواصل معاك.');
-  if (input.fulfilment === 'delivery' && input.customer.address.trim().length < 4)
-    throw new AppError('اكتب عنوان التوصيل بالتفصيل.');
+  let customer: StoreOrder['customer'];
+  try {
+    customer = cleanCustomer(input.customer, input.fulfilment);
+  } catch (err) {
+    throw new AppError(err instanceof Error ? err.message : 'راجع بياناتك.');
+  }
 
-  const subtotal = input.items.reduce((sum, i) => sum + i.price * i.qty, 0);
-  const deliveryFee = deliveryFeeFor(config, subtotal, input.fulfilment);
-  const ref = doc(collection(db(), COL.orders));
-  const order = {
-    number: invoiceNumber(ref.id),
-    status: 'new' as const,
-    items: input.items.map((i) => ({ ...i, qty: Math.floor(i.qty) })),
-    subtotal,
-    deliveryFee,
-    total: subtotal + deliveryFee,
-    promoCode: input.promoCode.trim().toUpperCase(),
+  // Trying again after a failure keeps the same id: if an earlier attempt did
+  // reach the server, this one finds it instead of saving the order twice.
+  const id = retryOf ?? newOrderId();
+  const request: OrderRequest = {
+    id,
+    items: input.items.map((i) => ({ productId: i.productId, size: i.size, qty: i.qty })),
     fulfilment: input.fulfilment,
-    customer: {
-      name: input.customer.name.trim().slice(0, 80),
-      phone,
-      area: input.customer.area.trim().slice(0, 80),
-      address: input.customer.address.trim().slice(0, 300),
-      notes: input.customer.notes.trim().slice(0, 300),
-    },
-    createdAt: serverTimestamp(),
+    promoCode: input.promoCode,
+    customer,
   };
 
-  try {
-    await withTimeout(setDoc(ref, order), 15000);
-  } catch {
-    throw new AppError('ما قدرنا نرسل الطلب — اتأكد من الشبكة وجرّب تاني.');
+  for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), ATTEMPT_TIMEOUT_MS);
+    try {
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(request),
+        signal: controller.signal,
+      });
+      const body = (await res.json().catch(() => ({}))) as Record<string, unknown>;
+      // The server read the order and said no (a size sold out, a bad phone):
+      // retrying will not change that, so tell the customer exactly why.
+      if (res.status === 422 || res.status === 400) throw new AppError(String(body.error ?? 'راجع الطلب.'));
+      if (res.ok) {
+        return mapOrder(id, { ...body, createdAt: Timestamp.fromMillis(Number(body.createdAtMs) || Date.now()) });
+      }
+      // 5xx: the server could not save — try again.
+    } catch (err) {
+      if (err instanceof AppError) throw err;
+      // Network error or timeout — try again.
+    } finally {
+      clearTimeout(timer);
+    }
+    if (attempt < ATTEMPTS) await new Promise((r) => setTimeout(r, 1500 * attempt));
   }
-  return mapOrder(ref.id, { ...order, createdAt: Timestamp.now() });
+
+  // Never reached the server: give the cart what it needs to send it over WhatsApp.
+  const items = input.items.map((i) => ({ ...i, qty: Math.floor(i.qty) }));
+  const subtotal = items.reduce((sum, i) => sum + i.price * i.qty, 0);
+  const deliveryFee = deliveryFeeFor(config, subtotal, input.fulfilment);
+  throw new OrderNotSentError(
+    mapOrder(id, {
+      number: invoiceNumber(id),
+      status: 'new',
+      items,
+      subtotal,
+      deliveryFee,
+      total: subtotal + deliveryFee,
+      promoCode: input.promoCode.trim().toUpperCase(),
+      fulfilment: input.fulfilment,
+      customer,
+      createdAt: Timestamp.now(),
+    }),
+  );
 }
 
 /** The WhatsApp message the customer sends the shop, with every detail. */
@@ -431,7 +473,9 @@ export function orderWhatsappText(order: StoreOrder, trackUrl: string): string {
     lines.push('الاستلام: من المحل');
   }
   if (order.customer.notes) lines.push(`ملاحظات: ${order.customer.notes}`);
-  lines.push('', `تتبع الطلب: ${trackUrl}`);
+  // No link means the order never reached the site (weak network): the shop
+  // reads it here and enters it by hand.
+  lines.push('', trackUrl ? `تتبع الطلب: ${trackUrl}` : '(الطلب ما اتحفظ في الموقع بسبب الشبكة — سجّلوه من الرسالة دي)');
   return lines.join('\n');
 }
 
